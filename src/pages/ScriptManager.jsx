@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ExternalLink, CheckCircle, ShieldCheck, Zap, Calculator, Phone } from 'lucide-react';
+import { ExternalLink, CheckCircle, ShieldCheck, Zap, Calculator, Phone, Rocket, AlertCircle, Globe } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
 
@@ -7,11 +7,37 @@ const ScriptManager = ({ storeId, apiBase }) => {
   const [enabled, setEnabled] = useState(true);
   const [whatsapp, setWhatsapp] = useState('5511999999999');
   const [loading, setLoading] = useState(false);
+  const [activating, setActivating] = useState(false);
+  const [scriptStatus, setScriptStatus] = useState(null); // { success, scriptUrl, error }
 
   // Inicia o fluxo de instalação nativa (OAuth)
   const handleConnectApp = () => {
     const installUrl = `${apiBase}/api/auth/install`;
     window.location.href = installUrl;
+  };
+
+  // Salva configurações E ativa o script na loja real
+  const handleActivateOnStore = async () => {
+    setActivating(true);
+    setScriptStatus(null);
+    try {
+      // Passo 1: Salva as configurações (whatsapp, enabled)
+      await axios.post(`${apiBase}/api/store-script-settings`, { enabled, whatsapp }, {
+        headers: { 'x-store-id': storeId }
+      });
+      // Passo 2: Injeta o script na loja via API Nuvemshop
+      const resp = await axios.post(`${apiBase}/api/store-script`, {}, {
+        headers: { 'x-store-id': storeId }
+      });
+      setScriptStatus({ success: true, scriptUrl: resp.data.scriptUrl });
+      toast.success('🚀 Calculadora ativada na loja!');
+    } catch (error) {
+      const msg = error.response?.data?.error || error.message;
+      setScriptStatus({ success: false, error: msg });
+      toast.error('Erro ao ativar na loja. Veja detalhes abaixo.');
+    } finally {
+      setActivating(false);
+    }
   };
 
   const handleSaveSettings = async () => {
@@ -96,11 +122,49 @@ const ScriptManager = ({ storeId, apiBase }) => {
 
             <button
               onClick={handleSaveSettings}
-              disabled={loading}
+              disabled={loading || activating}
               className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-black rounded-2xl transition-all shadow-lg shadow-emerald-900/20"
             >
               {loading ? 'SALVANDO...' : 'SALVAR NA NUVEM'}
             </button>
+
+            {/* Botão principal: Ativar na Loja Real */}
+            <button
+              onClick={handleActivateOnStore}
+              disabled={loading || activating || !storeId}
+              className="w-full py-4 bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-500 hover:to-violet-500 disabled:opacity-40 text-white font-black rounded-2xl transition-all shadow-lg shadow-blue-900/30 flex items-center justify-center gap-2"
+            >
+              <Rocket className="w-5 h-5" />
+              {activating ? 'ATIVANDO...' : 'ATIVAR NA LOJA'}
+            </button>
+
+            {/* Feedback de status */}
+            {scriptStatus && (
+              <div className={`p-4 rounded-2xl border text-sm font-medium ${
+                scriptStatus.success
+                  ? 'bg-emerald-900/20 border-emerald-500/30 text-emerald-300'
+                  : 'bg-red-900/20 border-red-500/30 text-red-300'
+              }`}>
+                {scriptStatus.success ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                      <span>Calculadora ativa na sua loja!</span>
+                    </div>
+                    <a href={scriptStatus.scriptUrl} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center gap-1 text-blue-400 underline text-xs break-all">
+                      <Globe className="w-3 h-3 flex-shrink-0" />
+                      {scriptStatus.scriptUrl}
+                    </a>
+                  </div>
+                ) : (
+                  <div className="flex items-start gap-2">
+                    <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+                    <span className="break-all">{scriptStatus.error}</span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
