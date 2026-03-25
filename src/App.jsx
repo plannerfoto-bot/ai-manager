@@ -10,8 +10,40 @@ import Orders from './pages/Orders';
 import BulkUpload from './pages/BulkUpload';
 import ScriptManager from './pages/ScriptManager';
 
+// ─── Componentes Auxiliares Fora da Função Principal ───────────────────
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error, errorInfo) {
+    console.error("Erro pego pelo ErrorBoundary:", error, errorInfo);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="p-8 text-red-500 font-mono text-sm bg-slate-950 h-screen overflow-auto">
+          <h2 className="text-xl font-bold mb-4">CRASH DO REACT</h2>
+          <div className="bg-red-950/30 p-4 border border-red-900 rounded-lg">
+            <p className="font-bold mb-2">{this.state.error?.toString()}</p>
+            <pre className="whitespace-pre-wrap opacity-70">
+              {this.state.error?.stack}
+            </pre>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 const App = () => {
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState(() => {
+    try { return localStorage.getItem('activeTab') || 'dashboard'; } catch { return 'dashboard'; }
+  });
   const [productList, setProductList] = useState({ products: [], total: 0, page: 1 });
   const [stats, setStats] = useState({});
   const [loading, setLoading] = useState(false);
@@ -19,11 +51,16 @@ const App = () => {
     try { return localStorage.getItem('calculatorEnabled') === 'true'; } catch { return false; }
   });
 
+  // URL Dinâmica para API
+  const API_BASE_URL = window.location.hostname === 'localhost' 
+    ? 'http://localhost:3001' 
+    : 'https://ai-manager-nuvemshop.onrender.com';
+
   const fetchData = async (page = 1, searchQuery = '') => {
     setLoading(true);
     try {
-      const statsReq = axios.get('http://localhost:3001/api/stats');
-      const prodReq = axios.get(`http://localhost:3001/api/products?page=${page}&q=${searchQuery}`);
+      const statsReq = axios.get(`${API_BASE_URL}/api/stats`);
+      const prodReq = axios.get(`${API_BASE_URL}/api/products?page=${page}&q=${searchQuery}`);
       
       const [statsRes, prodRes] = await Promise.all([statsReq, prodReq]);
       
@@ -45,10 +82,14 @@ const App = () => {
     try { localStorage.setItem('calculatorEnabled', calculatorEnabled); } catch {}
   }, [calculatorEnabled]);
 
+  useEffect(() => {
+    try { localStorage.setItem('activeTab', activeTab); } catch {}
+  }, [activeTab]);
+
   const handleDelete = async (id) => {
     if (!window.confirm('Tem certeza que deseja excluir este produto?')) return;
     try {
-      await axios.delete(`http://localhost:3001/api/products/${id}`);
+      await axios.delete(`${API_BASE_URL}/api/products/${id}`);
       toast.success('Produto removido!');
       fetchData();
     } catch (error) {
@@ -59,7 +100,7 @@ const App = () => {
   const handleGenerateAI = async (concept, visual) => {
     setLoading(true);
     try {
-      const res = await axios.post('http://localhost:3001/api/ai/generate', { concept, visualAnalysis: visual });
+      const res = await axios.post(`${API_BASE_URL}/api/ai/generate`, { concept, visualAnalysis: visual });
       return res.data;
     } catch (error) {
       toast.error('Erro na geração com IA');
@@ -70,7 +111,7 @@ const App = () => {
 
   const handleSaveProduct = async (product) => {
     try {
-      await axios.post('http://localhost:3001/api/products', {
+      await axios.post(`${API_BASE_URL}/api/products`, {
         ...product,
         stock: 10
       });
@@ -111,35 +152,6 @@ const App = () => {
     }
   };
 
-class ErrorBoundary extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = { hasError: false, error: null };
-  }
-  static getDerivedStateFromError(error) {
-    return { hasError: true, error };
-  }
-  componentDidCatch(error, errorInfo) {
-    console.error("Erro pego pelo ErrorBoundary:", error, errorInfo);
-  }
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div className="p-8 text-red-500 font-mono text-sm bg-slate-950 h-screen overflow-auto">
-          <h2 className="text-xl font-bold mb-4">CRASH DO REACT</h2>
-          <div className="bg-red-950/30 p-4 border border-red-900 rounded-lg">
-            <p className="font-bold mb-2">{this.state.error?.toString()}</p>
-            <pre className="whitespace-pre-wrap opacity-70">
-              {this.state.error?.stack}
-            </pre>
-          </div>
-        </div>
-      );
-    }
-    return this.props.children;
-  }
-}
-
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200">
       <Toaster position="top-right" />
@@ -149,6 +161,7 @@ class ErrorBoundary extends React.Component {
         {/* ── Toggle da Calculadora ── */}
         <div className="max-w-7xl mx-auto mb-6">
           <button
+            type="button"
             onClick={() => setCalculatorEnabled(v => !v)}
             className={`flex items-center gap-3 px-5 py-3 rounded-2xl border font-bold text-sm transition-all duration-300 shadow-lg ${
               calculatorEnabled

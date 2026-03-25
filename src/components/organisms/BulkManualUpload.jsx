@@ -65,7 +65,7 @@ const BulkManualUpload = ({ onComplete, initialData = null }) => {
         commonData: initialData ? null : commonData
       };
 
-      const response = await axios.post('http://localhost:3001/api/products/bulk-create-manual', payload);
+      const response = await axios.post('https://ai-manager-nuvemshop.onrender.com/api/products/bulk-create-manual', payload);
 
       if (response.data.success) {
         setStatus('success');

@@ -13,7 +13,7 @@ const Orders = () => {
 
   const fetchOrders = async () => {
     try {
-      const res = await axios.get('http://localhost:3001/api/orders');
+      const res = await axios.get('https://ai-manager-nuvemshop.onrender.com/api/orders');
       setOrders(res.data);
     } catch (error) {
       console.error('Erro ao buscar pedidos');

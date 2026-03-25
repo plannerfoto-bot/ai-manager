@@ -1,11 +1,16 @@
-const express = require('express');
-const axios = require('axios');
-const path = require('path');
-const fs = require('fs');
-const cors = require('cors');
+import express from 'express';
+import axios from 'axios';
+import path from 'path';
+import fs from 'fs';
+import cors from 'cors';
+import { fileURLToPath } from 'url';
+import dotenv from 'dotenv';
+import os from 'os';
 
-// Lê o arquivo .env (da raiz ou onde quer que esteja durante o deploy real)
-require('dotenv').config({ path: fs.existsSync('../nuvemshop-mcp/.env') ? '../nuvemshop-mcp/.env' : '.env' });
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+dotenv.config({ path: fs.existsSync('../nuvemshop-mcp/.env') ? '../nuvemshop-mcp/.env' : '.env' });
 
 const app = express();
 app.use(cors());
@@ -256,7 +261,9 @@ app.post('/api/products/bulk-create-manual', async (req, res) => {
 // Como estamos migrando para Hospedagem Nuvem (Render/Vercel), a nuvemshop
 // precisará de uma URL pública para baixar o JS na máquina do visitante!
 
-const SETTINGS_FILE = path.join(__dirname, 'script_settings.json');
+// Salvar na pasta temporária do SO para escapar do watcher do Vite.
+// Evita o recarregamento "fantasma" que estava cancelando a operação de POST na interface.
+const SETTINGS_FILE = path.join(os.tmpdir(), 'aiox_script_settings.json');
 
 // Função auxiliar para gerenciar estado
 function getScriptSettings() {
@@ -265,10 +272,14 @@ function getScriptSettings() {
       return JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf-8'));
     }
   } catch(e) {}
-  return { enabled: true, whatsapp: '5500000000000' };
+  return { enabled: true, whatsapp: '5511999999999' };
 }
 function saveScriptSettings(settings) {
-  fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2), 'utf-8');
+  try {
+    fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2), 'utf-8');
+  } catch(e) {
+    console.error("Erro ao salvar settings:", e);
+  }
 }
 
 // 1. ENDPOINT PÚBLICO: Onde a Loja Baixará o Código (JS Puro)
@@ -325,30 +336,51 @@ app.post('/api/store-script-settings', (req, res) => {
 app.post('/api/store-script', async (req, res) => {
   // ATIVA NA NUVEMSHOP A URL DINÂMICA
   try {
-    // URL Pública base do Render/Vercel (pega do Host Dinâmico que enviou o req, ou localmente)
-    const publicHost = req.headers.host.includes('localhost') 
-      ? 'https://seusite-render.onrender.com' // Dummy, não funciona offline
-      : `https://${req.headers.host}`;
+    // Detecta se estamos rodando em ambiente local (localhost ou IP local)
+    const isLocal = req.headers.host.includes('localhost') || 
+                   req.headers.host.includes('127.0.0.1') || 
+                   req.headers.host.includes('::1');
+    
+    // URL Pública base do Render (sempre injetar a pública na loja, mesmo testando local)
+    const publicUrl = process.env.PUBLIC_URL || 'https://ai-manager-nuvemshop.onrender.com';
       
-    const scriptSrc = `${publicHost}/api/script.js`;
+    // Se não for local, podemos tentar usar o host atual (como Render/Vercel)
+    const finalUrl = isLocal ? publicUrl : `https://${req.headers.host}`;
+    const scriptSrc = `${finalUrl}/api/script.js`;
+    
+    console.log(`[Sync] Tentando injetar script: ${scriptSrc} na loja ${STORE_ID}`);
 
     // 1. Limpa anterior se existir
     const getRes = await apiClient.get('/scripts');
     const scriptsList = Array.isArray(getRes.data) ? getRes.data : [];
     const myScript = scriptsList.find(s => s.name === 'Calculadora_Cloth_Sublimacao');
     if (myScript) {
-       await apiClient.delete('/scripts/' + myScript.id);
+       console.log("[Sync] Script antigo encontrado! Tentando deletar. ID:", myScript.id);
+       try {
+           await apiClient.delete('/scripts/' + myScript.id);
+           console.log("[Sync] Deletado com sucesso.");
+       } catch (err) {
+           console.error("[Sync] Erro ao deletar o script antigo:", err.response?.data || err.message);
+       }
+    } else {
+       console.log("[Sync] Nenhum script antigo encontrado com este nome.");
     }
 
     // 2. Cria referenciando a nova URL na nuvem!
-    const response = await apiClient.post('/scripts', {
-      src: scriptSrc,
-      event: 'onload',
-      where: 'store',
-      name: 'Calculadora_Cloth_Sublimacao'
-    });
-    
-    res.json({ success: true, script: response.data, scriptUrl: scriptSrc });
+    console.log("[Sync] Criando script com src:", scriptSrc);
+    try {
+        const response = await apiClient.post('/scripts', {
+          src: scriptSrc,
+          event: 'onload',
+          where: 'store',
+          name: 'Calculadora_Cloth_Sublimacao'
+        });
+        console.log("[Sync] Script criado com sucesso:", response.data.id);
+        res.json({ success: true, script: response.data, scriptUrl: scriptSrc });
+    } catch (err) {
+        console.error("[Sync] Erro ao criar o script novo:", err.response?.data || err.message);
+        throw err;
+    }
   } catch (error) {
     console.error('Erro POST store-script Cloud:', error.response?.data || error.message);
     res.status(500).json({ error: error.message });

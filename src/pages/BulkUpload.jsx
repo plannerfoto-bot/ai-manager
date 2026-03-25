@@ -15,7 +15,7 @@ const BulkUpload = ({ onSaveAll }) => {
     setLoading(true);
     
     try {
-      const res = await axios.post('http://localhost:3001/api/ai/bulk-process', { concepts });
+      const res = await axios.post('https://ai-manager-nuvemshop.onrender.com/api/ai/bulk-process', { concepts });
       setProcessedItems(res.data);
       toast.success(`${res.data.length} produtos processados por IA!`);
     } catch (error) {
