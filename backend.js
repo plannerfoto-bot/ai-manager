@@ -265,7 +265,7 @@ app.post('/api/create-variant', async (req, res) => {
       finalPrice = (((max * 2) * factor) + 15.00) * 1.80;
     }
     
-    const variantName = `${w.toFixed(2).replace('.', ',')}m x ${h.toFixed(2).replace('.', ',')}m - ${gramatura}`;
+    const measureStr = `${w.toFixed(2).replace('.', ',')}m x ${h.toFixed(2).replace('.', ',')}m`;
     const priceStr = finalPrice.toFixed(2);
     
     // 1. Busca o produto
@@ -275,28 +275,45 @@ app.post('/api/create-variant', async (req, res) => {
     // 2. Ajusta atributos (se for vazio, Nuvemshop recusa variações sem key)
     let attributes = product.attributes || [];
     if (attributes.length === 0) {
-      attributes = [{ pt: "Medida Personalizada" }];
+      attributes = [{ pt: "Tamanho" }, { pt: "Gramatura" }];
       await client.put(`/products/${productId}`, { attributes });
     }
     
-    // 3. Montar values da nova variante para ficar compatível com as features matrizes
+    // 3. Montar values da nova variante mapeando inteligentemente de acordo com os nomes dos atributos
     let baseVariant = product.variants && product.variants.length > 0 ? product.variants[0] : null;
     let newValues = attributes.map((attr, idx) => {
-      if (idx === 0) return { pt: variantName };
+      let attrName = (attr.pt || attr.es || attr.en || "").toLowerCase();
+      
+      if (attrName.includes('gramatura') || attrName.includes('tecido') || attrName.includes('material')) {
+         return { pt: gramatura };
+      }
+      if (attrName.includes('tamanho') || attrName.includes('medida') || attrName.includes('dimens')) {
+         return { pt: measureStr };
+      }
+      
+      // Fallback posicional natural
+      if (idx === 0) return { pt: measureStr };
+      if (idx === 1) return { pt: gramatura };
+      
       return baseVariant && baseVariant.values && baseVariant.values[idx] 
         ? baseVariant.values[idx] 
         : { pt: "-" };
     });
     
-    // 4. Procura variante exata já existente
-    const existing = product.variants.find(v => v.values && v.values[0] && v.values[0].pt === variantName);
+    // 4. Procura variante exata já existente cruzando os values
+    const existing = product.variants.find(v => {
+      if (!v.values || v.values.length !== newValues.length) return false;
+      return newValues.every((nv, i) => v.values[i] && v.values[i].pt === nv.pt);
+    });
+
     if (existing) {
        return res.json({ success: true, variant_id: existing.id, price: priceStr });
     }
     
     // 5. Limite de variantes (100) -> Limpar se bater 80
     if (product.variants.length > 80) {
-       const customVariants = product.variants.filter(v => v.values && v.values[0] && v.values[0].pt && v.values[0].pt.includes('m - '));
+       // Buscar variaveis customizadas criadas pela AI (identificadas pela regex de metros "X,XXm x Y,YYm")
+       const customVariants = product.variants.filter(v => v.values && v.values.some(val => val.pt && val.pt.match(/\d+,\d+m x \d+,\d+m/)));
        if (customVariants.length > 0) {
            const oldest = customVariants.reduce((prev, curr) => prev.id < curr.id ? prev : curr);
            await client.delete(`/products/${productId}/variants/${oldest.id}`);
