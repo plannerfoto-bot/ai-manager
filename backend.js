@@ -17,40 +17,155 @@ app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-const ACCESS_TOKEN = process.env.TIENDANUBE_ACCESS_TOKEN || process.env.NUVEMSHOP_ACCESS_TOKEN;
-const STORE_ID = process.env.TIENDANUBE_STORE_ID || process.env.NUVEMSHOP_STORE_ID;
+// --- CONFIGURAÇÕES DE APLICATIVO PARCEIRO (OAUTH) ---
+const APP_ID = process.env.NUVEMSHOP_APP_ID;
+const APP_SECRET = process.env.NUVEMSHOP_APP_SECRET;
+const PUBLIC_URL = process.env.PUBLIC_URL || 'https://ai-manager-nuvemshop.onrender.com';
+
+// Persistência de Tokens (Múltiplas Lojas)
+const STORES_FILE = path.join(__dirname, 'stores.json');
+
+function getStores() {
+  if (!fs.existsSync(STORES_FILE)) return {};
+  try {
+    return JSON.parse(fs.readFileSync(STORES_FILE, 'utf8'));
+  } catch (e) {
+    return {};
+  }
+}
+
+function saveStore(storeId, data) {
+  const stores = getStores();
+  stores[storeId] = { 
+    ...stores[storeId], 
+    ...data, 
+    updatedAt: new Date().toISOString() 
+  };
+  fs.writeFileSync(STORES_FILE, JSON.stringify(stores, null, 2));
+}
+
+// Token legado (para compatibilidade enquanto migramos)
+const DEFAULT_ACCESS_TOKEN = process.env.TIENDANUBE_ACCESS_TOKEN || process.env.NUVEMSHOP_ACCESS_TOKEN;
+const DEFAULT_STORE_ID = process.env.TIENDANUBE_STORE_ID || process.env.NUVEMSHOP_STORE_ID;
 const BASE_URL = process.env.TIENDANUBE_BASE_URL || "https://api.tiendanube.com/v1";
 
-const apiClient = axios.create({
-  baseURL: `${BASE_URL}/${STORE_ID}`,
-  headers: {
-    "X-Auth-Token": ACCESS_TOKEN,
-    "Authentication": ACCESS_TOKEN, // Sem "bearer" para tokens privados
-    "User-Agent": process.env.NUVEMSHOP_USER_AGENT || "ai-manager-bot (contato@suabrand.com)",
-    "Content-Type": "application/json",
-  },
-});
+// Helper: Criar cliente da API para uma loja específica
+function getApiClient(storeId = DEFAULT_STORE_ID) {
+  const stores = getStores();
+  const token = stores[storeId]?.access_token || DEFAULT_ACCESS_TOKEN;
+  
+  return axios.create({
+    baseURL: `${BASE_URL}/${storeId}`,
+    headers: {
+      "X-Auth-Token": token,
+      "Authentication": token,
+      "User-Agent": process.env.NUVEMSHOP_USER_AGENT || "ai-manager-bot (contato@suabrand.com)",
+      "Content-Type": "application/json",
+    },
+  });
+}
 
 // Endpoint de debug (Mascarado para segurança)
 app.get('/api/debug-env', (req, res) => {
   const mask = (str) => str ? `${str.substring(0, 4)}***${str.substring(str.length - 4)}` : 'MISSING';
+  const stores = getStores();
+  const defaultStore = stores[DEFAULT_STORE_ID] || {};
   res.json({
-    hasToken: !!ACCESS_TOKEN,
-    tokenMask: mask(ACCESS_TOKEN),
-    storeId: STORE_ID || 'MISSING',
-    nodeEnv: process.env.NODE_ENV || 'development',
-    publicUrl: process.env.PUBLIC_URL || 'DEFAULT_RENDER_URL'
+    hasAppId: !!APP_ID,
+    hasAppSecret: !!APP_SECRET,
+    storesCount: Object.keys(stores).length,
+    defaultStoreToken: mask(defaultStore.access_token),
+    defaultStoreId: DEFAULT_STORE_ID,
+    publicUrl: PUBLIC_URL
   });
+});
+
+// --- ROTAS DE AUTENTICAÇÃO OAUTH ---
+
+// 1. Rota de Instalação (Redireciona para Nuvemshop)
+app.get('/api/auth/install', (req, res) => {
+  if (!APP_ID) return res.status(500).send("Variável NUVEMSHOP_APP_ID não configurada.");
+  
+  const scopes = 'write_scripts,read_products,read_shipping';
+  const authUrl = `https://www.nuvemshop.com.br/apps/${APP_ID}/authorize?scope=${scopes}`;
+  
+  console.log("[OAuth] Iniciando instalação para:", authUrl);
+  res.redirect(authUrl);
+});
+
+// 2. Rota de Callback (Recebe o code e troca por token)
+app.get('/api/auth/callback', async (req, res) => {
+  const { code } = req.query;
+  if (!code) return res.status(400).send("Falta o parâmetro 'code'.");
+
+  try {
+    console.log("[OAuth] Trocando código por token...");
+    const response = await axios.post('https://www.tiendanube.com/apps/authorize/token', {
+      client_id: APP_ID,
+      client_secret: APP_SECRET,
+      grant_type: 'authorization_code',
+      code: code
+    });
+
+    const { access_token, user_id } = response.data;
+    console.log(`[OAuth] Sucesso! Loja ID: ${user_id}`);
+
+    // Salva na persistência
+    saveStore(user_id, { access_token });
+
+    // --- INSTALAÇÃO AUTOMÁTICA DO SCRIPT ---
+    const scriptSrc = `${PUBLIC_URL}/api/script.js`;
+    const tempClient = axios.create({
+      baseURL: `${BASE_URL}/${user_id}`,
+      headers: {
+        'X-Auth-Token': access_token,
+        'Authentication': access_token,
+        'Content-Type': 'application/json',
+        'User-Agent': `AI-Manager-Bot (${user_id})`
+      }
+    });
+
+    try {
+      await tempClient.post('/scripts', {
+        script: {
+          src: scriptSrc,
+          event: 'onload',
+          where: 'store'
+        }
+      });
+      console.log(`[OAuth] Script injetado automaticamente na loja ${user_id}`);
+    } catch (scriptErr) {
+      console.error("[OAuth] Falha ao injetar script pós-instalação:", scriptErr.response?.data || scriptErr.message);
+    }
+
+    res.send(`
+      <div style="background: #020617; color: white; font-family: sans-serif; height: 100vh; display: flex; align-items: center; justify-content: center; text-align: center;">
+        <div style="border: 1px solid #1e293b; padding: 40px; border-radius: 24px; background: #0f172a; max-width: 500px;">
+          <h1 style="color: #4ade80; font-size: 2.5rem; margin-bottom: 20px;">🎉 Sucesso!</h1>
+          <p style="font-size: 1.1rem; color: #94a3b8; line-height: 1.6;">
+            O <b>AI Manager</b> foi instalado com sucesso na sua loja <b>${user_id}</b>.
+          </p>
+          <p style="font-size: 0.9rem; color: #64748b; margin-top: 20px;">
+            A calculadora já deve estar ativa nos seus produtos.<br/>
+            Você pode fechar esta aba agora.
+          </p>
+        </div>
+      </div>
+    `);
+  } catch (error) {
+    console.error("[OAuth] Erro no callback:", error.response?.data || error.message);
+    res.status(500).json({ error: "Erro na autenticação", details: error.response?.data });
+  }
 });
 
 // Dashboard Stats
 app.get('/api/stats', async (req, res) => {
+  const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
+  const client = getApiClient(storeId);
   try {
-    // Para contar produtos de forma eficiente em lojas grandes (10k+), 
-    // pegamos o total dos headers da primeira página em vez de baixar tudo.
     const [prodRes, ordersRes] = await Promise.all([
-      apiClient.get('/products', { params: { per_page: 1 } }),
-      apiClient.get('/orders', { params: { per_page: 50, status: 'any' } })
+      client.get('/products', { params: { per_page: 1 } }),
+      client.get('/orders', { params: { per_page: 50, status: 'any' } })
     ]);
     
     const totalSales = ordersRes.data.reduce((acc, order) => acc + parseFloat(order.total || 0), 0);
@@ -70,8 +185,10 @@ app.get('/api/stats', async (req, res) => {
 
 // Vendas (Orders)
 app.get('/api/orders', async (req, res) => {
+  const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
+  const client = getApiClient(storeId);
   try {
-    const response = await apiClient.get('/orders', { params: { per_page: 50, status: 'any' } });
+    const response = await client.get('/orders', { params: { per_page: 50, status: 'any' } });
     res.json(response.data);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -79,8 +196,10 @@ app.get('/api/orders', async (req, res) => {
 });
 
 app.get('/api/orders/:id', async (req, res) => {
+  const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
+  const client = getApiClient(storeId);
   try {
-    const response = await apiClient.get(`/orders/${req.params.id}`);
+    const response = await client.get(`/orders/${req.params.id}`);
     res.json(response.data);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -89,12 +208,14 @@ app.get('/api/orders/:id', async (req, res) => {
 
 // Produtos (Products) com Paginação e Busca
 app.get('/api/products', async (req, res) => {
+  const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
+  const client = getApiClient(storeId);
   try {
     const { page = 1, per_page = 24, q = '' } = req.query;
     const params = { page, per_page, sort_by: 'created-descending' };
     if (q) params.q = q;
 
-    const response = await apiClient.get('/products', { params });
+    const response = await client.get('/products', { params });
     
     res.json({
       products: response.data,
@@ -109,8 +230,10 @@ app.get('/api/products', async (req, res) => {
 });
 
 app.get('/api/products/:id', async (req, res) => {
+  const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
+  const client = getApiClient(storeId);
   try {
-    const response = await apiClient.get(`/products/${req.params.id}`);
+    const response = await client.get(`/products/${req.params.id}`);
     res.json(response.data);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -119,8 +242,10 @@ app.get('/api/products/:id', async (req, res) => {
 
 // Categorias (Para IA)
 app.get('/api/categories', async (req, res) => {
+  const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
+  const client = getApiClient(storeId);
   try {
-    const response = await apiClient.get('/categories');
+    const response = await client.get('/categories');
     res.json(response.data);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -155,6 +280,8 @@ app.post('/api/products/bulk-create-manual', async (req, res) => {
     
     // Tratamento estrito do array de itens para a nova estrutura de payload
     const arr = items || [];
+    const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
+    const client = getApiClient(storeId);
     
     for (let i = 0; i < arr.length; i++) {
         const item = arr[i];
@@ -227,11 +354,11 @@ app.post('/api/products/bulk-create-manual', async (req, res) => {
             }
 
             // Etapa 1: Criar o produto base primeiro (sem enviar imagens via base64 aqui para evitar payload issues)
-            const response = await apiClient.post('/products', productData);
+            const response = await client.post('/products', productData);
             const newProduct = response.data;
             
             // Etapa 2: Fazer upload da imagem via endpoint secundário na API (Garante Sucesso)
-            await apiClient.post(`/products/${newProduct.id}/images`, imagePayload);
+            await client.post(`/products/${newProduct.id}/images`, imagePayload);
             
             // Etapa 3: Recuperar produto atualizado
             results.push(newProduct);
@@ -294,6 +421,16 @@ function saveScriptSettings(settings) {
     console.error("Erro ao salvar settings:", e);
   }
 }
+
+// 0. ROTA DE TESTE: Para validar a calculadora localmente
+app.get('/test', (req, res) => {
+  const filePath = path.join(__dirname, 'debug_store.html');
+  if (fs.existsSync(filePath)) {
+    res.sendFile(filePath);
+  } else {
+    res.status(404).send("Arquivo debug_store.html não encontrado no root.");
+  }
+});
 
 // 1. ENDPOINT PÚBLICO: Onde a Loja Baixará o Código (JS Puro)
 app.get('/api/script.js', (req, res) => {
@@ -361,10 +498,13 @@ app.post('/api/store-script', async (req, res) => {
     const finalUrl = isLocal ? publicUrl : `https://${req.headers.host}`;
     const scriptSrc = `${finalUrl}/api/script.js`;
     
-    console.log(`[Sync] Tentando injetar script: ${scriptSrc} na loja ${STORE_ID}`);
+    const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
+    const client = getApiClient(storeId);
+    
+    console.log(`[Sync] Tentando injetar script: ${scriptSrc} na loja ${storeId}`);
 
     // 1. Limpa anterior se existir (Busca por URL pois removemos o campo name que causava 422)
-    const getRes = await apiClient.get('/scripts');
+    const getRes = await client.get('/scripts');
     const scriptsList = Array.isArray(getRes.data) ? getRes.data : [];
     
     // Procura por qualquer script que venha do nosso domínio do Render
@@ -373,7 +513,7 @@ app.post('/api/store-script', async (req, res) => {
     if (myScript) {
        console.log("[Sync] Script antigo encontrado! Tentando deletar. ID:", myScript.id);
        try {
-           await apiClient.delete('/scripts/' + myScript.id);
+           await client.delete('/scripts/' + myScript.id);
            console.log("[Sync] Deletado com sucesso.");
        } catch (err) {
            console.error("[Sync] Erro ao deletar o script antigo:", err.response?.data || err.message);
@@ -383,7 +523,7 @@ app.post('/api/store-script', async (req, res) => {
     // 2. Cria com payload encapsulado em "script" (Padrão Nuvemshop/Shopify)
     console.log("[Sync] Criando script com src:", scriptSrc);
     try {
-        const response = await apiClient.post('/scripts', {
+        const response = await client.post('/scripts', {
           script: {
             src: scriptSrc,
             event: 'onload',
@@ -406,12 +546,14 @@ app.post('/api/store-script', async (req, res) => {
 
 // Remove a versão local antiga de store-script porque vamos gerenciar via nuvem
 app.delete('/api/store-script', async (req, res) => {
+  const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
+  const client = getApiClient(storeId);
   try {
-    const getRes = await apiClient.get('/scripts');
+    const getRes = await client.get('/scripts');
     const scriptsList = Array.isArray(getRes.data) ? getRes.data : [];
     const myScript = scriptsList.find(s => s.name === 'Calculadora_Cloth_Sublimacao');
     if (myScript) {
-       await apiClient.delete('/scripts/' + myScript.id);
+       await client.delete('/scripts/' + myScript.id);
        res.json({ success: true, message: 'Removido publicamente com sucesso' });
     } else {
        res.json({ success: true, message: 'Já não existia' });

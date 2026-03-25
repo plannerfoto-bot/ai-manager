@@ -41,6 +41,12 @@ class ErrorBoundary extends React.Component {
 }
 
 const App = () => {
+  // Captura o ID da Loja vindo da Nuvemshop (URL de Carregamento)
+  const [storeId, setStoreId] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('user_id') || localStorage.getItem('last_store_id') || '';
+  });
+
   const [activeTab, setActiveTab] = useState(() => {
     try { return localStorage.getItem('activeTab') || 'dashboard'; } catch { return 'dashboard'; }
   });
@@ -55,6 +61,15 @@ const App = () => {
   const API_BASE_URL = window.location.hostname === 'localhost' 
     ? 'http://localhost:3001' 
     : 'https://ai-manager-nuvemshop.onrender.com';
+
+  // Configuração Global de Axios para Multi-Loja
+  useEffect(() => {
+    if (storeId) {
+      axios.defaults.headers.common['x-store-id'] = storeId;
+      localStorage.setItem('last_store_id', storeId);
+      console.log("[App] Configurado ID de Loja:", storeId);
+    }
+  }, [storeId]);
 
   const fetchData = async (page = 1, searchQuery = '') => {
     setLoading(true);
@@ -146,7 +161,7 @@ const App = () => {
       case 'bulk-upload':
         return <BulkUpload />;
       case 'script-manager':
-        return <ScriptManager />;
+        return <ScriptManager storeId={storeId} apiBase={API_BASE_URL} />;
       default:
         return <Dashboard stats={stats} />;
     }
