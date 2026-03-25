@@ -56,12 +56,12 @@
         '<div style="flex:1; background:#0f172a; border:1px solid #334155; border-radius:10px; padding:12px; text-align:center;">' +
            '<div style="font-size:11px; color:#94a3b8; font-weight:700; margin-bottom:4px;">TECIDO 120g</div>' +
            '<div style="font-size:20px; color:#fff; font-weight:900; margin-bottom:10px; letter-spacing:-0.5px;">' + brl(p120) + '</div>' +
-           '<button class="cc-buy-btn" data-gram="120g" style="width:100%; padding:10px; background:#2563eb; color:#fff; border:none; border-radius:8px; font-weight:800; font-size:12px; cursor:pointer; transition:0.2s;">COMPRAR</button>' +
+           '<button class="cc-buy-btn" data-gram="120g" style="width:100%; padding:10px; background:#2563eb; color:#fff; border:none; border-radius:8px; font-weight:800; font-size:12px; cursor:pointer; transition:0.2s;">GERAR OPÇÃO</button>' +
         '</div>' +
         '<div style="flex:1; background:#0f172a; border:1px solid #334155; border-radius:10px; padding:12px; text-align:center;">' +
            '<div style="font-size:11px; color:#94a3b8; font-weight:700; margin-bottom:4px;">TECIDO 160g</div>' +
            '<div style="font-size:20px; color:#fff; font-weight:900; margin-bottom:10px; letter-spacing:-0.5px;">' + brl(p160) + '</div>' +
-           '<button class="cc-buy-btn" data-gram="160g" style="width:100%; padding:10px; background:#16a34a; color:#fff; border:none; border-radius:8px; font-weight:800; font-size:12px; cursor:pointer; transition:0.2s;">COMPRAR</button>' +
+           '<button class="cc-buy-btn" data-gram="160g" style="width:100%; padding:10px; background:#16a34a; color:#fff; border:none; border-radius:8px; font-weight:800; font-size:12px; cursor:pointer; transition:0.2s;">GERAR OPÇÃO</button>' +
         '</div>' +
       '</div>' +
     '</div>';
@@ -91,8 +91,18 @@
     .then(res => res.json())
     .then(data => {
         if(data.error) { alert(data.error); btn.disabled=false; btn.innerHTML=ogHtml; return; }
-        btn.innerHTML = 'Redirecionando...';
-        addToCart(data.variant_id);
+        
+        var resultDiv = document.getElementById('cloth-calc-result');
+        resultDiv.innerHTML = '<div style="background:#052e1644; border:1.5px solid #22c55e44; border-radius:12px; padding:16px; text-align:center; animation: clothIn 0.3s ease;">' +
+           '<svg viewBox="0 0 24 24" width="36" height="36" style="stroke:#4ade80;fill:none;stroke-width:2;margin-bottom:12px;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>' +
+           '<h3 style="color:#fff; font-size:16px; margin:0 0 8px;">Opção Criada!</h3>' +
+           '<p style="color:#94a3b8; font-size:12px; margin:0 0 12px; line-height:1.5;">A página será atualizada agora.<br/>Selecione sua nova medida nas opções ao lado e finalize a compra.</p>' +
+           '<div style="font-size:11px; color:#60a5fa; opacity:0.8;">Atualizando...</div>' +
+        '</div>';
+        
+        setTimeout(function(){
+            window.location.reload();
+        }, 3200);
     })
     .catch(err => {
         alert('Erro ao criar variação na loja.');
@@ -101,38 +111,7 @@
     });
   }
 
-  function addToCart(variantId) {
-    var form = document.querySelector('form[data-product-form]') || document.querySelector('form[action*="/comprar"]');
-    var actionUrl = form && form.action ? form.action : '/comprar';
 
-    // Cria form fantasma para garantir POST limpo, livre do LS.variants do tema
-    var ghost = document.createElement('form');
-    ghost.method = 'POST';
-    ghost.action = actionUrl;
-    ghost.style.display = 'none';
-
-    // Para variações Nuvemshop, usar 'add_to_cart'
-    var input1 = document.createElement('input');
-    input1.type = 'hidden';
-    input1.name = 'add_to_cart';
-    input1.value = variantId;
-    ghost.appendChild(input1);
-
-    var input2 = document.createElement('input');
-    input2.type = 'hidden';
-    input2.name = 'variant_id'; 
-    input2.value = variantId;
-    ghost.appendChild(input2);
-
-    var input3 = document.createElement('input');
-    input3.type = 'hidden';
-    input3.name = 'quantity'; 
-    input3.value = '1';
-    ghost.appendChild(input3);
-
-    document.body.appendChild(ghost);
-    ghost.submit(); // Submissão nativa pro backend da Nuvemshop
-  }
 
   function bind(){
     var b = document.getElementById('cloth-calc-btn');
