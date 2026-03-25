@@ -363,10 +363,13 @@ app.post('/api/store-script', async (req, res) => {
     
     console.log(`[Sync] Tentando injetar script: ${scriptSrc} na loja ${STORE_ID}`);
 
-    // 1. Limpa anterior se existir
+    // 1. Limpa anterior se existir (Busca por URL pois removemos o campo name que causava 422)
     const getRes = await apiClient.get('/scripts');
     const scriptsList = Array.isArray(getRes.data) ? getRes.data : [];
-    const myScript = scriptsList.find(s => s.name === 'Calculadora_Cloth_Sublimacao');
+    
+    // Procura por qualquer script que venha do nosso domínio do Render
+    const myScript = scriptsList.find(s => s.src && s.src.includes('ai-manager-nuvemshop.onrender.com'));
+    
     if (myScript) {
        console.log("[Sync] Script antigo encontrado! Tentando deletar. ID:", myScript.id);
        try {
@@ -375,17 +378,17 @@ app.post('/api/store-script', async (req, res) => {
        } catch (err) {
            console.error("[Sync] Erro ao deletar o script antigo:", err.response?.data || err.message);
        }
-    } else {
-       console.log("[Sync] Nenhum script antigo encontrado com este nome.");
     }
 
-    // 2. Cria referenciando a nova URL na nuvem!
+    // 2. Cria com payload encapsulado em "script" (Padrão Nuvemshop/Shopify)
     console.log("[Sync] Criando script com src:", scriptSrc);
     try {
         const response = await apiClient.post('/scripts', {
-          src: scriptSrc,
-          event: 'onload',
-          where: 'store'
+          script: {
+            src: scriptSrc,
+            event: 'onload',
+            where: 'store'
+          }
         });
         console.log("[Sync] Script criado com sucesso:", response.data.id);
         res.json({ success: true, script: response.data, scriptUrl: scriptSrc });
