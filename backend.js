@@ -568,23 +568,27 @@ app.get('/api/script.js', (req, res) => {
   if(!isProductPage())return;
 
   function findTarget(){
-    var b=document.querySelector(\'.js-addtocart\');
-    if(b)return b;
-    var sel=[\'.js-product-buy-container\',\'#product_form\',\'.js-product-variants\',\'.js-product-container\'];
+    var b=document.querySelector('.js-addtocart');
+    if(b){
+      var p=b.closest('.row')||b.closest('[class*="flex"]');
+      if(p)return p;
+      return b.parentElement;
+    }
+    var sel=['.js-product-variants','.js-product-buy-container','#product_form'];
     for(var i=0;i<sel.length;i++){var el=document.querySelector(sel[i]);if(el)return el;}
     return null;
   }
   function inject(){
-    var w=document.getElementById(\'cloth-calc-widget\');
+    var w=document.getElementById('cloth-calc-widget');
     if(!CALCULATOR_ENABLED){if(w)w.remove();return;}
     if(w)return;
     var t=findTarget();
     if(!t)return;
     var node=html();
-    if(t.classList.contains(\'js-addtocart\')){
+    if(t.parentNode){
       t.parentNode.insertBefore(node,t);
     }else{
-      t.prepend ? t.prepend(node) : (t.nextSibling?t.parentNode.insertBefore(node,t.nextSibling):t.parentNode.appendChild(node));
+      t.prepend?t.prepend(node):t.appendChild(node);
     }
     bind();
   }
