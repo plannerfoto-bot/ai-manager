@@ -374,14 +374,15 @@ app.post('/api/store-script', async (req, res) => {
         const response = await apiClient.post('/scripts', {
           src: scriptSrc,
           event: 'onload',
-          where: 'store',
-          name: 'Calculadora_Cloth_Sublimacao'
+          where: 'store'
         });
         console.log("[Sync] Script criado com sucesso:", response.data.id);
         res.json({ success: true, script: response.data, scriptUrl: scriptSrc });
     } catch (err) {
         console.error("[Sync] Erro ao criar o script novo:", err.response?.data || err.message);
-        throw err;
+        const detail = err.response?.data ? JSON.stringify(err.response.data) : err.message;
+        res.status(422).json({ error: `Nuvemshop rejeitou: ${detail}` });
+        return;
     }
   } catch (error) {
     console.error('Erro POST store-script Cloud:', error.response?.data || error.message);
