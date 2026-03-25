@@ -24,10 +24,9 @@ const BASE_URL = process.env.TIENDANUBE_BASE_URL || "https://api.tiendanube.com/
 const apiClient = axios.create({
   baseURL: `${BASE_URL}/${STORE_ID}`,
   headers: {
-    "Authorization": `Bearer ${ACCESS_TOKEN}`,
-    "Authentication": `bearer ${ACCESS_TOKEN}`, 
     "X-Auth-Token": ACCESS_TOKEN,
-    "User-Agent": "AIOX-Manager (projeto@plannee.com.br)",
+    "Authentication": ACCESS_TOKEN, // Sem "bearer" para tokens privados
+    "User-Agent": process.env.NUVEMSHOP_USER_AGENT || "ai-manager-bot (contato@suabrand.com)",
     "Content-Type": "application/json",
   },
 });
