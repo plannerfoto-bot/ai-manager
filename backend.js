@@ -243,100 +243,101 @@ app.post('/api/create-variant', async (req, res) => {
   try {
     const { productId, width, height, gramatura } = req.body;
     const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
-    if (!storeId || !productId) return res.status(400).json({ error: 'Loja ou Produto não identificado.' });
+    if (!storeId || !productId) return res.status(400).json({ error: 'Loja ou Produto nao identificado.' });
     
     const client = getApiClient(storeId);
     
-    // Regras Matemáticas Seguras (Backend-side)
     const w = parseFloat(String(width).replace(',', '.'));
     const h = parseFloat(String(height).replace(',', '.'));
-    if (!w || !h || w <= 0 || h <= 0) return res.status(400).json({ error: 'Medidas inválidas. Recebido: ' + width + 'x' + height });
+    if (!w || !h || w <= 0 || h <= 0) return res.status(400).json({ error: 'Medidas invalidas. Recebido: ' + width + 'x' + height });
     
     const max = Math.max(w, h);
     const min = Math.min(w, h);
-    if (min > 3) return res.status(400).json({ error: 'Menor dimensão não pode ultrapassar 3,00m' });
+    if (min > 3) return res.status(400).json({ error: 'Menor dimensao nao pode ultrapassar 3,00m' });
     
-    const factor = (gramatura === '160g') ? 26.00 : 22.50;
-    let finalPrice = 0;
-    
-    if (min <= 1.56) {
-      finalPrice = (max * factor) + 3.00 + 45.00;
-    } else {
-      finalPrice = (((max * 2) * factor) + 15.00) * 1.80;
-    }
-    
+    // Calcula preco dos DOIS tecidos de uma vez
+    const calcPrice = (factor) => min <= 1.56 ? (max * factor) + 3.00 + 45.00 : (((max * 2) * factor) + 15.00) * 1.80;
+    const price120 = calcPrice(22.50);
+    const price160 = calcPrice(26.00);
+    const priceStr = (gramatura === '160g' ? price160 : price120).toFixed(2);
     const measureStr = `${w.toFixed(2).replace('.', ',')}m x ${h.toFixed(2).replace('.', ',')}m`;
-    const priceStr = finalPrice.toFixed(2);
     
-    // 1. Busca o produto
+    // Busca o produto
     const prodRes = await client.get(`/products/${productId}`);
     const product = prodRes.data;
     
-    // 2. Ajusta atributos (se for vazio, Nuvemshop recusa variações sem key)
+    // Detecta o sufixo real de gramatura usado na loja ('g' ou 'gr')
+    // Percorre as variantes existentes e procura por '120gr', '120g', etc.
+    let gramSuffix = 'g';
+    outer: for (const v of product.variants || []) {
+      for (const val of v.values || []) {
+        const pt = (val.pt || '').toLowerCase();
+        if (pt.includes('120gr') || pt.includes('160gr')) { gramSuffix = 'gr'; break outer; }
+      }
+    }
+    console.log('[Gramatura] Sufixo detectado na loja: "' + gramSuffix + '"');
+    const gram120label = '120' + gramSuffix;
+    const gram160label = '160' + gramSuffix;
+    
+    // Garante que os atributos do produto existam
     let attributes = product.attributes || [];
     if (attributes.length === 0) {
-      attributes = [{ pt: "Tamanho" }, { pt: "Gramatura" }];
+      attributes = [{ pt: 'Tamanho' }, { pt: 'Gramatura' }];
       await client.put(`/products/${productId}`, { attributes });
     }
     
-    // 3. Montar values da nova variante mapeando inteligentemente de acordo com os nomes dos atributos
-    let baseVariant = product.variants && product.variants.length > 0 ? product.variants[0] : null;
-    let newValues = attributes.map((attr, idx) => {
-      let attrName = (attr.pt || attr.es || attr.en || "").toLowerCase();
-      
-      if (attrName.includes('gramatura') || attrName.includes('tecido') || attrName.includes('material')) {
-         return { pt: gramatura };
-      }
-      if (attrName.includes('tamanho') || attrName.includes('medida') || attrName.includes('dimens')) {
-         return { pt: measureStr };
-      }
-      
-      // Fallback posicional natural
-      if (idx === 0) return { pt: measureStr };
-      if (idx === 1) return { pt: gramatura };
-      
-      return baseVariant && baseVariant.values && baseVariant.values[idx] 
-        ? baseVariant.values[idx] 
-        : { pt: "-" };
-    });
-    
-    // 4. Procura variante exata já existente cruzando os values
-    const existing = product.variants.find(v => {
-      if (!v.values || v.values.length !== newValues.length) return false;
-      return newValues.every((nv, i) => v.values[i] && v.values[i].pt === nv.pt);
+    // Monta os values mapeando cada atributo ao valor correto
+    const baseVariant = (product.variants || [])[0] || null;
+    const buildValues = (measure, gram) => attributes.map((attr, idx) => {
+      const attrName = (attr.pt || attr.es || attr.en || '').toLowerCase();
+      if (attrName.includes('gramatura') || attrName.includes('tecido') || attrName.includes('material')) return { pt: gram };
+      if (attrName.includes('tamanho') || attrName.includes('medida') || attrName.includes('dimens')) return { pt: measure };
+      if (idx === 0) return { pt: measure };
+      if (idx === 1) return { pt: gram };
+      return (baseVariant && baseVariant.values && baseVariant.values[idx]) ? baseVariant.values[idx] : { pt: '-' };
     });
 
-    if (existing) {
-       return res.json({ success: true, variant_id: existing.id, price: priceStr });
-    }
-    
-    // 5. Limite de variantes (100) -> Limpar se bater 80
-    if (product.variants.length > 80) {
-       // Buscar variaveis customizadas criadas pela AI (identificadas pela regex de metros "X,XXm x Y,YYm")
-       const customVariants = product.variants.filter(v => v.values && v.values.some(val => val.pt && val.pt.match(/\d+,\d+m x \d+,\d+m/)));
-       if (customVariants.length > 0) {
-           const oldest = customVariants.reduce((prev, curr) => prev.id < curr.id ? prev : curr);
-           await client.delete(`/products/${productId}/variants/${oldest.id}`);
-       }
-    }
-    
-    // 6. Criar nova variante
-    const variantPayload = {
-      price: priceStr,
-      stock: 999, // Virtual
-      weight: baseVariant ? baseVariant.weight : 0.5,
-      values: newValues
+    // Encontra variante existente ou cria uma nova
+    const norm = (s) => (s || '').trim().toLowerCase();
+    const findOrCreate = async (measure, gramLabel, price) => {
+      const targetValues = buildValues(measure, gramLabel);
+      const existing = product.variants.find(v => {
+        if (!v.values) return false;
+        return targetValues.every((tv, i) => v.values[i] && norm(v.values[i].pt) === norm(tv.pt));
+      });
+      if (existing) {
+        console.log('[Variante] Ja existe: ' + measure + ' / ' + gramLabel + ' id=' + existing.id);
+        return existing.id;
+      }
+      // Limpeza de antigas se limite batido
+      if (product.variants.length > 80) {
+        const custom = product.variants.filter(v => v.values && v.values.some(val => val.pt && /\d+,\d+m x \d+,\d+m/.test(val.pt)));
+        if (custom.length > 0) {
+          const oldest = custom.reduce((a, b) => a.id < b.id ? a : b);
+          await client.delete(`/products/${productId}/variants/${oldest.id}`).catch(() => {});
+        }
+      }
+      const payload = { price: price.toFixed(2), stock: 999, weight: baseVariant ? baseVariant.weight : 0.5, values: targetValues };
+      console.log('[Variante] Criando: ' + measure + ' / ' + gramLabel + ' = R$' + price.toFixed(2));
+      const createRes = await client.post(`/products/${productId}/variants`, payload);
+      product.variants.push(createRes.data);
+      return createRes.data.id;
     };
-    
-    const createRes = await client.post(`/products/${productId}/variants`, variantPayload);
-    res.json({ success: true, variant_id: createRes.data.id, price: priceStr });
+
+    // Cria SEMPRE os dois pares de gramatura para a medida
+    const variant120Id = await findOrCreate(measureStr, gram120label, price120);
+    const variant160Id = await findOrCreate(measureStr, gram160label, price160);
+
+    const chosenId = (gramatura === '160g') ? variant160Id : variant120Id;
+    res.json({ success: true, variant_id: chosenId, price: priceStr });
     
   } catch (error) {
-    console.error("[Criação de Variante] Falha:", error.response?.data || error.message);
+    console.error('[Criacao de Variante] Falha:', error.response?.data || error.message);
     const apiError = error.response?.data ? JSON.stringify(error.response.data) : error.message;
-    res.status(500).json({ error: "Erro Nuvemshop: " + apiError, details: error.response?.data });
+    res.status(500).json({ error: 'Erro Nuvemshop: ' + apiError, details: error.response?.data });
   }
 });
+
 
 // Endpoint para frontend descobrir storeId padrão
 app.get('/api/me', (req, res) => {
