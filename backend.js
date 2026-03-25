@@ -17,19 +17,31 @@ app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-const ACCESS_TOKEN = process.env.TIENDANUBE_ACCESS_TOKEN;
-const STORE_ID = process.env.TIENDANUBE_STORE_ID;
+const ACCESS_TOKEN = process.env.TIENDANUBE_ACCESS_TOKEN || process.env.NUVEMSHOP_ACCESS_TOKEN;
+const STORE_ID = process.env.TIENDANUBE_STORE_ID || process.env.NUVEMSHOP_STORE_ID;
 const BASE_URL = process.env.TIENDANUBE_BASE_URL || "https://api.tiendanube.com/v1";
 
 const apiClient = axios.create({
   baseURL: `${BASE_URL}/${STORE_ID}`,
   headers: {
     "Authorization": `Bearer ${ACCESS_TOKEN}`,
-    "Authentication": `bearer ${ACCESS_TOKEN}`, // Mantemos para compatibilidade
-    "X-Auth-Token": ACCESS_TOKEN, // Algumas versões da API usam este
+    "Authentication": `bearer ${ACCESS_TOKEN}`, 
+    "X-Auth-Token": ACCESS_TOKEN,
     "User-Agent": "AIOX-Manager (projeto@plannee.com.br)",
     "Content-Type": "application/json",
   },
+});
+
+// Endpoint de debug (Mascarado para segurança)
+app.get('/api/debug-env', (req, res) => {
+  const mask = (str) => str ? `${str.substring(0, 4)}***${str.substring(str.length - 4)}` : 'MISSING';
+  res.json({
+    hasToken: !!ACCESS_TOKEN,
+    tokenMask: mask(ACCESS_TOKEN),
+    storeId: STORE_ID || 'MISSING',
+    nodeEnv: process.env.NODE_ENV || 'development',
+    publicUrl: process.env.PUBLIC_URL || 'DEFAULT_RENDER_URL'
+  });
 });
 
 // Dashboard Stats
