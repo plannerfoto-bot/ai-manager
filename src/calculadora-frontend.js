@@ -67,32 +67,35 @@
 
   function addToCart(variantId) {
     var form = document.querySelector('form[data-product-form]') || document.querySelector('form[action*="/comprar"]');
-    if (!form) {
-      alert('Não foi possível injetar a variação no carrinho.');
-      return;
-    }
+    var actionUrl = form && form.action ? form.action : '/comprar';
 
-    // Procura fields de variant_id
-    var select = form.querySelector('select[name="variant_id"], input[name="variant_id"]');
-    if (select && select.tagName === 'SELECT') {
-       var opt = document.createElement('option');
-       opt.value = variantId;
-       opt.selected = true;
-       select.appendChild(opt);
-    } else if (select && select.tagName === 'INPUT') {
-       select.value = variantId;
-    } else {
-       var inp = document.createElement('input');
-       inp.type = 'hidden';
-       inp.name = 'variant_id';
-       inp.value = variantId;
-       form.appendChild(inp);
-    }
+    // Cria form fantasma para garantir POST limpo, livre do LS.variants do tema
+    var ghost = document.createElement('form');
+    ghost.method = 'POST';
+    ghost.action = actionUrl;
+    ghost.style.display = 'none';
 
-    // Dispara botão nativo
-    var btn = form.querySelector('.js-addtocart') || form.querySelector('button[type="submit"]');
-    if (btn) btn.click();
-    else form.submit();
+    // Para variações Nuvemshop, usar 'add_to_cart'
+    var input1 = document.createElement('input');
+    input1.type = 'hidden';
+    input1.name = 'add_to_cart';
+    input1.value = variantId;
+    ghost.appendChild(input1);
+
+    var input2 = document.createElement('input');
+    input2.type = 'hidden';
+    input2.name = 'variant_id'; 
+    input2.value = variantId;
+    ghost.appendChild(input2);
+
+    var input3 = document.createElement('input');
+    input3.type = 'hidden';
+    input3.name = 'quantity'; 
+    input3.value = '1';
+    ghost.appendChild(input3);
+
+    document.body.appendChild(ghost);
+    ghost.submit(); // Submissão nativa pro backend da Nuvemshop
   }
 
   function bind(){
