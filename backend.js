@@ -534,8 +534,12 @@ app.get('/test', (req, res) => {
 
 // 1. ENDPOINT PÚBLICO: Onde a Loja Baixará o Código (JS Puro)
 app.get('/api/script.js', (req, res) => {
-  const { enabled, whatsapp } = getScriptSettings();
+  const localSettings = getScriptSettings();
   
+  const reqEnabled = req.query.enabled;
+  const enabled = reqEnabled !== undefined ? (reqEnabled === 'true') : localSettings.enabled;
+  const whatsapp = req.query.whatsapp || localSettings.whatsapp || '5511999999999';
+
   res.setHeader('Content-Type', 'application/javascript');
   // Sem cache para garantir que as mudanças no painel reflitam na hora
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
@@ -604,9 +608,31 @@ app.get('/api/store-script-settings', (req, res) => {
   res.json(getScriptSettings());
 });
 
-app.post('/api/store-script-settings', (req, res) => {
+app.post('/api/store-script-settings', async (req, res) => {
   const { enabled, whatsapp } = req.body;
   saveScriptSettings({ enabled, whatsapp });
+
+  // Sincroniza estado ON/OFF na loja via API, não importa se no localhost ou render
+  try {
+    const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
+    const client = getApiClient(storeId);
+    
+    const getRes = await client.get('/scripts');
+    const scriptsList = Array.isArray(getRes.data) ? getRes.data : (getRes.data?.result || []);
+    const myScripts = scriptsList.filter(s => (s.src || s.current_version?.src || '').includes('ai-manager-nuvemshop.onrender.com/api/script.js'));
+    
+    for (const s of myScripts) {
+       await client.delete('/scripts/' + s.id).catch(()=>{});
+    }
+
+    const publicUrl = process.env.PUBLIC_URL || 'https://ai-manager-nuvemshop.onrender.com';
+    const scriptSrc = `${publicUrl}/api/script.js?v=${Date.now()}&enabled=${enabled}&whatsapp=${whatsapp}`;
+    
+    await client.post('/scripts', { src: scriptSrc, event: 'onload', where: 'store' });
+  } catch(err) {
+    console.warn("[Sync-Cloud] Erro autosync do toggle:", err.message);
+  }
+
   res.json({ success: true });
 });
 
