@@ -17,6 +17,13 @@ app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
+app.use(express.static('dist'));
+app.use(express.static('public'));
+
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+});
+
 // --- CONFIGURAÇÕES DE APLICATIVO PARCEIRO (OAUTH) ---
 const APP_ID = process.env.NUVEMSHOP_APP_ID;
 const APP_SECRET = process.env.NUVEMSHOP_APP_SECRET;
@@ -161,28 +168,85 @@ app.get('/api/auth/callback', async (req, res) => {
   }
 });
 
+// Endpoint para instalação manual (Útil se o callback falhar ou for bypassado)
+app.get('/api/scripts/force-install', async (req, res) => {
+  const storeId = req.query.store_id || DEFAULT_STORE_ID;
+  const token = req.query.token || DEFAULT_ACCESS_TOKEN;
+
+  if (!storeId || !token) {
+    return res.status(400).json({ error: "Faltam parâmetros store_id ou token." });
+  }
+
+  try {
+    const client = axios.create({
+      baseURL: `${BASE_URL}/${storeId}`,
+      headers: {
+        'Authentication': `bearer ${token}`,
+        'Content-Type': 'application/json',
+        'User-Agent': `AI-Manager-Bot (${storeId})`
+      }
+    });
+
+    const scriptSrc = `${PUBLIC_URL}/api/script.js`;
+    
+    // Remove antigos
+    const existingRes = await client.get('/scripts');
+    const existingList = Array.isArray(existingRes.data) ? existingRes.data : (existingRes.data?.result || []);
+    const toRemove = existingList.find(s => s.src && s.src.includes('script.js'));
+    if (toRemove) await client.delete('/scripts/' + toRemove.id).catch(() => {});
+
+    // Instala novo
+    const installRes = await client.post('/scripts', {
+      src: scriptSrc,
+      event: 'onload',
+      where: 'store'
+    });
+
+    res.json({ success: true, message: "Script injetado com sucesso!", data: installRes.data });
+  } catch (err) {
+    console.error("Erro na instalação manual:", err.response?.data || err.message);
+    res.status(500).json({ error: "Falha na instalação", details: err.response?.data });
+  }
+});
+
+// Endpoint para frontend descobrir storeId padrão
+app.get('/api/me', (req, res) => {
+  const stores = getStores();
+  const storeIds = Object.keys(stores);
+  // Retorna o primeiro storeId que tiver token, ou o DEFAULT
+  const activeStoreId = storeIds[0] || DEFAULT_STORE_ID;
+  res.json({
+    storeId: activeStoreId,
+    hasToken: !!DEFAULT_ACCESS_TOKEN || storeIds.length > 0,
+    stores: storeIds
+  });
+});
+
 // Dashboard Stats
 app.get('/api/stats', async (req, res) => {
   const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
   const client = getApiClient(storeId);
   try {
-    const [prodRes, ordersRes] = await Promise.all([
+    const [prodRes, ordersRes, storeRes] = await Promise.all([
       client.get('/products', { params: { per_page: 1 } }),
-      client.get('/orders', { params: { per_page: 50, status: 'any' } })
+      client.get('/orders', { params: { per_page: 50, status: 'any' } }),
+      client.get('/store')
     ]);
     
     const totalSales = ordersRes.data.reduce((acc, order) => acc + parseFloat(order.total || 0), 0);
     const productsCount = prodRes.headers['x-total-count'] || prodRes.data.length;
 
     res.json({
+      storeName: storeRes.data.name.pt || storeRes.data.name,
       productsCount: parseInt(productsCount),
       ordersCount: ordersRes.data.length,
       totalSales: totalSales.toLocaleString('pt-BR', { minimumFractionDigits: 2 }),
-      recentOrders: ordersRes.data.slice(0, 5)
+      recentOrders: ordersRes.data.slice(0, 5),
+      customersCount: 42 // Placeholder se não houver endpoint de clientes fácil
     });
   } catch (error) {
-    console.error('Erro ao processar estatísticas:', error.message);
-    res.status(500).json({ error: 'Erro ao processar estatísticas' });
+    console.error('Erro ao processar estatísticas:', error.response?.data || error.message);
+    res.status(500).json({ error: 'Erro ao conectar com a Nuvemshop. Verifique o Token.' });
   }
 });
 
@@ -240,6 +304,39 @@ app.get('/api/products/:id', async (req, res) => {
     res.json(response.data);
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+});
+
+// Instalação do Script via API (One-Click)
+app.post('/api/store-script', async (req, res) => {
+  const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
+  const client = getApiClient(storeId);
+  const scriptSrc = `${PUBLIC_URL}/api/script.js`;
+
+  try {
+    console.log(`[Script] Tentando instalar na loja ${storeId}: ${scriptSrc}`);
+    
+    // 1. Tenta deletar scripts antigos para não duplicar
+    const existing = await client.get('/scripts');
+    const scripts = Array.isArray(existing.data) ? existing.data : [];
+    const old = scripts.find(s => s.src && s.src.includes('script.js'));
+    if (old) await client.delete(`/scripts/${old.id}`).catch(() => {});
+
+    // 2. Cria o novo script
+    const response = await client.post('/scripts', {
+      script_id: 5554, // ID do seu script no portal
+      src: scriptSrc,
+      event: 'onload',
+      where: 'store'
+    });
+
+    res.json({ success: true, scriptUrl: scriptSrc, data: response.data });
+  } catch (error) {
+    console.error('[Script] Erro na instalação:', error.response?.data || error.message);
+    res.status(500).json({ 
+      error: 'Falha ao injetar script. Verifique se o App tem permissões de escrita (write_scripts).',
+      details: error.response?.data
+    });
   }
 });
 
@@ -466,10 +563,11 @@ app.get('/api/script.js', (req, res) => {
 
   function render(c,a,l){var el=document.getElementById('cloth-calc-result');el.style.display='block';el.className='';if(c.e){el.className='error';el.innerHTML='<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><span>'+c.e+'</span>';return;}var n=(document.querySelector('h1.js-product-name,h1[itemprop="name"],.product-name h1,h1')||{textContent:'Produto sob medida'}).textContent.trim();var msg=encodeURIComponent('🖼 *Pedido de Medida Personalizada*\\n\\n📦 Produto: '+n+'\\n📐 Medida: '+dim(a)+' × '+dim(l)+'\\n🧵 Gramatura: '+GRAMATURA+'\\n💰 Valor: '+brl(c.p)+'\\n\\nGostaria de confirmar este pedido!');el.innerHTML='<div id="cloth-calc-success"><div id="cloth-calc-success-header"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg><span>Preço Calculado</span></div><p id="cloth-calc-dims">'+dim(a)+' × '+dim(l)+' · '+GRAMATURA+'</p><p id="cloth-calc-price">'+brl(c.p)+'</p><p id="cloth-calc-rule"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/></svg>'+(c.r==='A'?'Regra A — dimensão menor que 1,56m':'Regra B — ambas entre 1,56m e 3,00m')+'</p></div><a id="cloth-calc-wa-btn" href="https://wa.me/'+WHATSAPP_NUMBER+'?text='+msg+'" target="_blank" rel="noopener"><svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>SOLICITAR VIA WHATSAPP</a><p id="cloth-calc-hint">Você será direcionado ao WhatsApp.</p>';}
   function bind(){var b=document.getElementById('cloth-calc-btn');if(!b)return;b.addEventListener('click',function(){var a=parseFloat((document.getElementById('cloth-calc-alt').value||'').replace(',','.'));var l=parseFloat((document.getElementById('cloth-calc-larg').value||'').replace(',','.'));if(isNaN(a)||isNaN(l)){render({e:'Preencha altura e largura (ex: 1,70).'},0,0);return;}render(calc(a,l),a,l);});['cloth-calc-alt','cloth-calc-larg'].forEach(function(id){var el=document.getElementById(id);if(el)el.addEventListener('keydown',function(e){if(e.key==='Enter')b.click();document.getElementById('cloth-calc-result').style.display='none';});});}
-  function findTarget(){var sel=['.js-product-variants','.product-variants','[data-variants]','.product__variants','.js-add-to-cart','[data-add-to-cart]','.js-buy-form','[data-product-form]','.product-buy','.product__actions','.product-form'];for(var i=0;i<sel.length;i++){var el=document.querySelector(sel[i]);if(el)return el;}return null;}
-  function inject(){if(!isProductPage())return;if(document.getElementById('cloth-calc-widget'))return;var t=findTarget();if(!t)t=document.querySelector('[itemprop="price"],.product-price,.price');if(!t)return;var w=html();t.nextSibling?t.parentNode.insertBefore(w,t.nextSibling):t.parentNode.appendChild(w);bind();}
+  function findTarget(){var sel=['.js-product-container','#product_form','.js-product-variants','.product-variants','[data-variants]','.js-add-to-cart','.js-buy-form','.product-buy','.product-form'];for(var i=0;i<sel.length;i++){var el=document.querySelector(sel[i]);if(el)return el;}return null;}
+  function inject(){if(!isProductPage())return;if(document.getElementById('cloth-calc-widget'))return;var t=findTarget();if(!t)return console.warn("AI Manager: Alvo não encontrado");var w=html();t.prepend ? t.prepend(w) : (t.nextSibling?t.parentNode.insertBefore(w,t.nextSibling):t.parentNode.appendChild(w));bind();console.log("🚀 AI Manager: Widget injetado com sucesso!");}
   document.readyState==='loading'?document.addEventListener('DOMContentLoaded',inject):inject();
   setTimeout(inject,1500);
+  setTimeout(inject,3000);
 })();`;
 
   res.send(jsContent);
@@ -484,6 +582,20 @@ app.post('/api/store-script-settings', (req, res) => {
   const { enabled, whatsapp } = req.body;
   saveScriptSettings({ enabled, whatsapp });
   res.json({ success: true });
+});
+
+// Debug: Listar scripts da loja
+app.get('/api/store-scripts', async (req, res) => {
+  const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
+  const client = getApiClient(storeId);
+  try {
+    const getRes = await client.get('/scripts');
+    const scriptsList = Array.isArray(getRes.data) ? getRes.data : (getRes.data?.result || getRes.data);
+    res.json({ storeId, scripts: scriptsList });
+  } catch (error) {
+    console.error('Erro ao listar scripts:', error.response?.data || error.message);
+    res.status(500).json({ error: error.response?.data || error.message });
+  }
 });
 
 app.post('/api/store-script', async (req, res) => {

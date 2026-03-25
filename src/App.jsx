@@ -53,9 +53,8 @@ const App = () => {
   const [productList, setProductList] = useState({ products: [], total: 0, page: 1 });
   const [stats, setStats] = useState({});
   const [loading, setLoading] = useState(false);
-  const [calculatorEnabled, setCalculatorEnabled] = useState(() => {
-    try { return localStorage.getItem('calculatorEnabled') === 'true'; } catch { return false; }
-  });
+  const [calculatorEnabled, setCalculatorEnabled] = useState(true);
+  const [whatsapp, setWhatsapp] = useState('5511999999999');
 
   // URL Dinâmica para API
   const API_BASE_URL = window.location.hostname === 'localhost' 
@@ -70,6 +69,20 @@ const App = () => {
       console.log("[App] Configurado ID de Loja:", storeId);
     }
   }, [storeId]);
+
+  // Se não tiver storeId na URL nem no localStorage, busca do backend
+  useEffect(() => {
+    if (!storeId) {
+      axios.get(`${API_BASE_URL}/api/me`)
+        .then(res => {
+          if (res.data?.storeId) {
+            setStoreId(String(res.data.storeId));
+            console.log("[App] StoreId carregado do backend:", res.data.storeId);
+          }
+        })
+        .catch(err => console.warn("[App] /api/me falhou:", err.message));
+    }
+  }, []); // eslint-disable-line
 
   const fetchData = async (page = 1, searchQuery = '') => {
     setLoading(true);
@@ -93,9 +106,30 @@ const App = () => {
     fetchData();
   }, []);
 
+  // Sincroniza configurações do script com o backend
   useEffect(() => {
-    try { localStorage.setItem('calculatorEnabled', calculatorEnabled); } catch {}
-  }, [calculatorEnabled]);
+    axios.get(`${API_BASE_URL}/api/store-script-settings`)
+      .then(res => {
+        setCalculatorEnabled(res.data.enabled);
+        setWhatsapp(res.data.whatsapp);
+      })
+      .catch(err => console.warn("Erro ao buscar settings:", err));
+  }, []); // eslint-disable-line
+
+  const toggleCalculator = async () => {
+    const newState = !calculatorEnabled;
+    try {
+      setCalculatorEnabled(newState);
+      await axios.post(`${API_BASE_URL}/api/store-script-settings`, {
+        enabled: newState,
+        whatsapp: whatsapp
+      });
+      toast.success(newState ? 'Calculadora ATIVADA no site!' : 'Calculadora DESATIVADA no site!');
+    } catch (error) {
+      setCalculatorEnabled(!newState); // Reverte em caso de erro
+      toast.error('Erro ao salvar configuração');
+    }
+  };
 
   useEffect(() => {
     try { localStorage.setItem('activeTab', activeTab); } catch {}
@@ -177,7 +211,7 @@ const App = () => {
         <div className="max-w-7xl mx-auto mb-6">
           <button
             type="button"
-            onClick={() => setCalculatorEnabled(v => !v)}
+            onClick={toggleCalculator}
             className={`flex items-center gap-3 px-5 py-3 rounded-2xl border font-bold text-sm transition-all duration-300 shadow-lg ${
               calculatorEnabled
                 ? 'bg-blue-600/20 border-blue-500/40 text-blue-300 hover:bg-blue-600/30 shadow-blue-900/20'

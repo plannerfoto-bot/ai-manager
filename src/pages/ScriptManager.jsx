@@ -131,7 +131,7 @@ const ScriptManager = ({ storeId, apiBase }) => {
             {/* Botão principal: Ativar na Loja Real */}
             <button
               onClick={handleActivateOnStore}
-              disabled={loading || activating || !storeId}
+              disabled={loading || activating}
               className="w-full py-4 bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-500 hover:to-violet-500 disabled:opacity-40 text-white font-black rounded-2xl transition-all shadow-lg shadow-blue-900/30 flex items-center justify-center gap-2"
             >
               <Rocket className="w-5 h-5" />
