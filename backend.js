@@ -219,9 +219,9 @@ app.post('/api/create-variant', async (req, res) => {
     const client = getApiClient(storeId);
     
     // Regras Matemáticas Seguras (Backend-side)
-    const w = parseFloat(width);
-    const h = parseFloat(height);
-    if (!w || !h || w <= 0 || h <= 0) return res.status(400).json({ error: 'Medidas inválidas' });
+    const w = parseFloat(String(width).replace(',', '.'));
+    const h = parseFloat(String(height).replace(',', '.'));
+    if (!w || !h || w <= 0 || h <= 0) return res.status(400).json({ error: 'Medidas inválidas. Recebido: ' + width + 'x' + height });
     
     const max = Math.max(w, h);
     const min = Math.min(w, h);
@@ -287,7 +287,8 @@ app.post('/api/create-variant', async (req, res) => {
     
   } catch (error) {
     console.error("[Criação de Variante] Falha:", error.response?.data || error.message);
-    res.status(500).json({ error: "Falha na geração da variante de carrinho", details: error.response?.data });
+    const apiError = error.response?.data ? JSON.stringify(error.response.data) : error.message;
+    res.status(500).json({ error: "Erro Nuvemshop: " + apiError, details: error.response?.data });
   }
 });
 
