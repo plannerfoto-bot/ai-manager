@@ -57,8 +57,7 @@ function getApiClient(storeId = DEFAULT_STORE_ID) {
   return axios.create({
     baseURL: `${BASE_URL}/${storeId}`,
     headers: {
-      "X-Auth-Token": token,
-      "Authentication": token,
+      "Authentication": `bearer ${token}`,
       "User-Agent": process.env.NUVEMSHOP_USER_AGENT || "ai-manager-bot (contato@suabrand.com)",
       "Content-Type": "application/json",
     },
@@ -118,20 +117,24 @@ app.get('/api/auth/callback', async (req, res) => {
     const tempClient = axios.create({
       baseURL: `${BASE_URL}/${user_id}`,
       headers: {
-        'X-Auth-Token': access_token,
-        'Authentication': access_token,
+        'Authentication': `bearer ${access_token}`,
         'Content-Type': 'application/json',
         'User-Agent': `AI-Manager-Bot (${user_id})`
       }
     });
 
     try {
+      // Lista scripts existentes deste app e remove para não duplicar
+      const existingRes = await tempClient.get('/scripts');
+      const existingList = Array.isArray(existingRes.data) ? existingRes.data : (existingRes.data?.result || []);
+      const toRemove = existingList.find(s => s.src && s.src.includes('ai-manager-nuvemshop.onrender.com'));
+      if (toRemove) await tempClient.delete('/scripts/' + toRemove.id).catch(() => {});
+
+      // Cria o script com o formato legado da API v1 (sem wrapper)
       await tempClient.post('/scripts', {
-        script: {
-          src: scriptSrc,
-          event: 'onload',
-          where: 'store'
-        }
+        src: scriptSrc,
+        event: 'onload',
+        where: 'store'
       });
       console.log(`[OAuth] Script injetado automaticamente na loja ${user_id}`);
     } catch (scriptErr) {
@@ -503,12 +506,16 @@ app.post('/api/store-script', async (req, res) => {
     
     console.log(`[Sync] Tentando injetar script: ${scriptSrc} na loja ${storeId}`);
 
-    // 1. Limpa anterior se existir (Busca por URL pois removemos o campo name que causava 422)
+    // 1. Limpa anterior se existir (suporte ao formato antigo e novo da API)
     const getRes = await client.get('/scripts');
-    const scriptsList = Array.isArray(getRes.data) ? getRes.data : [];
+    const scriptsList = Array.isArray(getRes.data) ? getRes.data : (getRes.data?.result || []);
+    console.log(`[Sync] Scripts existentes na loja: ${scriptsList.length}`);
     
     // Procura por qualquer script que venha do nosso domínio do Render
-    const myScript = scriptsList.find(s => s.src && s.src.includes('ai-manager-nuvemshop.onrender.com'));
+    const myScript = scriptsList.find(s => {
+      const src = s.src || s.current_version?.src || '';
+      return src.includes('ai-manager-nuvemshop.onrender.com');
+    });
     
     if (myScript) {
        console.log("[Sync] Script antigo encontrado! Tentando deletar. ID:", myScript.id);
@@ -520,22 +527,20 @@ app.post('/api/store-script', async (req, res) => {
        }
     }
 
-    // 2. Cria com payload encapsulado em "script" (Padrão Nuvemshop/Shopify)
+    // 2. Cria com formato legado da API v1 (sem wrapper 'script')
     console.log("[Sync] Criando script com src:", scriptSrc);
     try {
         const response = await client.post('/scripts', {
-          script: {
-            src: scriptSrc,
-            event: 'onload',
-            where: 'store'
-          }
+          src: scriptSrc,
+          event: 'onload',
+          where: 'store'
         });
-        console.log("[Sync] Script criado com sucesso:", response.data.id);
+        console.log("[Sync] Script criado com sucesso:", response.data.id || JSON.stringify(response.data));
         res.json({ success: true, script: response.data, scriptUrl: scriptSrc });
     } catch (err) {
         console.error("[Sync] Erro ao criar o script novo:", err.response?.data || err.message);
         const detail = err.response?.data ? JSON.stringify(err.response.data) : err.message;
-        res.status(422).json({ error: `Nuvemshop rejeitou: ${detail}` });
+        res.status(422).json({ error: `Nuvemshop rejeitou: ${detail}`, hint: 'Verifique se o app tem permissão write_scripts' });
         return;
     }
   } catch (error) {
