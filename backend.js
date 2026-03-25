@@ -209,6 +209,35 @@ app.get('/api/scripts/force-install', async (req, res) => {
   }
 });
 
+// --- SIMULAR PREÇO (Frontend Instantâneo) ---
+app.post('/api/simulate-price', (req, res) => {
+  try {
+    const { width, height } = req.body;
+    const w = parseFloat(String(width).replace(',', '.'));
+    const h = parseFloat(String(height).replace(',', '.'));
+    if (!w || !h || w <= 0 || h <= 0) return res.status(400).json({ error: 'Medidas inválidas. Recebido: ' + width + 'x' + height });
+    
+    const max = Math.max(w, h);
+    const min = Math.min(w, h);
+    if (min > 3) return res.status(400).json({ error: 'Menor dimensão não pode ultrapassar 3,00m' });
+    
+    let price120 = 0;
+    if (min <= 1.56) price120 = (max * 22.50) + 3.00 + 45.00;
+    else price120 = (((max * 2) * 22.50) + 15.00) * 1.80;
+
+    let price160 = 0;
+    if (min <= 1.56) price160 = (max * 26.00) + 3.00 + 45.00;
+    else price160 = (((max * 2) * 26.00) + 15.00) * 1.80;
+
+    res.json({
+      price120: price120.toFixed(2),
+      price160: price160.toFixed(2)
+    });
+  } catch (error) {
+    res.status(500).json({ error: "Erro interno no cálculo", details: error.message });
+  }
+});
+
 // --- CRIAR VARIACAO DINAMICA SOB MEDIDA ---
 app.post('/api/create-variant', async (req, res) => {
   try {
@@ -294,12 +323,19 @@ app.post('/api/create-variant', async (req, res) => {
 
 // Endpoint para frontend descobrir storeId padrão
 app.get('/api/me', (req, res) => {
-  // Retorna o primeiro storeId que tiver token, ou o DEFAULT
-  const activeStoreId = storeIds[0] || DEFAULT_STORE_ID;
   res.json({
-    storeId: activeStoreId,
-    hasToken: !!DEFAULT_ACCESS_TOKEN || storeIds.length > 0,
-    stores: storeIds
+    storeId: DEFAULT_STORE_ID,
+    hasToken: !!DEFAULT_ACCESS_TOKEN
+  });
+});
+
+app.get('/api/debug-env', (req, res) => {
+  res.json({
+    token_len: DEFAULT_ACCESS_TOKEN ? DEFAULT_ACCESS_TOKEN.length : 0,
+    store: DEFAULT_STORE_ID,
+    has_tiendanube_token: !!process.env.TIENDANUBE_ACCESS_TOKEN,
+    has_nuvemshop_token: !!process.env.NUVEMSHOP_ACCESS_TOKEN,
+    env_keys: Object.keys(process.env).filter(k => k.includes('NUVEM') || k.includes('TIENDA'))
   });
 });
 
