@@ -537,8 +537,10 @@ app.get('/api/script.js', (req, res) => {
   const { enabled, whatsapp } = getScriptSettings();
   
   res.setHeader('Content-Type', 'application/javascript');
-  // Cache de 1 minuto para não pesar o servidor
-  res.setHeader('Cache-Control', 'public, max-age=60');
+  // Sem cache para garantir que as mudanças no painel reflitam na hora
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
 
   // Retorna o gerador do JS exato (Sem as tags de <script> de HTML)
   const jsContent = `
