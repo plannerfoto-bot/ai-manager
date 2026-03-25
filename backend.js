@@ -24,7 +24,9 @@ const BASE_URL = process.env.TIENDANUBE_BASE_URL || "https://api.tiendanube.com/
 const apiClient = axios.create({
   baseURL: `${BASE_URL}/${STORE_ID}`,
   headers: {
-    Authentication: `bearer ${ACCESS_TOKEN}`,
+    "Authorization": `Bearer ${ACCESS_TOKEN}`,
+    "Authentication": `bearer ${ACCESS_TOKEN}`, // Mantemos para compatibilidade
+    "X-Auth-Token": ACCESS_TOKEN, // Algumas versões da API usam este
     "User-Agent": "AIOX-Manager (projeto@plannee.com.br)",
     "Content-Type": "application/json",
   },
