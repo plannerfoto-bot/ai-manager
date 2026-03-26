@@ -193,12 +193,27 @@
     var b = document.getElementById('cloth-calc-btn');
     if(!b) return;
 
+    function isStandardSize(w, h) {
+      var std = [[1.5, 2.0], [1.5, 2.2], [2.5, 2.0], [3.0, 2.0], [3.0, 2.5]];
+      var sw = w.toFixed(2), sh = h.toFixed(2);
+      for(var i=0; i<std.length; i++) {
+        var s1 = std[i][0].toFixed(2), s2 = std[i][1].toFixed(2);
+        if((sw === s1 && sh === s2) || (sw === s2 && sh === s1)) return true;
+      }
+      return false;
+    }
+
     b.addEventListener('click', function(){
       var a = parseFloat((document.getElementById('cloth-calc-alt').value || '').replace(',', '.'));
       var l = parseFloat((document.getElementById('cloth-calc-larg').value || '').replace(',', '.'));
       
       if(isNaN(a) || isNaN(l)){
-        renderError('Preencha altura e largura validos.');
+        renderError('Preencha altura e largura válidos.');
+        return;
+      }
+
+      if(isStandardSize(l, a)) {
+        renderError('Esta medida já está disponível nas opções padrão do site. Selecione o tamanho correspondente no menu de opções acima.');
         return;
       }
 
