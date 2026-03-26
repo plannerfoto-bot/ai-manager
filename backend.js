@@ -7,6 +7,7 @@ import cors from 'cors';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import os from 'os';
+import { createClient } from '@supabase/supabase-js';
 import igService from './src/instagramService.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -55,29 +56,39 @@ const APP_ID = process.env.NUVEMSHOP_APP_ID;
 const APP_SECRET = process.env.NUVEMSHOP_APP_SECRET;
 const PUBLIC_URL = process.env.PUBLIC_URL || 'https://ai-manager-nuvemshop.onrender.com';
 
-// --- PERSISTÊNCIA DE TOKENS (LOCAL) ---
-const STORES_FILE = path.join(__dirname, 'stores.json');
+// --- PERSISTÊNCIA DE TOKENS (SUPABASE) ---
+const supabaseUrl = process.env.SUPABASE_URL || 'https://juvdgqfkpgelcetfjqhl.supabase.co';
+const supabaseKey = process.env.SUPABASE_ANON_KEY || 'sb_publishable_mixQaQt-Op1pd6-IWi9giw_j8ZpenBM';
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function getStores() {
-  if (fs.existsSync(STORES_FILE)) {
-    try {
-      return JSON.parse(fs.readFileSync(STORES_FILE, 'utf8'));
-    } catch (e) {
-      console.error('Erro ao ler stores.json:', e);
-      return {};
-    }
+  try {
+    const { data, error } = await supabase.from('stores').select('*');
+    if (error) throw error;
+    
+    const stores = {};
+    data.forEach(s => {
+      stores[s.id] = s;
+    });
+    return stores;
+  } catch (e) {
+    console.error('Erro ao buscar stores no Supabase:', e);
+    return {};
   }
-  return {};
 }
 
 async function saveStore(storeId, data) {
-  const stores = await getStores();
-  stores[storeId] = { 
-    ...stores[storeId], 
-    ...data, 
-    updatedAt: new Date().toISOString() 
-  };
-  fs.writeFileSync(STORES_FILE, JSON.stringify(stores, null, 2));
+  try {
+    const { error } = await supabase.from('stores').upsert({
+      id: String(storeId),
+      ...data,
+      updated_at: new Date().toISOString()
+    });
+    if (error) throw error;
+    console.log(`✅ Store ${storeId} salva no Supabase.`);
+  } catch (e) {
+    console.error('Erro ao salvar store no Supabase:', e);
+  }
 }
 
 // Token legado (para compatibilidade enquanto migramos)
