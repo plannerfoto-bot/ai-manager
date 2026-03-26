@@ -8,16 +8,35 @@ import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import os from 'os';
 import igService from './src/instagramService.js';
+import { createClient } from '@supabase/supabase-js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 dotenv.config({ path: fs.existsSync('../nuvemshop-mcp/.env') ? '../nuvemshop-mcp/.env' : '.env' });
 
+// --- CONFIGURAÇÃO SUPABASE ---
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_KEY = process.env.SUPABASE_KEY;
+const supabase = (SUPABASE_URL && SUPABASE_KEY) ? createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+if (supabase) console.log('✅ Supabase conectado para persistência.');
+else console.warn('⚠️ Supabase não configurado. Usando stores.json (efêmero no Render).');
+
+
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
+// Middleware para evitar cache do index.html (forçar atualização do frontend)
+app.use((req, res, next) => {
+  if (req.path === '/' || req.path === '/index.html') {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+  }
+  next();
+});
 
 app.use(express.static('dist'));
 app.use(express.static('public'));
@@ -34,17 +53,62 @@ const PUBLIC_URL = process.env.PUBLIC_URL || 'https://ai-manager-nuvemshop.onren
 // Persistência de Tokens (Múltiplas Lojas)
 const STORES_FILE = path.join(__dirname, 'stores.json');
 
-function getStores() {
-  if (!fs.existsSync(STORES_FILE)) return {};
-  try {
-    return JSON.parse(fs.readFileSync(STORES_FILE, 'utf8'));
-  } catch (e) {
-    return {};
+async function getStores() {
+  let stores = {};
+  
+  // 1. Tenta carregar do Supabase primeiro
+  if (supabase) {
+    try {
+      const { data, error } = await supabase.from('ai_manager_config').select('*');
+      if (!error && data) {
+        data.forEach(row => {
+          stores[row.store_id] = {
+            access_token: row.access_token,
+            meta_token: row.meta_token,
+            fb_page_id: row.fb_page_id,
+            feed_caption_template: row.feed_caption_template,
+            updatedAt: row.updated_at
+          };
+        });
+        return stores;
+      }
+    } catch (e) {
+      console.error('Erro ao ler Supabase:', e);
+    }
   }
+
+  // 2. Fallback para stores.json local
+  if (fs.existsSync(STORES_FILE)) {
+    try {
+      return JSON.parse(fs.readFileSync(STORES_FILE, 'utf8'));
+    } catch (e) {
+      return {};
+    }
+  }
+  return {};
 }
 
-function saveStore(storeId, data) {
-  const stores = getStores();
+async function saveStore(storeId, data) {
+  // 1. Salva no Supabase se disponível
+  if (supabase) {
+    try {
+      const { error } = await supabase.from('ai_manager_config').upsert({
+        store_id: storeId.toString(),
+        access_token: data.access_token,
+        meta_token: data.meta_token,
+        fb_page_id: data.fb_page_id,
+        feed_caption_template: data.feed_caption_template,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'store_id' });
+      
+      if (error) console.error('Erro ao salvar no Supabase:', error);
+    } catch (e) {
+      console.error('Erro ao salvar no Supabase:', e);
+    }
+  }
+
+  // 2. Atualiza local também
+  const stores = await getStores();
   stores[storeId] = { 
     ...stores[storeId], 
     ...data, 
@@ -59,8 +123,8 @@ const DEFAULT_STORE_ID = process.env.TIENDANUBE_STORE_ID || process.env.NUVEMSHO
 const BASE_URL = process.env.TIENDANUBE_BASE_URL || "https://api.tiendanube.com/v1";
 
 // Helper: Criar cliente da API para uma loja específica
-function getApiClient(storeId = DEFAULT_STORE_ID) {
-  const stores = getStores();
+async function getApiClient(storeId = DEFAULT_STORE_ID) {
+  const stores = await getStores();
   const token = stores[storeId]?.access_token || DEFAULT_ACCESS_TOKEN;
   
   return axios.create({
@@ -74,9 +138,9 @@ function getApiClient(storeId = DEFAULT_STORE_ID) {
 }
 
 // Endpoint de debug (Mascarado para segurança)
-app.get('/api/debug-env', (req, res) => {
+app.get('/api/debug-env', async (req, res) => {
   const mask = (str) => str ? `${str.substring(0, 4)}***${str.substring(str.length - 4)}` : 'MISSING';
-  const stores = getStores();
+  const stores = await getStores();
   const defaultStore = stores[DEFAULT_STORE_ID] || {};
   res.json({
     hasAppId: !!APP_ID,
@@ -119,7 +183,7 @@ app.get('/api/auth/callback', async (req, res) => {
     console.log(`[OAuth] Sucesso! Loja ID: ${user_id}`);
 
     // Salva na persistência
-    saveStore(user_id, { access_token });
+    await saveStore(user_id, { access_token });
 
     // --- INSTALAÇÃO AUTOMÁTICA DO SCRIPT ---
     const scriptSrc = `${PUBLIC_URL}/api/script.js`;
@@ -392,13 +456,13 @@ const EXPIRY_MS = 24 * 60 * 60 * 1000;       // 24 horas
 
 async function cleanupExpiredVariants() {
   console.log('[Limpeza 24h] Iniciando varredura de variantes expiradas...');
-  const stores = getStores();
+  const stores = await getStores();
   const storeIds = Object.keys(stores);
   const now = Date.now();
 
   for (const storeId of storeIds) {
     try {
-      const client = getApiClient(storeId);
+      const client = await getApiClient(storeId);
       
       // --- ESCUDO DE PEDIDOS: Protege variantes vendidas nos últimos 200 pedidos ---
       const ordersRes = await client.get('/orders', { params: { per_page: 200, status: 'any', fields: 'line_items' } }).catch(() => ({ data: [] }));
@@ -449,7 +513,7 @@ console.log('[Limpeza 24h] Scheduler iniciado - rodara a cada 30 minutos.');
 /**
  * SALVAR CONFIGURAÇÕES DE MARKETING (META/INSTAGRAM)
  */
-app.post('/api/marketing/settings', (req, res) => {
+app.post('/api/marketing/settings', async (req, res) => {
     const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
     const { meta_token, fb_page_id, feed_caption_template } = req.body;
 
@@ -458,7 +522,7 @@ app.post('/api/marketing/settings', (req, res) => {
     }
 
     try {
-        saveStore(storeId, {
+        await saveStore(storeId, {
             meta_token,
             fb_page_id,
             feed_caption_template: feed_caption_template || ''
@@ -472,9 +536,9 @@ app.post('/api/marketing/settings', (req, res) => {
 /**
  * BUSCAR CONFIGURAÇÕES DE MARKETING
  */
-app.get('/api/marketing/settings', (req, res) => {
+app.get('/api/marketing/settings', async (req, res) => {
     const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
-    const stores = getStores();
+    const stores = await getStores();
     const storeData = stores[storeId] || {};
 
     res.json({
@@ -505,7 +569,7 @@ app.post('/api/instagram/publish', async (req, res) => {
     const { productId, customCaption, postFeed = true, postStory = true } = req.body;
 
     try {
-        const stores = getStores();
+        const stores = await getStores();
         const storeData = stores[storeId] || {};
 
         const metaToken = process.env.META_ACCESS_TOKEN || storeData.meta_token;
@@ -516,7 +580,7 @@ app.post('/api/instagram/publish', async (req, res) => {
         }
 
         // Busca dados do produto para obter imagem e link
-        const client = getApiClient(storeId);
+        const client = await getApiClient(storeId);
         const productRes = await client.get(`/products/${productId}`);
         const product = productRes.data;
 
@@ -577,7 +641,7 @@ app.post('/api/instagram/publish', async (req, res) => {
  */
 app.post('/api/webhooks/register', async (req, res) => {
     try {
-        const stores = getStores();
+        const stores = await getStores();
         // Usa a primeira loja encontrada (single-tenant)
         const storeId = Object.keys(stores)[0];
         const storeData = stores[storeId];
@@ -627,7 +691,7 @@ app.post('/api/webhooks/register', async (req, res) => {
  */
 app.get('/api/webhooks/list', async (req, res) => {
     try {
-        const stores = getStores();
+        const stores = await getStores();
         const storeId = Object.keys(stores)[0];
         const storeData = stores[storeId];
 
@@ -665,7 +729,7 @@ app.post('/api/webhooks/product-created', async (req, res) => {
     if (event !== 'product/created') return;
 
     try {
-        const stores = getStores();
+        const stores = await getStores();
         const storeData = stores[storeId];
 
         if (!storeData || !storeData.access_token) {
@@ -674,7 +738,7 @@ app.post('/api/webhooks/product-created', async (req, res) => {
         }
 
         // 1. Busca detalhes completos do produto na Nuvemshop
-        const client = getApiClient(storeId);
+        const client = await getApiClient(storeId);
         const productRes = await client.get(`/products/${productId}`);
 
         const product = productRes.data;
@@ -747,7 +811,7 @@ app.get('/api/debug-env', (req, res) => {
 // Dashboard Stats
 app.get('/api/stats', async (req, res) => {
   const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
-  const client = getApiClient(storeId);
+  const client = await getApiClient(storeId);
   try {
     const [prodRes, ordersRes, storeRes] = await Promise.all([
       client.get('/products', { params: { per_page: 1 } }),
@@ -832,7 +896,7 @@ app.get('/api/products/:id', async (req, res) => {
 // Instalação do Script via API (One-Click)
 app.post('/api/store-script', async (req, res) => {
   const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
-  const client = getApiClient(storeId);
+  const client = await getApiClient(storeId);
   const scriptSrc = `${PUBLIC_URL}/api/script.js`;
 
   try {
@@ -865,7 +929,7 @@ app.post('/api/store-script', async (req, res) => {
 // Categorias (Para IA)
 app.get('/api/categories', async (req, res) => {
   const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
-  const client = getApiClient(storeId);
+  const client = await getApiClient(storeId);
   try {
     const response = await client.get('/categories');
     res.json(response.data);
@@ -903,7 +967,7 @@ app.post('/api/products/bulk-create-manual', async (req, res) => {
     // Tratamento estrito do array de itens para a nova estrutura de payload
     const arr = items || [];
     const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
-    const client = getApiClient(storeId);
+    const client = await getApiClient(storeId);
     
     for (let i = 0; i < arr.length; i++) {
         const item = arr[i];
@@ -1129,7 +1193,7 @@ app.post('/api/store-script-settings', async (req, res) => {
 // Debug: Listar scripts da loja
 app.get('/api/store-scripts', async (req, res) => {
   const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
-  const client = getApiClient(storeId);
+  const client = await getApiClient(storeId);
   try {
     const getRes = await client.get('/scripts');
     const scriptsList = Array.isArray(getRes.data) ? getRes.data : (getRes.data?.result || getRes.data);
@@ -1156,7 +1220,7 @@ app.post('/api/store-script', async (req, res) => {
     const scriptSrc = `${finalUrl}/api/script.js`;
     
     const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
-    const client = getApiClient(storeId);
+    const client = await getApiClient(storeId);
     
     console.log(`[Sync] Tentando injetar script: ${scriptSrc} na loja ${storeId}`);
 
@@ -1206,7 +1270,7 @@ app.post('/api/store-script', async (req, res) => {
 // Remove a versão local antiga de store-script porque vamos gerenciar via nuvem
 app.delete('/api/store-script', async (req, res) => {
   const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
-  const client = getApiClient(storeId);
+  const client = await getApiClient(storeId);
   try {
     const getRes = await client.get('/scripts');
     const scriptsList = Array.isArray(getRes.data) ? getRes.data : [];

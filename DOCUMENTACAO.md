@@ -53,7 +53,21 @@ O sistema foi construído como um **Aplicativo Parceiro**.
 
 ---
 
-## 4. Lógica da Calculadora (Matemática de Preço)
+## 4. Integração com Instagram (Graph API)
+
+O AI Manager também possui a capacidade de gerar publicações automáticas com fotos e legendas criadas por inteligência artificial diretamente no Instagram da loja.
+
+### Credenciais da Meta (Geradas via Gerenciador de Negócios)
+> [!NOTE]
+> Este token foi gerado via "Usuários do sistema" no Meta Business para ser definitivo (nunca expirar).
+
+- **Facebook Page ID**: `1239980869347062`
+- **Meta Access Token**: `EAANSfEdZC0TYBRId2sWf27KDIqUxiDkyTZBu8d5Xl7rnVlLksSvZCbYqmSDavtmbitw7XJnWZCVW8ZAfPdhpT3puIihqu5c6aYt99tRXAoyJytlZB5VkcwQ03zDR3105vJH9y7tTk8wj1nSZCnmMar0JUvxvuMO3I4spa9zQyNcxRe3ONHwqYUnBwxM3F9leKRtqgZDZD`
+- **Permissões Concedidas**: `pages_read_engagement, pages_show_list, instagram_basic, instagram_content_publish`.
+
+---
+
+## 5. Lógica da Calculadora (Matemática de Preço)
 
 A lógica central está na função `calcMeasure` dentro do `backend.js`. As regras são:
 
