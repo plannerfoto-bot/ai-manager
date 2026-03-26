@@ -465,20 +465,34 @@
   }
 
   function updateImageRatio(w, h) {
+    if (!w || !h) return;
     var mainImg = document.querySelector('.js-product-active-image, .js-product-main-image, #product_image, .js-main-image-src, .product-image img, [data-main-product-image], .js-product-slide-link img');
-    if (!mainImg || !w || !h) return;
-    if (mainImg.naturalWidth === 0) return;
+    if (!mainImg) return;
+    
+    // Se a imagem ainda estiver carregando, tenta de novo em breve
+    if (mainImg.naturalWidth === 0) {
+        setTimeout(function(){ updateImageRatio(w, h); }, 200);
+        return;
+    }
 
     if (!mainImg.dataset.adjusterReady) {
-      console.log('🚀 AI Manager: Simulador de Imagem Ativado');
-      mainImg.style.transition = 'aspect-ratio 0.4s cubic-bezier(0.4, 0, 0.2, 1), object-fit 0.4s';
+      console.log('🚀 AI Manager: Simulador Ativado');
+      mainImg.style.transition = 'aspect-ratio 0.4s cubic-bezier(0.4, 0, 0.2, 1), object-fit 0.4s, opacity 0.2s';
       mainImg.dataset.adjusterReady = 'true';
+      
+      // Observador para garantir que a proporção persista se o tema trocar a imagem (AJAX)
+      if (window.MutationObserver) {
+        var observer = new MutationObserver(function() {
+          console.log('🔄 Tema alterou a imagem, reaplicando proporção...');
+          initImageAdjuster();
+        });
+        observer.observe(mainImg, { attributes: true, attributeFilter: ['src'] });
+      }
     }
 
     var isLandscape = mainImg.naturalWidth > mainImg.naturalHeight;
     var finalW, finalH;
     
-    // Regra: Maior valor segue orientação original
     if (isLandscape) {
       finalW = Math.max(w, h);
       finalH = Math.min(w, h);
@@ -489,37 +503,40 @@
 
     var newRatio = finalW + ' / ' + finalH;
     if (mainImg.style.aspectRatio !== newRatio) {
-      console.log('🖼️ Redimensionando para: ' + newRatio);
+      console.log('🖼️ Ajustando Ratio: ' + newRatio);
       mainImg.style.aspectRatio = newRatio;
       mainImg.style.objectFit = 'fill';
-      mainImg.style.opacity = '0.7';
-      setTimeout(function(){ mainImg.style.opacity = '1'; }, 150);
+      mainImg.style.width = '100%';
+      mainImg.style.height = 'auto';
+      
+      mainImg.style.opacity = '0.5';
+      setTimeout(function(){ mainImg.style.opacity = '1'; }, 100);
     }
   }
 
   function initImageAdjuster() {
-    var activeVariant = document.querySelector('.js-variant-option.selected, .variant-option.active, .js-variant-option.active, input[type="radio"]:checked + label, .selected-variant, .js-insta-variant.selected, .js-insta-variant.active');
+    var sel = '.js-variant-option.selected, .variant-option.active, .js-variant-option.active, input[type="radio"]:checked + label, .selected-variant, .js-insta-variant.selected, .js-insta-variant.active';
+    var activeVariant = document.querySelector(sel);
     if (!activeVariant) return;
 
     var text = (activeVariant.innerText || activeVariant.getAttribute('title') || '').trim();
-    var match = text.match(/(\d+,\d+)\s*[xX]\s*(\d+,\d+)/);
+    // Regex mais flexível: busca todos os números com vírgula ou ponto
+    var nums = text.replace(',', '.').match(/\d+(\.\d+)?/g);
     
-    if (!match) {
+    if (!nums || nums.length < 2) {
         var radio = activeVariant.previousElementSibling || activeVariant.querySelector('input');
-        if (radio && radio.value) match = radio.value.match(/(\d+,\d+)\s*[xX]\s*(\d+,\d+)/);
+        if (radio && radio.value) nums = radio.value.replace(',', '.').match(/\d+(\.\d+)?/g);
     }
 
-    if (match) {
-      var v1 = parseFloat(match[1].replace(',', '.'));
-      var v2 = parseFloat(match[2].replace(',', '.'));
-      updateImageRatio(v1, v2);
+    if (nums && nums.length >= 2) {
+      updateImageRatio(parseFloat(nums[0]), parseFloat(nums[1]));
     }
   }
 
-  // Monitora cliques em variantes para resposta imediata
+  // Evento instantâneo no clique
   document.addEventListener('click', function(e){
-    if (e.target.closest('.js-variant-option, .js-insta-variant, .variant-option')) {
-      setTimeout(initImageAdjuster, 50); // Delay curto para o tema atualizar a classe 'selected'
+    if (e.target.closest('.js-variant-option, .js-insta-variant, .variant-option, .cc-custom-btn')) {
+      setTimeout(initImageAdjuster, 100);
     }
   });
 
@@ -527,7 +544,6 @@
   
   setInterval(function(){
     inject();
-    // O monitoramento por intervalo continua como backup
     initImageAdjuster();
-  }, 2500);
+  }, 3000);
 })();
