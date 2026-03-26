@@ -1,4 +1,21 @@
 (function(){
+  // 🚫 Ocultação Imediata de Variante de Whatsapp
+  var style = document.createElement('style');
+  style.innerHTML = '[title*="Whatsapp"], [title*="whatsapp"], [title*="Personalizada Via"] { display: none !important; visibility: hidden !important; opacity: 0 !important; }';
+  document.head ? document.head.appendChild(style) : document.documentElement.appendChild(style);
+
+  if (window.MutationObserver) {
+    var cleaner = new MutationObserver(function() {
+      document.querySelectorAll('.js-insta-variant, .js-product-variant-option, a.btn-variant').forEach(function(el) {
+        var txt = (el.innerText || el.getAttribute('title') || "").toLowerCase();
+        if (txt.indexOf('whatsapp') !== -1 || txt.indexOf('personalizada via') !== -1) {
+          el.style.setProperty('display', 'none', 'important');
+        }
+      });
+    });
+    cleaner.observe(document.documentElement, { childList: true, subtree: true });
+  }
+
   var CALCULATOR_ENABLED = __ENABLED__;
   var API_BASE_URL = '__PUBLIC_URL__';
   // ⚙️ Número do WhatsApp para cotação de medidas especiais
@@ -536,22 +553,6 @@
   function initImageAdjuster() {
     var sel = '.js-variant-option.selected, .variant-option.active, .js-variant-option.active, input[type="radio"]:checked + label, .selected-variant, .js-insta-variant.selected, .js-insta-variant.active';
     var activeVariant = document.querySelector(sel);
-    // Oculta a variante de WhatsApp de forma agressiva (CSS + JS)
-    var styleId = 'hide-whatsapp-variant-style';
-    if (!document.getElementById(styleId)) {
-        var style = document.createElement('style');
-        style.id = styleId;
-        style.innerHTML = 'a[title*="Whatsapp"], a[title*="whatsapp"], a[title*="Personalizada Via"], .js-insta-variant[title*="Whatsapp"] { display: none !important; }';
-        document.head.appendChild(style);
-    }
-    
-    document.querySelectorAll('.js-insta-variant, .js-product-variant-option, a.btn-variant').forEach(function(el) {
-        var txt = (el.innerText || el.getAttribute('title') || "").toLowerCase();
-        if (txt.indexOf('whatsapp') !== -1 || txt.indexOf('personalizada via') !== -1) {
-            el.style.setProperty('display', 'none', 'important');
-        }
-    });
-
     if (!activeVariant) return;
 
     var text = (activeVariant.innerText || activeVariant.getAttribute('title') || '').trim();
