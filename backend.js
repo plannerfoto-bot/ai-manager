@@ -602,8 +602,10 @@ app.post('/api/webhooks/register', async (req, res) => {
         console.log(`[Webhook Register] Tentando registrar para loja ${storeId}...`);
 
         // URL pública do AI Manager (Render)
-        const baseUrl = process.env.APP_URL || 'https://ai-manager-nuvemshop.onrender.com';
+        const baseUrl = process.env.APP_URL || process.env.PUBLIC_URL || 'https://ai-manager-nuvemshop.onrender.com';
         const webhookUrl = `${baseUrl}/api/webhooks/product-created`;
+
+        console.log(`[Webhook] Verificando existência na URL: ${webhookUrl}`);
 
         // Consulta webhooks existentes para evitar duplicata
         const listRes = await axios.get(
@@ -612,12 +614,12 @@ app.post('/api/webhooks/register', async (req, res) => {
         );
         const existingWebhooks = listRes.data || [];
         const alreadyRegistered = existingWebhooks.find(
-            wh => wh.event === 'product/created' && wh.url === webhookUrl
+            wh => wh.event === 'product/created' && (wh.url === webhookUrl || wh.url.includes('/api/webhooks/product-created'))
         );
 
         if (alreadyRegistered) {
             console.log('✅ Webhook já registrado:', alreadyRegistered.id);
-            return res.json({ success: true, message: 'Webhook já estava registrado.', webhook: alreadyRegistered });
+            return res.json({ success: true, message: 'Automação já está ativa!', webhook: alreadyRegistered });
         }
 
         // Cria o novo webhook
@@ -628,12 +630,16 @@ app.post('/api/webhooks/register', async (req, res) => {
         );
 
         console.log('✅ Webhook registrado com sucesso:', createRes.data);
-        res.json({ success: true, message: 'Webhook registrado com sucesso!', webhook: createRes.data });
+        res.json({ success: true, message: 'Automação ativada com sucesso!', webhook: createRes.data });
 
     } catch (error) {
         const detail = error.response?.data || error.message;
-        console.error('❌ Erro ao registrar webhook:', detail);
-        res.status(500).json({ error: 'Erro ao registrar webhook na Nuvemshop.', details: detail });
+        console.error('❌ Erro detalhado ao registrar webhook:', JSON.stringify(detail));
+        res.status(500).json({ 
+            error: 'Erro no registro', 
+            message: detail.error_description || detail.message || 'Verifique se o Access Token da Nuvemshop é válido.',
+            details: detail 
+        });
     }
 });
 

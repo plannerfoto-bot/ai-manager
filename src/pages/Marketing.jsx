@@ -56,7 +56,8 @@ const Marketing = () => {
             const listRes = await axios.get('/api/webhooks/list');
             setWebhooks(listRes.data.webhooks || []);
         } catch (error) {
-            toast.error('Erro ao registrar webhook.');
+            const msg = error.response?.data?.message || 'Erro ao registrar webhook.';
+            toast.error(msg);
             console.error(error);
         } finally {
             setRegistering(false);
