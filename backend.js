@@ -643,30 +643,27 @@ app.post('/api/webhooks/register', async (req, res) => {
 
         console.log(`[Webhook] Verificando existência na URL: ${webhookUrl}`);
 
-        // Consulta webhooks existentes para evitar duplicata
-        const listRes = await axios.get(
-            `https://api.tiendanube.com/v1/${storeId}/webhooks`,
-            { headers: { 'Authentication': `bearer ${storeData.access_token}`, 'User-Agent': 'AIManager/1.0' } }
-        );
-        const existingWebhooks = listRes.data || [];
-        const alreadyRegistered = existingWebhooks.find(
-            wh => wh.event === 'product/created' && (wh.url === webhookUrl || wh.url.includes('/api/webhooks/product-created'))
-        );
+        // Cria webhooks: product/created e product/updated
+        const events = ['product/created', 'product/updated'];
+        const results = [];
 
-        if (alreadyRegistered) {
-            console.log('✅ Webhook já registrado:', alreadyRegistered.id);
-            return res.json({ success: true, message: 'Automação já está ativa!', webhook: alreadyRegistered });
+        for (const event of events) {
+            const already = existingWebhooks.find(wh => wh.event === event && (wh.url === webhookUrl || wh.url.includes('/api/webhooks/product-created')));
+            if (!already) {
+                console.log(`[Webhook] Registrando evento: ${event}`);
+                const res = await axios.post(
+                    `https://api.tiendanube.com/v1/${storeId}/webhooks`,
+                    { event, url: webhookUrl },
+                    { headers: { 'Authentication': `bearer ${storeData.access_token}`, 'User-Agent': 'AIManager/1.0', 'Content-Type': 'application/json' } }
+                );
+                results.push(res.data);
+            } else {
+                console.log(`✅ Webhook já registrado para: ${event}`);
+                results.push(already);
+            }
         }
 
-        // Cria o novo webhook
-        const createRes = await axios.post(
-            `https://api.tiendanube.com/v1/${storeId}/webhooks`,
-            { event: 'product/created', url: webhookUrl },
-            { headers: { 'Authentication': `bearer ${storeData.access_token}`, 'User-Agent': 'AIManager/1.0', 'Content-Type': 'application/json' } }
-        );
-
-        console.log('✅ Webhook registrado com sucesso:', createRes.data);
-        res.json({ success: true, message: 'Automação ativada com sucesso!', webhook: createRes.data });
+        res.json({ success: true, message: 'Automação ativada com sucesso! (Criação e Edição)', webhooks: results });
 
     } catch (error) {
         const detail = error.response?.data || error.message;
@@ -750,8 +747,8 @@ app.post('/api/webhooks/product-created', async (req, res) => {
         const mainImage = product.images && product.images.length > 0 ? product.images[0].src : null;
 
         if (!mainImage) {
-            console.warn(`⚠️ Produto ${productId} sem imagem. Ignorando postagem.`);
-            addWebhookLog({ storeId, productId, status: 'Error', error: 'Produto sem imagens para postar' });
+            console.warn(`⚠️ Produto ${productId} sem imagem. Ignorando postagem e esperando pela edição.`);
+            addWebhookLog({ storeId, productId, status: 'Ignored', details: 'Produto sem imagens (aguardando edição)' });
             return;
         }
 
@@ -762,10 +759,17 @@ app.post('/api/webhooks/product-created', async (req, res) => {
             return;
         }
 
+        // 3. Deduplicação: Evita postar o mesmo produto em um curto intervalo
+        const processed = Array.isArray(storeData.processed_products) ? storeData.processed_products : [];
+        if (processed.includes(String(productId))) {
+            console.log(`♻️ Produto ${productId} já foi postado recentemente. Pulando.`);
+            return;
+        }
+
         console.log(`🚀 Iniciando postagem automática para: ${productName}`);
         addWebhookLog({ storeId, productId, productName, status: 'Processing', details: 'Validando conta do Instagram...' });
 
-        // 3. Obtém ID da conta do Instagram
+        // 4. Obtém ID da conta do Instagram
         const igAccountId = await igService.getInstagramAccountId(fbPageId, metaToken);
         if (!igAccountId) {
             console.error('❌ Falha ao obter conta do Instagram Vinculada.');
@@ -773,27 +777,29 @@ app.post('/api/webhooks/product-created', async (req, res) => {
             return;
         }
 
-        // 4. Formata a legenda (Feed) usando template salvo pelo usuário
+        // 5. Formata a legenda (Feed) usando template salvo pelo usuário
         const caption = buildFeedCaption(storeData.feed_caption_template, productName, productLink);
 
-        // 5. Postagem no FEED
+        // 6. Postagem no FEED
         addWebhookLog({ storeId, productId, productName, status: 'Processing', details: 'Publicando no FEED (Instagram)...' });
-        console.log('📸 Criando post no Feed...');
         const feedContainerId = await igService.createFeedContainer(igAccountId, mainImage, caption, metaToken);
         await igService.publishMedia(igAccountId, feedContainerId, metaToken);
         
-        // 6. Postagem no STORY (apenas a imagem + link do produto)
+        // 7. Postagem no STORY (apenas a imagem + link do produto)
         addWebhookLog({ storeId, productId, productName, status: 'Processing', details: 'Publicando no STORY (Instagram)...' });
-        console.log('📱 Criando post no Story...');
         const storyContainerId = await igService.createStoryContainer(igAccountId, mainImage, productLink, metaToken);
         await igService.publishMedia(igAccountId, storyContainerId, metaToken);
         
+        // 8. Marca como processado para evitar duplicata (mantemos os últimos 50 produtos)
+        const newProcessed = [String(productId), ...processed].slice(0, 50);
+        await saveStore(storeId, { processed_products: newProcessed });
+
         console.log('✅ Automação de postagem concluída!');
         addWebhookLog({ storeId, productId, productName, status: 'Success', details: 'Postado no Feed e Story' });
 
     } catch (error) {
         const errorMsg = error.response?.data || error.message;
-        console.error('❌ Erro no processamento do Webhook:', errorMsg);
+        console.error('❌ Erro no processamento do Webhook:', JSON.stringify(errorMsg));
         addWebhookLog({ storeId, productId, status: 'Error', error: errorMsg });
     }
 });
