@@ -480,7 +480,16 @@
       mainImg.style.transition = 'aspect-ratio 0.4s cubic-bezier(0.4, 0, 0.2, 1), object-fit 0.4s, opacity 0.2s';
       mainImg.dataset.adjusterReady = 'true';
       
-      // Observador para garantir que a proporção persista se o tema trocar a imagem (AJAX)
+      // Ajusta o container pai para permitir que a imagem "estique" sem limites de fundo branco
+      var parent = mainImg.closest('.js-product-slide-link, .product-image-container');
+      if (parent) {
+          parent.style.height = 'auto';
+          parent.style.minHeight = '0';
+          parent.style.paddingBottom = '0';
+          parent.style.backgroundColor = 'transparent';
+          parent.style.transition = 'aspect-ratio 0.4s';
+      }
+
       if (window.MutationObserver) {
         var observer = new MutationObserver(function() {
           console.log('🔄 Tema alterou a imagem, reaplicando proporção...');
@@ -509,6 +518,12 @@
       mainImg.style.width = '100%';
       mainImg.style.height = 'auto';
       
+      var parent = mainImg.closest('.js-product-slide-link, .product-image-container');
+      if (parent) {
+          parent.style.aspectRatio = newRatio;
+          parent.style.paddingBottom = '0';
+      }
+
       mainImg.style.opacity = '0.5';
       setTimeout(function(){ mainImg.style.opacity = '1'; }, 100);
     }
