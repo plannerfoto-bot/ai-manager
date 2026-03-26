@@ -1,20 +1,41 @@
 (function(){
-  // 🚫 Ocultação Imediata de Variante de Whatsapp
+  console.log("🚀 AI Manager: v2.4.0 (Global Variant Shield)");
+  
+  // 🚫 Ocultação Universal e Redundante
   var style = document.createElement('style');
-  style.innerHTML = '[title*="Whatsapp"], [title*="whatsapp"], [title*="Personalizada Via"] { display: none !important; visibility: hidden !important; opacity: 0 !important; }';
-  document.head ? document.head.appendChild(style) : document.documentElement.appendChild(style);
+  style.innerHTML = `
+    [title*="Whatsapp" i], [title*="Personalizada" i], 
+    a:has(span:contains("Whatsapp")), 
+    .js-insta-variant:contains("Whatsapp"),
+    [data-variant-title*="Whatsapp" i] { 
+      display: none !important; 
+      visibility: hidden !important; 
+      opacity: 0 !important; 
+      pointer-events: none !important;
+      position: absolute !important;
+      left: -9999px !important;
+    }
+  `;
+  document.documentElement.appendChild(style);
+
+  function nukeVariants() {
+    document.querySelectorAll('a, button, span, label, .js-insta-variant').forEach(function(el) {
+      var t = (el.innerText || el.getAttribute('title') || el.getAttribute('data-variant-title') || "").toLowerCase();
+      if (t.indexOf('whatsapp') !== -1 || t.indexOf('personalizada via') !== -1) {
+        el.style.setProperty('display', 'none', 'important');
+        el.style.setProperty('visibility', 'hidden', 'important');
+        var p = el.parentElement;
+        if (p && p.classList.contains('js-variant-option')) p.style.display = 'none';
+      }
+    });
+  }
 
   if (window.MutationObserver) {
-    var cleaner = new MutationObserver(function() {
-      document.querySelectorAll('.js-insta-variant, .js-product-variant-option, a.btn-variant').forEach(function(el) {
-        var txt = (el.innerText || el.getAttribute('title') || "").toLowerCase();
-        if (txt.indexOf('whatsapp') !== -1 || txt.indexOf('personalizada via') !== -1) {
-          el.style.setProperty('display', 'none', 'important');
-        }
-      });
-    });
-    cleaner.observe(document.documentElement, { childList: true, subtree: true });
+    new MutationObserver(nukeVariants).observe(document.documentElement, { childList: true, subtree: true });
   }
+  
+  // Varreduras extras nos primeiros segundos (redundância para temas lentos)
+  [100, 500, 1000, 2000, 5000].forEach(t => setTimeout(nukeVariants, t));
 
   var CALCULATOR_ENABLED = __ENABLED__;
   var API_BASE_URL = '__PUBLIC_URL__';
