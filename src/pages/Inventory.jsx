@@ -1,13 +1,77 @@
 import React, { useState } from 'react';
-import { Package, Trash2, ExternalLink, Tag, Info, Layers, BarChart3, X, PlusCircle, LayoutGrid } from 'lucide-react';
+import axios from 'axios';
+import { toast } from 'react-hot-toast';
+import { Package, Trash2, ExternalLink, Tag, Info, Layers, BarChart3, X, PlusCircle, LayoutGrid, Send, Loader2 } from 'lucide-react';
 import BulkManualUpload from '../components/organisms/BulkManualUpload';
 import CalculadoraMedidas from '../components/organisms/CalculadoraMedidas';
+
+// SVG inline do Instagram (a versão instalada do lucide-react não exporta Instagram)
+const IgIcon = ({ className }) => (
+  <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect width="20" height="20" x="2" y="2" rx="5" ry="5"/>
+    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
+    <line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/>
+  </svg>
+);
 
 const Inventory = ({ products = [], total = 0, page = 1, loading, onDelete, onRefresh, calculatorEnabled = false }) => {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [viewMode, setViewMode] = useState('list'); // 'list' | 'create'
   const [searchQuery, setSearchQuery] = useState('');
   const [duplicateData, setDuplicateData] = useState(null);
+
+  // Modal de publicação no Instagram
+  const [igModal, setIgModal] = useState(false);
+  const [igCaption, setIgCaption] = useState('');
+  const [igPostFeed, setIgPostFeed] = useState(true);
+  const [igPostStory, setIgPostStory] = useState(true);
+  const [igLoading, setIgLoading] = useState(false);
+
+  // Ao selecionar produto, carrega legenda salva nas configurações
+  const openIgModal = async (product) => {
+    try {
+      const res = await axios.get('/api/marketing/settings');
+      const tpl = res.data.feed_caption_template || '';
+      const name = getText(product.name);
+      const handle = product.handle?.pt || (product.handle ? Object.values(product.handle)[0] : '');
+      const link = `https://clothsublimacao.com.br/produtos/${handle}`;
+      const defaultTpl = `✨ NOVIDADE NA CLOTH! ✨\n\n${name}\n\nGaranta o seu agora mesmo no nosso site! 🚀\n\n🔗 ${link}\n\n#clothsublimacao #novidade #sublimacao #personalizados`;
+      const filled = tpl
+        ? tpl.replace(/{{product_name}}/g, name).replace(/{{product_link}}/g, link)
+        : defaultTpl;
+      setIgCaption(filled);
+      setIgPostFeed(true);
+      setIgPostStory(true);
+      setIgModal(true);
+    } catch {
+      setIgCaption('');
+      setIgModal(true);
+    }
+  };
+
+  const publishToInstagram = async () => {
+    if (!selectedProduct) return;
+    if (!igPostFeed && !igPostStory) {
+      toast.error('Selecione ao menos Feed ou Story.');
+      return;
+    }
+    setIgLoading(true);
+    try {
+      const res = await axios.post('/api/instagram/publish', {
+        productId: selectedProduct.id,
+        customCaption: igCaption,
+        postFeed: igPostFeed,
+        postStory: igPostStory,
+      });
+      toast.success(`✅ Publicado! ${igPostFeed ? 'Feed' : ''}${igPostFeed && igPostStory ? ' + ' : ''}${igPostStory ? 'Story' : ''}`);
+      setIgModal(false);
+    } catch (error) {
+      const msg = error.response?.data?.error || 'Erro ao publicar no Instagram.';
+      toast.error(msg);
+    } finally {
+      setIgLoading(false);
+    }
+  };
 
   const handleDuplicate = () => {
     if (selectedProduct) {
@@ -246,7 +310,16 @@ const Inventory = ({ products = [], total = 0, page = 1, loading, onDelete, onRe
                       )}
 
                       <div className="space-y-3">
-                        <div className="flex gap-3 pt-4">
+                        {/* Botão Instagram */}
+                        <button 
+                          onClick={() => openIgModal(selectedProduct)}
+                          className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-pink-500/20 group"
+                        >
+                          <IgIcon className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                          PUBLICAR NO INSTAGRAM
+                        </button>
+
+                        <div className="flex gap-3 pt-1">
                           <a 
                             href={getText(selectedProduct.canonical_url)} 
                             target="_blank" 
@@ -284,9 +357,102 @@ const Inventory = ({ products = [], total = 0, page = 1, loading, onDelete, onRe
           )}
         </>
       )}
-    </div>
+
+      {/* ─── Modal Publicar no Instagram ─────────────────────────────── */}
+      {igModal && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-slate-900 border border-slate-700 rounded-[28px] p-8 w-full max-w-lg shadow-2xl animate-in slide-in-from-bottom-8 duration-300">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-pink-600 rounded-xl flex items-center justify-center">
+                  <IgIcon className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-white font-bold text-lg leading-tight">Publicar no Instagram</h3>
+                  <p className="text-slate-500 text-xs">{getText(selectedProduct?.name)}</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setIgModal(false)} 
+                className="p-2 hover:bg-slate-800 rounded-xl text-slate-500 transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Legenda do Feed */}
+            <div className="space-y-3 mb-6">
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                <Send size={12} /> Legenda do Feed
+              </label>
+              <textarea
+                value={igCaption}
+                onChange={(e) => setIgCaption(e.target.value)}
+                rows={7}
+                className="w-full bg-slate-950 border border-slate-800 focus:border-pink-500/50 focus:ring-4 focus:ring-pink-500/10 rounded-2xl py-3 px-4 text-white text-sm font-mono leading-relaxed resize-none outline-none transition-all"
+                placeholder="Digite a legenda aqui..."
+              />
+              <p className="text-[11px] text-slate-600 italic">Esta legenda é usada no <b className="text-slate-500">Feed</b>. O Story usa apenas o link do produto.</p>
+            </div>
+
+            {/* Checkboxes */}
+            <div className="flex gap-4 mb-6">
+              <label className={`flex items-center gap-3 p-3 flex-1 rounded-xl border cursor-pointer transition-all ${igPostFeed ? 'border-pink-500/40 bg-pink-500/10 text-pink-300' : 'border-slate-800 text-slate-500'}`}>
+                <input 
+                  type="checkbox" 
+                  checked={igPostFeed} 
+                  onChange={e => setIgPostFeed(e.target.checked)} 
+                  className="accent-pink-500 w-4 h-4"
+                />
+                <div>
+                  <p className="text-sm font-bold">Feed</p>
+                  <p className="text-[10px] opacity-70">Foto + legenda</p>
+                </div>
+              </label>
+              <label className={`flex items-center gap-3 p-3 flex-1 rounded-xl border cursor-pointer transition-all ${igPostStory ? 'border-purple-500/40 bg-purple-500/10 text-purple-300' : 'border-slate-800 text-slate-500'}`}>
+                <input 
+                  type="checkbox" 
+                  checked={igPostStory} 
+                  onChange={e => setIgPostStory(e.target.checked)} 
+                  className="accent-purple-500 w-4 h-4"
+                />
+                <div>
+                  <p className="text-sm font-bold">Story</p>
+                  <p className="text-[10px] opacity-70">Foto + link direto</p>
+                </div>
+              </label>
+            </div>
+
+            {/* Botões */}
+            <div className="flex gap-3">
+              <button 
+                onClick={() => setIgModal(false)}
+                className="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl transition-colors"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={publishToInstagram}
+                disabled={igLoading}
+                className="flex-[2] py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 disabled:opacity-50 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg"
+              >
+                {igLoading ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" /> Publicando...
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-5 h-5" /> Publicar Agora
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+  </div>
   );
 };
 
 export default Inventory;
-

@@ -2,25 +2,21 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
 import { 
-  Share2, 
-  Globe, 
-  Key, 
-  Save, 
-  ExternalLink, 
-  HelpCircle,
-  CheckCircle2,
-  AlertCircle,
-  Zap,
-  Sparkles
+  Share2, Globe, Key, Save, ExternalLink, 
+  HelpCircle, CheckCircle2, AlertCircle,
+  Zap, Sparkles, FileText, Link2
 } from 'lucide-react';
 
 const Marketing = () => {
     const [settings, setSettings] = useState({
         meta_token: '',
-        fb_page_id: ''
+        fb_page_id: '',
+        feed_caption_template: ''
     });
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
+
+    const defaultCaption = `✨ NOVIDADE NA CLOTH! ✨\n\n{{product_name}}\n\nGaranta o seu agora mesmo no nosso site! 🚀\n\n🔗 {{product_link}}\n\n#clothsublimacao #novidade #sublimacao #personalizados`;
 
     useEffect(() => {
         const fetchSettings = async () => {
@@ -50,9 +46,13 @@ const Marketing = () => {
         }
     };
 
+    const captionPreview = (settings.feed_caption_template || defaultCaption)
+        .replace(/{{product_name}}/g, 'Nome do Produto')
+        .replace(/{{product_link}}/g, 'clothsublimacao.com.br/produto');
+
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            {/* Header com Gradiente */}
+            {/* Header */}
             <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-purple-600/20 via-pink-600/10 to-transparent border border-pink-500/20 p-8 shadow-2xl">
                 <div className="absolute top-0 right-0 p-8 opacity-10">
                     <Share2 size={120} />
@@ -66,26 +66,23 @@ const Marketing = () => {
                         <h1 className="text-4xl font-black text-white tracking-tight">
                             Instagram <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-orange-400">Auto-Post</span>
                         </h1>
-                        <p className="text-slate-400 max-w-xl text-lg lead-relaxed">
-                            Sincronize sua loja com o Instagram. Cada novo produto cadastrado será postado automaticamente no seu Feed e Stories.
+                        <p className="text-slate-400 max-w-xl text-lg">
+                            Configure suas credenciais e personalize a legenda do Feed. Stories postam automaticamente com o link do produto.
                         </p>
                     </div>
-                    
-                    <div className="flex items-center gap-4">
-                        <div className={`px-4 py-2 rounded-full border text-sm font-bold flex items-center gap-2 ${
-                            settings.meta_token 
-                                ? 'bg-green-500/10 border-green-500/30 text-green-400' 
-                                : 'bg-orange-500/10 border-orange-500/30 text-orange-400'
-                        }`}>
-                            {settings.meta_token ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
-                            {settings.meta_token ? 'Sistema Ativo' : 'Aguardando Configuração'}
-                        </div>
+                    <div className={`px-4 py-2 rounded-full border text-sm font-bold flex items-center gap-2 ${
+                        settings.meta_token 
+                            ? 'bg-green-500/10 border-green-500/30 text-green-400' 
+                            : 'bg-orange-500/10 border-orange-500/30 text-orange-400'
+                    }`}>
+                        {settings.meta_token ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
+                        {settings.meta_token ? 'Sistema Ativo' : 'Aguardando Configuração'}
                     </div>
                 </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Formulário de Configuração */}
+                {/* Formulário */}
                 <div className="lg:col-span-2 space-y-6">
                     <div className="bg-slate-900/50 border border-slate-800 rounded-3xl p-8 shadow-xl backdrop-blur-sm">
                         <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
@@ -94,40 +91,89 @@ const Marketing = () => {
                         </h2>
                         
                         <form onSubmit={handleSave} className="space-y-6">
-                            <div className="space-y-4">
-                                <div className="space-y-2">
-                                    <label className="text-sm font-semibold text-slate-400 ml-1">Meta Access Token</label>
-                                    <div className="relative group">
-                                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500 group-focus-within:text-blue-400 transition-colors">
-                                            <Key size={18} />
-                                        </div>
-                                        <input 
-                                            type="password"
-                                            value={settings.meta_token}
-                                            onChange={(e) => setSettings({...settings, meta_token: e.target.value})}
-                                            placeholder="Cole o token gerado no Meta for Developers..."
-                                            className="w-full bg-slate-950/50 border border-slate-800 focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 rounded-2xl py-4 pl-12 pr-4 text-white placeholder:text-slate-700 transition-all outline-none"
-                                        />
+                            {/* Token */}
+                            <div className="space-y-2">
+                                <label className="text-sm font-semibold text-slate-400 ml-1">Meta Access Token</label>
+                                <div className="relative group">
+                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500 group-focus-within:text-blue-400 transition-colors">
+                                        <Key size={18} />
                                     </div>
-                                    <p className="text-[11px] text-slate-500 ml-1 italic">
-                                        Dica: Use um "User Access Token" de longa duração para evitar expiração.
-                                    </p>
+                                    <input 
+                                        type="password"
+                                        value={settings.meta_token}
+                                        onChange={(e) => setSettings({...settings, meta_token: e.target.value})}
+                                        placeholder="Cole o token gerado no Meta for Developers..."
+                                        className="w-full bg-slate-950/50 border border-slate-800 focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 rounded-2xl py-4 pl-12 pr-4 text-white placeholder:text-slate-700 transition-all outline-none"
+                                    />
                                 </div>
+                                <p className="text-[11px] text-slate-500 ml-1 italic">
+                                    Use um token de "Usuário do Sistema" no Business Manager — nunca expira.
+                                </p>
+                            </div>
 
-                                <div className="space-y-2">
-                                    <label className="text-sm font-semibold text-slate-400 ml-1">Facebook Page ID</label>
-                                    <div className="relative group">
-                                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500 group-focus-within:text-blue-400 transition-colors">
-                                            <Globe size={18} />
-                                        </div>
-                                        <input 
-                                            type="text"
-                                            value={settings.fb_page_id}
-                                            onChange={(e) => setSettings({...settings, fb_page_id: e.target.value})}
-                                            placeholder="Ex: 1092837465..."
-                                            className="w-full bg-slate-950/50 border border-slate-800 focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 rounded-2xl py-4 pl-12 pr-4 text-white placeholder:text-slate-700 transition-all outline-none"
-                                        />
+                            {/* Page ID */}
+                            <div className="space-y-2">
+                                <label className="text-sm font-semibold text-slate-400 ml-1">Facebook Page ID</label>
+                                <div className="relative group">
+                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500 group-focus-within:text-blue-400 transition-colors">
+                                        <Globe size={18} />
                                     </div>
+                                    <input 
+                                        type="text"
+                                        value={settings.fb_page_id}
+                                        onChange={(e) => setSettings({...settings, fb_page_id: e.target.value})}
+                                        placeholder="Ex: 1239980869347062"
+                                        className="w-full bg-slate-950/50 border border-slate-800 focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 rounded-2xl py-4 pl-12 pr-4 text-white placeholder:text-slate-700 transition-all outline-none"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Legenda do Feed */}
+                            <div className="pt-4 border-t border-slate-800 space-y-4">
+                                <div className="flex items-center gap-2">
+                                    <FileText className="text-pink-400" size={18} />
+                                    <h3 className="text-base font-bold text-white">Legenda do Feed</h3>
+                                </div>
+                                <p className="text-xs text-slate-500 leading-relaxed">
+                                    Personalize a legenda das postagens no <b className="text-slate-300">Feed</b>. Use{' '}
+                                    <code className="bg-slate-800 text-pink-300 px-1 rounded">{'{{product_name}}'}</code>{' '}
+                                    e{' '}
+                                    <code className="bg-slate-800 text-pink-300 px-1 rounded">{'{{product_link}}'}</code>{' '}
+                                    como variáveis automáticas.
+                                </p>
+                                <div className="relative">
+                                    <textarea
+                                        value={settings.feed_caption_template}
+                                        onChange={(e) => setSettings({...settings, feed_caption_template: e.target.value})}
+                                        rows={8}
+                                        placeholder={defaultCaption}
+                                        className="w-full bg-slate-950/50 border border-slate-800 focus:border-pink-500/50 focus:ring-4 focus:ring-pink-500/10 rounded-2xl py-4 px-5 text-white placeholder:text-slate-700 transition-all outline-none font-mono text-sm resize-none leading-relaxed"
+                                    />
+                                    {settings.feed_caption_template && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setSettings({...settings, feed_caption_template: ''})}
+                                            className="absolute top-3 right-3 text-[10px] text-slate-600 hover:text-rose-400 bg-slate-900 border border-slate-800 px-2 py-1 rounded-lg transition-colors"
+                                        >
+                                            resetar padrão
+                                        </button>
+                                    )}
+                                </div>
+                                {!settings.feed_caption_template && (
+                                    <p className="text-[11px] text-slate-600 italic ml-1">Deixe em branco para usar o modelo padrão.</p>
+                                )}
+                            </div>
+
+                            {/* Stories - informativo */}
+                            <div className="bg-gradient-to-r from-purple-900/20 to-pink-900/10 border border-purple-500/20 rounded-2xl p-5 flex gap-4 items-start">
+                                <div className="w-9 h-9 bg-purple-500/20 rounded-xl flex items-center justify-center shrink-0 mt-0.5">
+                                    <Link2 className="text-purple-400" size={16} />
+                                </div>
+                                <div className="space-y-1">
+                                    <p className="text-sm font-bold text-white">Stories: Link Automático</p>
+                                    <p className="text-xs text-slate-400 leading-relaxed">
+                                        Os <b>Stories</b> não exibem legenda de texto — postam a foto do produto com o <b>link direto</b> para a página do produto automaticamente. Nenhuma configuração adicional é necessária.
+                                    </p>
                                 </div>
                             </div>
 
@@ -148,37 +194,39 @@ const Marketing = () => {
                         </form>
                     </div>
 
+                    {/* Guia */}
                     <div className="bg-blue-600/5 border border-blue-500/20 rounded-3xl p-8 flex flex-col md:flex-row items-center gap-6">
                         <div className="w-16 h-16 bg-blue-600/20 rounded-2xl flex items-center justify-center shrink-0">
                             <HelpCircle className="text-blue-400" size={32} />
                         </div>
-                        <div className="space-y-1">
+                        <div className="space-y-1 flex-1">
                             <h3 className="text-lg font-bold text-white">Não sabe como gerar as chaves?</h3>
                             <p className="text-slate-400 text-sm leading-relaxed">
-                                Preparamos um guia didático para você conseguir seu Token e o ID da sua página em menos de 5 minutos.
+                                Preparamos um guia para você conseguir seu Token e ID da página em menos de 5 minutos.
                             </p>
                         </div>
                         <a 
                             href="#" 
-                            onClick={(e) => e.preventDefault()} // No futuro abriria o guia
+                            onClick={(e) => e.preventDefault()}
                             className="bg-slate-800 hover:bg-slate-700 text-white px-6 py-3 rounded-xl text-sm font-bold flex items-center gap-2 whitespace-nowrap transition-colors"
                         >
-                            Ver Guia Passo a Passo
+                            Ver Guia
                             <ExternalLink size={14} />
                         </a>
                     </div>
                 </div>
 
-                {/* Sidebar Info */}
+                {/* Sidebar */}
                 <div className="space-y-6">
+                    {/* Como funciona */}
                     <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-4">
                         <h4 className="text-sm font-black text-slate-500 uppercase tracking-widest px-2">Como funciona?</h4>
                         <div className="space-y-4">
                             {[
-                                { t: 'Cadastro', d: 'Você cadastra o produto normal na Nuvemshop.', i: CheckCircle2, c: 'text-blue-400' },
-                                { t: 'Gatilho', d: 'O AI Manager detecta o novo produto via Webhook.', i: Zap, c: 'text-pink-400' },
-                                { t: 'Processamento', d: 'Analisamos as imagens e criamos a legenda.', i: Sparkles, c: 'text-orange-400' },
-                                { t: 'Postagem', d: 'O post vai direto para seu Feed e Stories.', i: Share2, c: 'text-purple-400' },
+                                { t: 'Cadastro', d: 'Você cadastra o produto na Nuvemshop.', i: CheckCircle2, c: 'text-blue-400' },
+                                { t: 'Gatilho', d: 'O AI Manager detecta via Webhook.', i: Zap, c: 'text-pink-400' },
+                                { t: 'Processamento', d: 'Usa sua legenda personalizada para o Feed.', i: Sparkles, c: 'text-orange-400' },
+                                { t: 'Postagem', d: 'Feed com legenda + Story com link direto.', i: Share2, c: 'text-purple-400' },
                             ].map((step, idx) => (
                                 <div key={idx} className="flex gap-4 p-3 rounded-2xl hover:bg-slate-800/50 transition-colors group">
                                     <div className={`mt-1 ${step.c} opacity-50 group-hover:opacity-100 transition-opacity`}>
@@ -193,7 +241,8 @@ const Marketing = () => {
                         </div>
                     </div>
 
-                    <div className="p-6 rounded-3xl border border-slate-800 bg-slate-900 flex items-center justify-between group cursor-help">
+                    {/* Limites */}
+                    <div className="p-6 rounded-3xl border border-slate-800 bg-slate-900 flex items-center justify-between">
                         <div className="flex items-center gap-3">
                             <Share2 className="text-pink-500" size={24} />
                             <div>
@@ -201,7 +250,15 @@ const Marketing = () => {
                                 <p className="text-xs text-slate-500">25 posts / 24h</p>
                             </div>
                         </div>
-                        <HelpCircle size={14} className="text-slate-700 group-hover:text-slate-400 transition-colors" />
+                        <HelpCircle size={14} className="text-slate-700" />
+                    </div>
+
+                    {/* Preview legenda em tempo real */}
+                    <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-3">
+                        <h4 className="text-sm font-black text-slate-500 uppercase tracking-widest">Preview do Feed</h4>
+                        <pre className="text-xs text-slate-400 whitespace-pre-wrap leading-relaxed font-sans break-words">
+                            {captionPreview}
+                        </pre>
                     </div>
                 </div>
             </div>

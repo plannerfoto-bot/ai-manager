@@ -451,7 +451,7 @@ console.log('[Limpeza 24h] Scheduler iniciado - rodara a cada 30 minutos.');
  */
 app.post('/api/marketing/settings', (req, res) => {
     const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
-    const { meta_token, fb_page_id } = req.body;
+    const { meta_token, fb_page_id, feed_caption_template } = req.body;
 
     if (!meta_token || !fb_page_id) {
         return res.status(400).json({ error: 'Token e Page ID são obrigatórios.' });
@@ -460,7 +460,8 @@ app.post('/api/marketing/settings', (req, res) => {
     try {
         saveStore(storeId, {
             meta_token,
-            fb_page_id
+            fb_page_id,
+            feed_caption_template: feed_caption_template || ''
         });
         res.json({ success: true, message: 'Configurações de marketing salvas com sucesso!' });
     } catch (e) {
@@ -478,8 +479,96 @@ app.get('/api/marketing/settings', (req, res) => {
 
     res.json({
         meta_token: storeData.meta_token || '',
-        fb_page_id: storeData.fb_page_id || ''
+        fb_page_id: storeData.fb_page_id || '',
+        feed_caption_template: storeData.feed_caption_template || ''
     });
+});
+
+/**
+ * HELPER: Monta a legenda do Feed substituindo variáveis
+ * Variáveis suportadas: {{product_name}}, {{product_link}}
+ */
+function buildFeedCaption(template, productName, productLink) {
+    const defaultTemplate = `✨ NOVIDADE NA CLOTH! ✨\n\n{{product_name}}\n\nGaranta o seu agora mesmo no nosso site! 🚀\n\n🔗 {{product_link}}\n\n#clothsublimacao #novidade #sublimacao #personalizados`;
+    const tpl = (template && template.trim()) ? template : defaultTemplate;
+    return tpl
+        .replace(/{{product_name}}/g, productName)
+        .replace(/{{product_link}}/g, productLink);
+}
+
+/**
+ * POSTAGEM MANUAL NO INSTAGRAM
+ * Recebe productId (ou imageUrl+caption diretamente) e posta no Feed e/ou Story
+ */
+app.post('/api/instagram/publish', async (req, res) => {
+    const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
+    const { productId, customCaption, postFeed = true, postStory = true } = req.body;
+
+    try {
+        const stores = getStores();
+        const storeData = stores[storeId] || {};
+
+        const metaToken = process.env.META_ACCESS_TOKEN || storeData.meta_token;
+        const fbPageId = process.env.FB_PAGE_ID || storeData.fb_page_id;
+
+        if (!metaToken || !fbPageId) {
+            return res.status(400).json({ error: 'Meta Access Token ou Page ID não configurados. Vá em Marketing > Configurações.' });
+        }
+
+        // Busca dados do produto para obter imagem e link
+        const client = getApiClient(storeId);
+        const productRes = await client.get(`/products/${productId}`);
+        const product = productRes.data;
+
+        const productName = (product.name && product.name.pt) ? product.name.pt : (product.name ? Object.values(product.name)[0] : 'Produto');
+        const productHandle = (product.handle && product.handle.pt) ? product.handle.pt : (product.handle ? Object.values(product.handle)[0] : '');
+        const productLink = `https://${storeData.domain || 'clothsublimacao.com.br'}/produtos/${productHandle}`;
+        const mainImage = product.images && product.images.length > 0 ? product.images[0].src : null;
+
+        if (!mainImage) {
+            return res.status(400).json({ error: 'Este produto não possui imagem cadastrada.' });
+        }
+
+        // Obtém ID da conta do Instagram
+        const igAccountId = await igService.getInstagramAccountId(fbPageId, metaToken);
+        if (!igAccountId) {
+            return res.status(500).json({ error: 'Não foi possível encontrar a conta do Instagram vinculada à Página do Facebook.' });
+        }
+
+        const results = {};
+
+        // --- FEED ---
+        if (postFeed) {
+            // Usa legenda customizada do campo (se enviada), senão usa o template salvo
+            const feedCaption = customCaption
+                ? customCaption
+                : buildFeedCaption(storeData.feed_caption_template, productName, productLink);
+
+            const feedContainerId = await igService.createFeedContainer(igAccountId, mainImage, feedCaption, metaToken);
+            const feedPostId = await igService.publishMedia(igAccountId, feedContainerId, metaToken);
+            results.feed = { success: true, postId: feedPostId };
+            console.log(`✅ [Manual] Feed postado: ${feedPostId}`);
+        }
+
+        // --- STORY (apenas a imagem + link no caption, sem legenda de texto visível) ---
+        if (postStory) {
+            // Na API do Instagram, Stories não exibem caption. O link fica como metadata.
+            // Usamos o campo link_sticker quando disponível, mas para contas Business
+            // o padrão é postar apenas a imagem. O link do produto vai no campo caption
+            // do container para que a API o registre (não aparece visivelmente).
+            const storyContainerId = await igService.createStoryContainer(igAccountId, mainImage, productLink, metaToken);
+            const storyPostId = await igService.publishMedia(igAccountId, storyContainerId, metaToken);
+            results.story = { success: true, postId: storyPostId };
+            console.log(`✅ [Manual] Story postado: ${storyPostId}`);
+        }
+
+        res.json({ success: true, results, productName, productLink });
+
+    } catch (error) {
+        const detail = error.response?.data || error.message;
+        console.error('❌ [Manual] Erro ao publicar no Instagram:', detail);
+        res.status(500).json({ error: 'Erro ao publicar no Instagram.', details: detail });
+    }
 });
 
 /**
@@ -541,8 +630,8 @@ app.post('/api/webhooks/product-created', async (req, res) => {
             return;
         }
 
-        // 4. Formata a legenda (Feed)
-        const caption = `✨ NOVIDADE NA CLOTH! ✨\n\nAcabamos de cadastrar: ${productName}\n\nGaranta o seu agora mesmo no nosso site! 🚀\n\n🔗 ${productLink}\n\n#clothsublimacao #novidade #sublimacao #personalizados`;
+        // 4. Formata a legenda (Feed) usando template salvo pelo usuário
+        const caption = buildFeedCaption(storeData.feed_caption_template, productName, productLink);
 
         // 5. Postagem no FEED
         console.log('📸 Criando post no Feed...');
@@ -550,9 +639,9 @@ app.post('/api/webhooks/product-created', async (req, res) => {
         await igService.publishMedia(igAccountId, feedContainerId, metaToken);
         console.log('✅ Post no Feed realizado!');
 
-        // 6. Postagem no STORY
+        // 6. Postagem no STORY (apenas a imagem + link do produto)
         console.log('📱 Criando post no Story...');
-        const storyContainerId = await igService.createStoryContainer(igAccountId, mainImage, metaToken);
+        const storyContainerId = await igService.createStoryContainer(igAccountId, mainImage, productLink, metaToken);
         await igService.publishMedia(igAccountId, storyContainerId, metaToken);
         console.log('✅ Post no Story realizado!');
 

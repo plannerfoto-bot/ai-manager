@@ -45,20 +45,27 @@ class InstagramService {
 
     /**
      * Cria um container de mídia para o Story (Imagem)
+     * productLink: link do produto que será associado ao Story
      */
-    async createStoryContainer(igAccountId, imageUrl, accessToken) {
+    async createStoryContainer(igAccountId, imageUrl, productLink, accessToken) {
         try {
-            const response = await axios.post(`${this.baseUrl}/${igAccountId}/media`, {
+            const payload = {
                 image_url: imageUrl,
                 media_type: 'STORIES',
                 access_token: accessToken
-            });
+            };
+            // Associa o link do produto ao Story (funciona em contas Business)
+            if (productLink) {
+                payload.link = productLink;
+            }
+            const response = await axios.post(`${this.baseUrl}/${igAccountId}/media`, payload);
             return response.data.id;
         } catch (error) {
             console.error('❌ Erro ao criar container de Story:', error.response ? error.response.data : error.message);
             throw error;
         }
     }
+
 
     /**
      * Pública o container de mídia (Feed ou Story se for o caso de container pronto)
