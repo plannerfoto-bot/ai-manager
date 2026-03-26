@@ -139,5 +139,14 @@ O projeto está configurado para **Deploy Contínuo** via GitHub + Render.
     - O frontend deve ter o domínio da loja autorizado no `cors()` do backend.
 
 ---
+
+## 9. Detecção Dinâmica de Variantes (Inteligência Preventiva)
+
+Para garantir que a calculadora não crie variantes duplicadas e incentive o uso do estoque padrão da loja:
+- **Varredura de DOM**: Ao abrir a página e ao clicar em "Simular", o script escaneia seletores como `.js-variant-option` e `.js-insta-variant`.
+- **Bloqueio de Cálculo**: Se as medidas digitadas (largura x altura) já existirem como uma opção de "Tamanho" no produto, a calculadora exibe um aviso em vez do preço.
+- **Normalização**: O sistema ignora a ordem (L x A ou A x L) e pontuação (vírgula vs ponto) ao comparar, garantindo precisão total na detecção.
+
+---
 **Cloth Sublimação - Tecnologia & Precisão**
-*Documentação atualizada em 2026.*
+*Documentação atualizada em Março de 2026.*
