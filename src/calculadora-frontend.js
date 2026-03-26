@@ -265,12 +265,48 @@
     var b = document.getElementById('cloth-calc-btn');
     if(!b) return;
 
+    function getAvailableProductSizes() {
+      var sizes = [];
+      var sel = '.js-variant-option, .js-insta-variant, .variant-option, label, .js-product-variant-option, [data-variant-option]';
+      document.querySelectorAll(sel).forEach(function(el) {
+        // Ignora itens que nós mesmos ocultamos (como o "WhatsApp") ou que estão vazios
+        if (el.offsetParent === null) return; 
+        
+        var text = (el.innerText || el.getAttribute('title') || "").replace(/,/g, '.');
+        var nums = text.match(/\d+(\.\d+)?/g);
+        
+        // Se não achou no texto, tenta nos inputs internos (comum em alguns temas)
+        if (!nums || nums.length < 2) {
+           var radio = el.querySelector('input[type="radio"], input[type="checkbox"]');
+           if (radio && radio.value) {
+             text = radio.value.replace(/,/g, '.');
+             nums = text.match(/\d+(\.\d+)?/g);
+           }
+        }
+
+        if (nums && nums.length >= 2) {
+          sizes.push({ w: parseFloat(nums[0]), h: parseFloat(nums[1]) });
+        }
+      });
+      return sizes;
+    }
+
     function isStandardSize(w, h) {
+      // 1. Padrões Absolutos do Ateliê (Segurança)
       var std = [[1.5, 2.0], [1.5, 2.2], [2.5, 2.0], [3.0, 2.0], [3.0, 2.5]];
       var sw = w.toFixed(2), sh = h.toFixed(2);
       for(var i=0; i<std.length; i++) {
         var s1 = std[i][0].toFixed(2), s2 = std[i][1].toFixed(2);
         if((sw === s1 && sh === s2) || (sw === s2 && sh === s1)) return true;
+      }
+
+      // 2. Detecção Dinâmica (Tamanhos já cadastrados neste produto específico)
+      var available = getAvailableProductSizes();
+      for(var j=0; j<available.length; j++) {
+        var aw = available[j].w.toFixed(2);
+        var ah = available[j].h.toFixed(2);
+        // Bloqueia se a combinação de medidas for idêntica (independente da ordem L/A)
+        if((sw === aw && sh === ah) || (sw === ah && sh === aw)) return true;
       }
       return false;
     }
@@ -286,7 +322,7 @@
       }
 
       if(isStandardSize(l, a)) {
-        renderError('Esta medida já está disponível nas opções padrão do site. Selecione o tamanho correspondente no menu de opções acima.');
+        renderError('Esta medida já está disponível nas opções do produto. Selecione a opção correspondente acima para prosseguir com a compra.');
         return;
       }
 
