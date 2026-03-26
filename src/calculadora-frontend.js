@@ -240,22 +240,21 @@
       // Máscara de Metros (ex: 123 -> 1,23)
       el.addEventListener('input', function(e){
         var v = e.target.value.replace(/\D/g, '');
-        if (v.length > 4) v = v.slice(0, 4); // Limite razoável (ex: 99,99m)
+        if (v.length > 4) v = v.slice(0, 4); 
         
-        if (v.length === 0) v = '';
-        else if (v.length === 1) v = '0,0' + v;
+        var n = parseInt(v, 10);
+        if (isNaN(n) || n === 0) {
+          e.target.value = '';
+          return;
+        }
+        v = n.toString();
+
+        if (v.length === 1) v = '0,0' + v;
         else if (v.length === 2) v = '0,' + v;
         else {
           v = v.slice(0, v.length - 2) + ',' + v.slice(v.length - 2);
         }
         
-        // Remove zeros à esquerda excessivos (ex: 0,02 -> 0,02 OK, 00,02 -> 0,02)
-        if (v.length > 4 && v.startsWith('0')) {
-            var temp = v.replace(/,/, '');
-            if (parseInt(temp) >= 100) v = v.replace(/^0+/, '');
-            if (v.startsWith(',')) v = '0' + v;
-        }
-
         e.target.value = v;
       });
 
