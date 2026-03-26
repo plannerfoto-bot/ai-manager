@@ -397,7 +397,18 @@ async function cleanupExpiredVariants() {
   for (const storeId of storeIds) {
     try {
       const client = getApiClient(storeId);
-      // Busca todos os produtos (paginado) - max 50 produtos por vez
+      
+      // --- ESCUDO DE PEDIDOS: Protege variantes vendidas nos últimos 200 pedidos ---
+      const ordersRes = await client.get('/orders', { params: { per_page: 200, status: 'any', fields: 'line_items' } }).catch(() => ({ data: [] }));
+      const protectedVariantIds = new Set();
+      (ordersRes.data || []).forEach(order => {
+        (order.line_items || []).forEach(item => {
+          if (item.variant_id) protectedVariantIds.add(item.variant_id);
+        });
+      });
+      console.log(`[Limpeza 24h] Loja ${storeId}: ${protectedVariantIds.size} variantes protegidas por vendas.`);
+
+      // Busca produtos para limpeza
       const prodRes = await client.get('/products', { params: { per_page: 200, fields: 'id,variants' } });
       const products = prodRes.data || [];
       
@@ -407,7 +418,13 @@ async function cleanupExpiredVariants() {
           const sku = variant.sku || '';
           if (sku.startsWith('calc:')) {
             const ts = parseInt(sku.replace('calc:', ''), 10);
+            
+            // Regra de Ouro: So apaga se for velho E NAO estiver em um pedido
             if (!isNaN(ts) && (now - ts) > EXPIRY_MS) {
+              if (protectedVariantIds.has(variant.id)) {
+                console.log('[Limpeza 24h] Poupando variante VENDIDA id=' + variant.id);
+                continue;
+              }
               console.log('[Limpeza 24h] Deletando variante expirada id=' + variant.id + ' produto=' + product.id + ' sku=' + sku);
               await client.delete('/products/' + product.id + '/variants/' + variant.id).catch(err => {
                 console.error('[Limpeza 24h] Erro ao deletar:', err.message);
