@@ -209,6 +209,38 @@ app.get('/api/scripts/force-install', async (req, res) => {
   }
 });
 
+// Funçao central de cálculo de preço - usada por simulate-price e create-variant
+function calcMeasure(w, h) {
+  const max = Math.max(w, h);
+  const min = Math.min(w, h);
+  
+  // Regra Especial: UMA das dimensões entre 1,56m e 1,74m (exclusive)
+  // Resultado = Altura x Largura x R$24,90 + R$65,00, apenas tecido 120g (sem emenda)
+  const inSpecialRange = (d) => d > 1.56 && d < 1.74;
+  const isSpecial = (inSpecialRange(w) || inSpecialRange(h)) && !(w > 1.56 && h > 1.56 && w < 1.74 && h < 1.74 && false);
+  
+  if (isSpecial) {
+    const price = (w * h * 24.90) + 65.00;
+    return { price120: price, price160: null, measureType: 'special_seamless', isSpecial: true };
+  }
+
+  // Regra A: menor dimensão <= 1,56m
+  if (min <= 1.56) {
+    return {
+      price120: (max * 22.50) + 3.00 + 45.00,
+      price160: (max * 26.00) + 3.00 + 45.00,
+      measureType: 'standard', isSpecial: false
+    };
+  }
+  
+  // Regra B: ambas as dimensões > 1,56m (e não na faixa especial)
+  return {
+    price120: (((max * 2) * 22.50) + 15.00) * 1.80,
+    price160: (((max * 2) * 26.00) + 15.00) * 1.80,
+    measureType: 'double_layer', isSpecial: false
+  };
+}
+
 // --- SIMULAR PREÇO (Frontend Instantâneo) ---
 app.post('/api/simulate-price', (req, res) => {
   try {
@@ -217,26 +249,21 @@ app.post('/api/simulate-price', (req, res) => {
     const h = parseFloat(String(height).replace(',', '.'));
     if (!w || !h || w <= 0 || h <= 0) return res.status(400).json({ error: 'Medidas inválidas. Recebido: ' + width + 'x' + height });
     
-    const max = Math.max(w, h);
     const min = Math.min(w, h);
     if (min > 3) return res.status(400).json({ error: 'Menor dimensão não pode ultrapassar 3,00m' });
     
-    let price120 = 0;
-    if (min <= 1.56) price120 = (max * 22.50) + 3.00 + 45.00;
-    else price120 = (((max * 2) * 22.50) + 15.00) * 1.80;
-
-    let price160 = 0;
-    if (min <= 1.56) price160 = (max * 26.00) + 3.00 + 45.00;
-    else price160 = (((max * 2) * 26.00) + 15.00) * 1.80;
-
+    const result = calcMeasure(w, h);
     res.json({
-      price120: price120.toFixed(2),
-      price160: price160.toFixed(2)
+      price120: result.price120 ? result.price120.toFixed(2) : null,
+      price160: result.price160 ? result.price160.toFixed(2) : null,
+      measureType: result.measureType,
+      isSpecial: result.isSpecial
     });
   } catch (error) {
     res.status(500).json({ error: "Erro interno no cálculo", details: error.message });
   }
 });
+
 
 // --- CRIAR VARIACAO DINAMICA SOB MEDIDA ---
 app.post('/api/create-variant', async (req, res) => {
@@ -251,23 +278,32 @@ app.post('/api/create-variant', async (req, res) => {
     const h = parseFloat(String(height).replace(',', '.'));
     if (!w || !h || w <= 0 || h <= 0) return res.status(400).json({ error: 'Medidas invalidas. Recebido: ' + width + 'x' + height });
     
-    const max = Math.max(w, h);
     const min = Math.min(w, h);
     if (min > 3) return res.status(400).json({ error: 'Menor dimensao nao pode ultrapassar 3,00m' });
     
-    // Calcula preco dos DOIS tecidos de uma vez
-    const calcPrice = (factor) => min <= 1.56 ? (max * factor) + 3.00 + 45.00 : (((max * 2) * factor) + 15.00) * 1.80;
-    const price120 = calcPrice(22.50);
-    const price160 = calcPrice(26.00);
+    // Usa a funcao central de calculo
+    const calcResult = calcMeasure(w, h);
+    const { measureType } = calcResult;
+    const price120 = calcResult.price120;
+    const price160 = calcResult.price160; // null quando medicao especial sem emenda
+    
+    // Se o cliente pediu 160g mas a medida e especial (sem emenda, somente 120g), recusa
+    if (gramatura === '160g' && measureType === 'special_seamless') {
+      return res.status(400).json({ error: 'Esta medida e disponivel apenas em TECIDO 120g (sem emenda).' });
+    }
+    
     const priceStr = (gramatura === '160g' ? price160 : price120).toFixed(2);
     const measureStr = `${w.toFixed(2).replace('.', ',')}m x ${h.toFixed(2).replace('.', ',')}m`;
+    
+    // Timestamp atual para identificar variantes criadas pelo sistema (para limpeza 24h)
+    const nowTs = Date.now();
+    const createdMark = 'calc:' + nowTs; // fica no campo SKU da variante
     
     // Busca o produto
     const prodRes = await client.get(`/products/${productId}`);
     const product = prodRes.data;
     
-    // Detecta o sufixo real de gramatura usado na loja ('g' ou 'gr')
-    // Percorre as variantes existentes e procura por '120gr', '120g', etc.
+    // Detecta o sufixo real de gramatura usado na loja
     let gramSuffix = 'g';
     outer: for (const v of product.variants || []) {
       for (const val of v.values || []) {
@@ -275,18 +311,17 @@ app.post('/api/create-variant', async (req, res) => {
         if (pt.includes('120gr') || pt.includes('160gr')) { gramSuffix = 'gr'; break outer; }
       }
     }
-    console.log('[Gramatura] Sufixo detectado na loja: "' + gramSuffix + '"');
+    console.log('[Gramatura] Sufixo detectado: "' + gramSuffix + '" | Tipo de medida: ' + measureType);
     const gram120label = '120' + gramSuffix;
     const gram160label = '160' + gramSuffix;
     
-    // Garante que os atributos do produto existam
+    // Garante atributos do produto
     let attributes = product.attributes || [];
     if (attributes.length === 0) {
       attributes = [{ pt: 'Tamanho' }, { pt: 'Gramatura' }];
       await client.put(`/products/${productId}`, { attributes });
     }
     
-    // Monta os values mapeando cada atributo ao valor correto
     const baseVariant = (product.variants || [])[0] || null;
     const buildValues = (measure, gram) => attributes.map((attr, idx) => {
       const attrName = (attr.pt || attr.es || attr.en || '').toLowerCase();
@@ -297,7 +332,6 @@ app.post('/api/create-variant', async (req, res) => {
       return (baseVariant && baseVariant.values && baseVariant.values[idx]) ? baseVariant.values[idx] : { pt: '-' };
     });
 
-    // Encontra variante existente ou cria uma nova
     const norm = (s) => (s || '').trim().toLowerCase();
     const findOrCreate = async (measure, gramLabel, price) => {
       const targetValues = buildValues(measure, gramLabel);
@@ -309,7 +343,6 @@ app.post('/api/create-variant', async (req, res) => {
         console.log('[Variante] Ja existe: ' + measure + ' / ' + gramLabel + ' id=' + existing.id);
         return existing.id;
       }
-      // Limpeza de antigas se limite batido
       if (product.variants.length > 80) {
         const custom = product.variants.filter(v => v.values && v.values.some(val => val.pt && /\d+,\d+m x \d+,\d+m/.test(val.pt)));
         if (custom.length > 0) {
@@ -317,19 +350,32 @@ app.post('/api/create-variant', async (req, res) => {
           await client.delete(`/products/${productId}/variants/${oldest.id}`).catch(() => {});
         }
       }
-      const payload = { price: price.toFixed(2), stock: 999, weight: baseVariant ? baseVariant.weight : 0.5, values: targetValues };
-      console.log('[Variante] Criando: ' + measure + ' / ' + gramLabel + ' = R$' + price.toFixed(2));
+      // Grava timestamp no SKU para identificar e limpar apos 24h
+      const payload = {
+        price: price.toFixed(2),
+        stock: 999,
+        weight: baseVariant ? baseVariant.weight : 0.5,
+        values: targetValues,
+        sku: createdMark  // ex: "calc:1711405200000" - identificador de limpeza
+      };
+      console.log('[Variante] Criando: ' + measure + ' / ' + gramLabel + ' = R$' + price.toFixed(2) + ' | SKU: ' + createdMark);
       const createRes = await client.post(`/products/${productId}/variants`, payload);
       product.variants.push(createRes.data);
       return createRes.data.id;
     };
 
-    // Cria SEMPRE os dois pares de gramatura para a medida
-    const variant120Id = await findOrCreate(measureStr, gram120label, price120);
-    const variant160Id = await findOrCreate(measureStr, gram160label, price160);
+    // Para medidas especiais (sem emenda), cria APENAS a variante 120g
+    // Para medidas normais, cria os DOIS pares de gramatura
+    let chosenId;
+    if (measureType === 'special_seamless') {
+      chosenId = await findOrCreate(measureStr, gram120label, price120);
+    } else {
+      const variant120Id = await findOrCreate(measureStr, gram120label, price120);
+      const variant160Id = await findOrCreate(measureStr, gram160label, price160);
+      chosenId = (gramatura === '160g') ? variant160Id : variant120Id;
+    }
 
-    const chosenId = (gramatura === '160g') ? variant160Id : variant120Id;
-    res.json({ success: true, variant_id: chosenId, price: priceStr });
+    res.json({ success: true, variant_id: chosenId, price: priceStr, measureType });
     
   } catch (error) {
     console.error('[Criacao de Variante] Falha:', error.response?.data || error.message);
@@ -337,6 +383,58 @@ app.post('/api/create-variant', async (req, res) => {
     res.status(500).json({ error: 'Erro Nuvemshop: ' + apiError, details: error.response?.data });
   }
 });
+
+// --- LIMPEZA AUTOMATICA: Deleta variantes com SKU 'calc:TIMESTAMP' criadas ha mais de 24h ---
+const CLEANUP_INTERVAL_MS = 30 * 60 * 1000; // roda a cada 30 minutos
+const EXPIRY_MS = 24 * 60 * 60 * 1000;       // 24 horas
+
+async function cleanupExpiredVariants() {
+  console.log('[Limpeza 24h] Iniciando varredura de variantes expiradas...');
+  const stores = getStores();
+  const storeIds = Object.keys(stores);
+  const now = Date.now();
+
+  for (const storeId of storeIds) {
+    try {
+      const client = getApiClient(storeId);
+      // Busca todos os produtos (paginado) - max 50 produtos por vez
+      const prodRes = await client.get('/products', { params: { per_page: 200, fields: 'id,variants' } });
+      const products = prodRes.data || [];
+      
+      for (const product of products) {
+        const variants = product.variants || [];
+        for (const variant of variants) {
+          const sku = variant.sku || '';
+          if (sku.startsWith('calc:')) {
+            const ts = parseInt(sku.replace('calc:', ''), 10);
+            if (!isNaN(ts) && (now - ts) > EXPIRY_MS) {
+              console.log('[Limpeza 24h] Deletando variante expirada id=' + variant.id + ' produto=' + product.id + ' sku=' + sku);
+              await client.delete('/products/' + product.id + '/variants/' + variant.id).catch(err => {
+                console.error('[Limpeza 24h] Erro ao deletar:', err.message);
+              });
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.error('[Limpeza 24h] Erro na loja ' + storeId + ':', err.message);
+    }
+  }
+  console.log('[Limpeza 24h] Varredura concluida.');
+}
+
+// Inicia o scheduler de limpeza
+setInterval(cleanupExpiredVariants, CLEANUP_INTERVAL_MS);
+console.log('[Limpeza 24h] Scheduler iniciado - rodara a cada 30 minutos.');
+
+  try {
+    const { productId, width, height, gramatura } = req.body;
+    const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
+    if (!storeId || !productId) return res.status(400).json({ error: 'Loja ou Produto nao identificado.' });
+    
+    const client = getApiClient(storeId);
+    
+    const w = parseFloat(String(width).replace(',', '.'));
 
 
 // Endpoint para frontend descobrir storeId padrão
