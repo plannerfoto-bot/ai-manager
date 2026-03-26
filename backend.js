@@ -749,10 +749,22 @@ app.post('/api/webhooks/product-created', async (req, res) => {
             return;
         }
 
-        // 1. Busca detalhes completos do produto na Nuvemshop
+        // 1. Busca detalhes completos do produto na Nuvemshop (com Retry por causa de delay na duplicação)
         addWebhookLog({ storeId, productId, status: 'Processing', details: 'Buscando detalhes do produto na Nuvemshop...' });
         const client = await getApiClient(storeId);
-        const productRes = await client.get(`/products/${productId}`);
+        
+        let productRes;
+        try {
+            productRes = await client.get(`/products/${productId}`);
+        } catch (e) {
+            if (e.response?.status === 404) {
+                console.log(`[Retry] Produto ${productId} não encontrado de imediato. Aguardando 3s...`);
+                await new Promise(r => setTimeout(r, 3000));
+                productRes = await client.get(`/products/${productId}`);
+            } else {
+                throw e;
+            }
+        }
 
         const product = productRes.data;
         const productName = (product.name && product.name.pt) ? product.name.pt : (product.name ? Object.values(product.name)[0] : 'Novo Produto');
