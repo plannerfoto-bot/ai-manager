@@ -1,37 +1,4 @@
 (function(){
-  console.log("🚀 AI Manager: v2.4.1 (Clean Shield)");
-  
-  // 🚫 Ocultação Universal (CSS Padrão apenas)
-  var style = document.createElement('style');
-  style.innerHTML = `
-    [title*="Whatsapp" i], [title*="whatsapp" i], [title*="Personalizada" i], 
-    [data-variant-title*="Whatsapp" i], [data-variant-title*="whatsapp" i],
-    .js-insta-variant[title*="Whatsapp" i], .js-insta-variant[title*="whatsapp" i] { 
-      display: none !important; 
-      visibility: hidden !important; 
-      opacity: 0 !important; 
-    }
-  `;
-  (document.head || document.documentElement).appendChild(style);
-
-  function nukeVariants() {
-    var targets = document.querySelectorAll('a, button, span, label, div, li, .js-insta-variant');
-    for (var i = 0; i < targets.length; i++) {
-        var el = targets[i];
-        var txt = (el.innerText || el.getAttribute('title') || el.getAttribute('data-variant-title') || "").toLowerCase();
-        if (txt.indexOf('whatsapp') !== -1 || txt.indexOf('personalizada via') !== -1) {
-            el.style.setProperty('display', 'none', 'important');
-            el.style.setProperty('visibility', 'hidden', 'important');
-        }
-    }
-  }
-
-  if (window.MutationObserver) {
-    new MutationObserver(nukeVariants).observe(document.documentElement, { childList: true, subtree: true });
-  }
-  
-  setInterval(nukeVariants, 1000); // Varredura constante de segurança
-
   var CALCULATOR_ENABLED = __ENABLED__;
   var API_BASE_URL = '__PUBLIC_URL__';
   // ⚙️ Número do WhatsApp para cotação de medidas especiais
@@ -569,6 +536,18 @@
   function initImageAdjuster() {
     var sel = '.js-variant-option.selected, .variant-option.active, .js-variant-option.active, input[type="radio"]:checked + label, .selected-variant, .js-insta-variant.selected, .js-insta-variant.active';
     var activeVariant = document.querySelector(sel);
+    // Oculta a variante de WhatsApp antiga (Painel de tamanhos)
+    document.querySelectorAll('.js-insta-variant, .js-product-variant-option').forEach(function(el) {
+        var txt = (el.innerText || "").toLowerCase();
+        if (txt.indexOf('whatsapp') !== -1 || txt.indexOf('personalizada via') !== -1) {
+            el.style.display = 'none';
+            // Se for um item de lista ou container, oculta o pai também se necessário
+            if (el.parentElement.classList.contains('insta-variations')) {
+                // Manter apenas o botão oculto é mais seguro para não quebrar o layout
+            }
+        }
+    });
+
     if (!activeVariant) return;
 
     var text = (activeVariant.innerText || activeVariant.getAttribute('title') || '').trim();
