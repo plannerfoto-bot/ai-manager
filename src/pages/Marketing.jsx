@@ -2,15 +2,16 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
 import { 
-  Instagram, 
-  Facebook, 
+  Share2, 
+  Globe, 
   Key, 
   Save, 
   ExternalLink, 
   HelpCircle,
   CheckCircle2,
   AlertCircle,
-  Zap
+  Zap,
+  Sparkles
 } from 'lucide-react';
 
 const Marketing = () => {
@@ -54,7 +55,7 @@ const Marketing = () => {
             {/* Header com Gradiente */}
             <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-purple-600/20 via-pink-600/10 to-transparent border border-pink-500/20 p-8 shadow-2xl">
                 <div className="absolute top-0 right-0 p-8 opacity-10">
-                    <Instagram size={120} />
+                    <Share2 size={120} />
                 </div>
                 <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
                     <div className="space-y-2">
@@ -117,7 +118,7 @@ const Marketing = () => {
                                     <label className="text-sm font-semibold text-slate-400 ml-1">Facebook Page ID</label>
                                     <div className="relative group">
                                         <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500 group-focus-within:text-blue-400 transition-colors">
-                                            <Facebook size={18} />
+                                            <Globe size={18} />
                                         </div>
                                         <input 
                                             type="text"
@@ -177,7 +178,7 @@ const Marketing = () => {
                                 { t: 'Cadastro', d: 'Você cadastra o produto normal na Nuvemshop.', i: CheckCircle2, c: 'text-blue-400' },
                                 { t: 'Gatilho', d: 'O AI Manager detecta o novo produto via Webhook.', i: Zap, c: 'text-pink-400' },
                                 { t: 'Processamento', d: 'Analisamos as imagens e criamos a legenda.', i: Sparkles, c: 'text-orange-400' },
-                                { t: 'Postagem', d: 'O post vai direto para seu Feed e Stories.', i: Instagram, c: 'text-purple-400' },
+                                { t: 'Postagem', d: 'O post vai direto para seu Feed e Stories.', i: Share2, c: 'text-purple-400' },
                             ].map((step, idx) => (
                                 <div key={idx} className="flex gap-4 p-3 rounded-2xl hover:bg-slate-800/50 transition-colors group">
                                     <div className={`mt-1 ${step.c} opacity-50 group-hover:opacity-100 transition-opacity`}>
@@ -194,7 +195,7 @@ const Marketing = () => {
 
                     <div className="p-6 rounded-3xl border border-slate-800 bg-slate-900 flex items-center justify-between group cursor-help">
                         <div className="flex items-center gap-3">
-                            <Instagram className="text-pink-500" size={24} />
+                            <Share2 className="text-pink-500" size={24} />
                             <div>
                                 <p className="text-sm font-bold text-white">Limites de API</p>
                                 <p className="text-xs text-slate-500">25 posts / 24h</p>
