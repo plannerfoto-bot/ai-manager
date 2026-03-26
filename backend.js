@@ -813,10 +813,17 @@ app.post('/api/webhooks/product-created', async (req, res) => {
         const stores = await getStores();
         const storeData = stores[storeId] || {};
         
-        // Resolução de Tokens com Fallback Inteligente
+        // Busca configurações de marketing específicas
+        const { data: marketingSettings } = await supabase
+            .from('marketing_settings')
+            .select('*')
+            .eq('store_id', String(storeId))
+            .maybeSingle();
+
+        // Resolução de Tokens com Fallback Inteligente (Prioriza marketing_settings)
         const nsToken = storeData.access_token || DEFAULT_ACCESS_TOKEN;
-        const metaToken = storeData.meta_token || process.env.META_ACCESS_TOKEN;
-        const fbPageId = storeData.fb_page_id || process.env.FB_PAGE_ID;
+        const metaToken = marketingSettings?.meta_access_token || storeData.meta_token || process.env.META_ACCESS_TOKEN;
+        const fbPageId = marketingSettings?.facebook_page_id || storeData.fb_page_id || process.env.FB_PAGE_ID;
 
         if (!nsToken) {
             console.warn(`⚠️ Loja ${storeId} sem token Nuvemshop.`);
