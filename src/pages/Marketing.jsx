@@ -4,7 +4,7 @@ import { toast } from 'react-hot-toast';
 import { 
   Share2, Globe, Key, Save, ExternalLink, 
   HelpCircle, CheckCircle2, AlertCircle,
-  Zap, Sparkles, FileText, Link2
+  Zap, Sparkles, FileText, Link2, X, ChevronRight, Info
 } from 'lucide-react';
 
 const Marketing = () => {
@@ -14,10 +14,12 @@ const Marketing = () => {
         feed_caption_template: ''
     });
     const [saving, setSaving] = useState(false);
+    const [validating, setValidating] = useState(false);
     const [webhooks, setWebhooks] = useState([]);
     const [history, setHistory] = useState([]);
     const [loadingHistory, setLoadingHistory] = useState(false);
     const [registering, setRegistering] = useState(false);
+    const [showGuide, setShowGuide] = useState(false);
 
     const defaultCaption = `✨ NOVIDADE NA CLOTH! ✨\n\n{{product_name}}\n\nGaranta o seu agora mesmo no nosso site! 🚀\n\n🔗 {{product_link}}\n\n#clothsublimacao #novidade #sublimacao #personalizados`;
 
@@ -83,6 +85,40 @@ const Marketing = () => {
             toast.error('Erro ao salvar configurações.');
         } finally {
             setSaving(false);
+        }
+    };
+
+    const handleValidate = async () => {
+        setValidating(true);
+        try {
+            const res = await axios.get('/api/marketing/validate');
+            if (res.data.valid) {
+                toast.success(
+                  <div className="flex flex-col gap-1">
+                    <span className="font-bold">✅ Conexão Estabelecida!</span>
+                    <span className="text-xs opacity-90">Sua conta do Instagram foi identificada com sucesso.</span>
+                  </div>, 
+                  { duration: 6000 }
+                );
+            } else {
+                toast.error(
+                  <div className="flex flex-col gap-1">
+                    <span className="font-bold">❌ Falha na Conexão</span>
+                    <span className="text-xs opacity-90">{res.data.error}</span>
+                    <button 
+                      onClick={() => setShowGuide(true)}
+                      className="text-[10px] underline text-left mt-1 hover:text-white"
+                    >
+                      Como resolver isso?
+                    </button>
+                  </div>,
+                  { duration: 8000 }
+                );
+            }
+        } catch (error) {
+            toast.error('Erro ao validar: ' + (error.response?.data?.error || error.message));
+        } finally {
+            setValidating(false);
         }
     };
 
@@ -246,14 +282,33 @@ const Marketing = () => {
                                 Preparamos um guia para você conseguir seu Token e ID da página em menos de 5 minutos.
                             </p>
                         </div>
-                        <a 
-                            href="#" 
-                            onClick={(e) => e.preventDefault()}
+                        <button 
+                            onClick={() => setShowGuide(true)}
                             className="bg-slate-800 hover:bg-slate-700 text-white px-6 py-3 rounded-xl text-sm font-bold flex items-center gap-2 whitespace-nowrap transition-colors"
                         >
-                            Ver Guia
-                            <ExternalLink size={14} />
-                        </a>
+                            Ver Guia Passo a Passo
+                            <ChevronRight size={14} />
+                        </button>
+                    </div>
+
+                    {/* Botão de Validação Explícito */}
+                    <div className="bg-slate-900/50 border border-slate-800 rounded-3xl p-6 flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-blue-500/10 rounded-full flex items-center justify-center">
+                                <Globe className="text-blue-400" size={20} />
+                            </div>
+                            <div>
+                                <p className="text-sm font-bold text-white">Testar Conexão</p>
+                                <p className="text-xs text-slate-500">Verifique se o Token e o ID estão corretos.</p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={handleValidate}
+                            disabled={validating || !settings.meta_token}
+                            className="bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 border border-blue-500/20 px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all disabled:opacity-30 flex items-center gap-2"
+                        >
+                            {validating ? <div className="animate-spin rounded-full h-3 w-3 border-2 border-blue-400/30 border-t-blue-400" /> : 'Validar Agora'}
+                        </button>
                     </div>
                 </div>
 
@@ -394,6 +449,77 @@ const Marketing = () => {
                     </div>
                 </div>
             </div>
+            {/* Modal de Guia */}
+            {showGuide && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-300">
+                    <div className="bg-slate-900 border border-slate-800 w-full max-w-2xl max-h-[90vh] rounded-3xl shadow-2xl overflow-hidden flex flex-col">
+                        <div className="p-6 border-b border-slate-800 flex items-center justify-between bg-slate-900/50">
+                            <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                                <Info className="text-blue-400" size={22} />
+                                Guia de Configuração Meta API
+                            </h3>
+                            <button onClick={() => setShowGuide(false)} className="p-2 hover:bg-slate-800 rounded-full text-slate-400 transition-colors">
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <div className="p-8 overflow-y-auto space-y-8 custom-scrollbar">
+                            <section className="space-y-4">
+                                <h4 className="text-pink-400 font-bold flex items-center gap-2">
+                                    <span className="w-6 h-6 bg-pink-500/10 rounded-lg flex items-center justify-center text-xs">1</span>
+                                    Requisitos Básicos
+                                </h4>
+                                <ul className="space-y-3 text-slate-300 text-sm list-disc ml-10">
+                                    <li><b>Instagram Profissional</b>: Deve ser conta Comercial ou de Criador.</li>
+                                    <li><b>Vínculo Facebook</b>: O Instagram deve estar conectado a uma Página do Facebook.</li>
+                                </ul>
+                            </section>
+
+                            <section className="space-y-4">
+                                <h4 className="text-blue-400 font-bold flex items-center gap-2">
+                                    <span className="w-6 h-6 bg-blue-500/10 rounded-lg flex items-center justify-center text-xs">2</span>
+                                    Criar Aplicativo no Meta
+                                </h4>
+                                <p className="text-slate-400 text-sm ml-8 leading-relaxed">
+                                    Acesse o <a href="https://developers.facebook.com/" target="_blank" rel="noreferrer" className="text-blue-400 underline">Meta for Developers</a>, crie um App do tipo <b>"Empresa"</b> e adicione o produto <b>"Instagram Graph API"</b>.
+                                </p>
+                            </section>
+
+                            <section className="space-y-4">
+                                <h4 className="text-purple-400 font-bold flex items-center gap-2">
+                                    <span className="w-6 h-6 bg-purple-500/10 rounded-lg flex items-center justify-center text-xs">3</span>
+                                    Gerar Token (Chave Mestra)
+                                </h4>
+                                <div className="bg-slate-950/50 p-6 rounded-2xl border border-slate-800 ml-8 space-y-4">
+                                    <p className="text-xs text-slate-400">No <b>Explorer da Graph API</b>, selecione seu App e sua <b>Página</b> no menu lateral. Adicione estas permissões:</p>
+                                    <div className="flex flex-wrap gap-2 text-[10px] font-mono">
+                                        {['instagram_basic', 'instagram_content_publish', 'pages_show_list', 'pages_read_engagement'].map(p => (
+                                            <span key={p} className="bg-slate-800 text-purple-300 px-2 py-1 rounded border border-purple-500/20">{p}</span>
+                                        ))}
+                                    </div>
+                                    <p className="text-xs text-amber-400 font-bold mt-2 flex items-center gap-2">
+                                        <AlertCircle size={14} />
+                                        Certifique-se de selecionar a PÁGINA no menu "User or Page"!
+                                    </p>
+                                </div>
+                            </section>
+
+                            <div className="bg-blue-600/10 border border-blue-500/20 rounded-2xl p-5 text-center">
+                                <p className="text-xs text-blue-300 leading-relaxed font-medium">
+                                    Dica: Use um "System User" no Business Manager para um token que <b>nunca expira</b>.
+                                </p>
+                            </div>
+                        </div>
+                        <div className="p-6 bg-slate-900 border-t border-slate-800">
+                            <button 
+                                onClick={() => setShowGuide(false)}
+                                className="w-full py-4 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-2xl transition-colors"
+                            >
+                                Entendi, vou configurar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

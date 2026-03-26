@@ -558,6 +558,50 @@ app.get('/api/marketing/settings', async (req, res) => {
 });
 
 /**
+ * DIAGNÓSTICO DAS CREDENCIAIS DO META/INSTAGRAM
+ * Testa o token e page_id antes de tentar postar, retorna erros detalhados
+ */
+app.get('/api/marketing/validate', async (req, res) => {
+    const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
+    console.log(`[Marketing Validate] Iniciando diagnóstico para loja ${storeId}`);
+    try {
+        const { data: ms, error: dbError } = await supabase
+            .from('marketing_settings')
+            .select('*')
+            .eq('store_id', String(storeId))
+            .maybeSingle();
+
+        if (dbError) {
+            console.error('[Marketing Validate] Erro Supabase:', dbError);
+            throw dbError;
+        }
+
+        const metaToken = ms?.meta_access_token;
+        const fbPageId  = ms?.facebook_page_id;
+
+        if (!metaToken || !fbPageId) {
+            console.warn('[Marketing Validate] Credenciais ausentes no banco.');
+            return res.json({ valid: false, error: 'Token ou ID da Página não configurados. Preencha o painel Marketing e salve.' });
+        }
+
+        const result = await igService.validateCredentials(fbPageId, metaToken);
+        if (result.valid) {
+            console.log(`✅ [Marketing Validate] Conexão bem-sucedida: ${result.pageName}`);
+            return res.json({ 
+                valid: true, 
+                message: `✅ Credenciais OK! Página: ${result.pageName}, IG ID: ${result.igAccountId}` 
+            });
+        } else {
+            console.error(`❌ [Marketing Validate] Falha na validação do Instagram:`, result.error);
+            return res.json({ valid: false, error: result.error });
+        }
+    } catch (error) {
+        console.error(`🔥 [Marketing Validate] Erro Crítico:`, error.message);
+        return res.status(500).json({ valid: false, error: 'Erro interno ao validar: ' + error.message });
+    }
+});
+
+/**
  * HELPER: Monta a legenda do Feed substituindo variáveis
  * Variáveis suportadas: {{product_name}}, {{product_link}}
  */

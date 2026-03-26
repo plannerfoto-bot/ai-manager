@@ -9,6 +9,42 @@ class InstagramService {
     }
 
     /**
+     * Extrai mensagem de erro detalhada da resposta do Meta
+     */
+    _extractError(error) {
+        const data = error?.response?.data?.error || error?.response?.data;
+        if (data?.message) {
+            return `[Meta ${data.code || 400}] ${data.message}${data.error_subcode ? ` (subcode: ${data.error_subcode})` : ''}`;
+        }
+        return error.message;
+    }
+
+    /**
+     * Valida as credenciais antes de tentar postar
+     * Retorna { valid: bool, igAccountId, pageName, error }
+     */
+    async validateCredentials(pageId, accessToken) {
+        try {
+            const response = await axios.get(`${this.baseUrl}/${pageId}`, {
+                params: {
+                    fields: 'instagram_business_account,name',
+                    access_token: accessToken
+                }
+            });
+            const igId = response.data?.instagram_business_account?.id;
+            if (!igId) {
+                return {
+                    valid: false,
+                    error: `A Página ${response.data?.name || pageId} não tem uma conta Instagram Business vinculada. Conecte o Instagram no Gerenciador de Negócios da Meta.`
+                };
+            }
+            return { valid: true, igAccountId: igId, pageName: response.data?.name };
+        } catch (error) {
+            return { valid: false, error: this._extractError(error) };
+        }
+    }
+
+    /**
      * Obtém o ID da conta do Instagram vinculada a uma Página do Facebook
      */
     async getInstagramAccountId(pageId, accessToken) {
@@ -19,10 +55,12 @@ class InstagramService {
                     access_token: accessToken
                 }
             });
-            return response.data.instagram_business_account ? response.data.instagram_business_account.id : null;
+            return response.data.instagram_business_account
+                ? response.data.instagram_business_account.id
+                : null;
         } catch (error) {
-            console.error('❌ Erro ao buscar ID do Instagram:', error.response ? error.response.data : error.message);
-            throw error;
+            console.error('❌ Erro ao buscar ID do Instagram:', error.response ? JSON.stringify(error.response.data) : error.message);
+            throw new Error(this._extractError(error));
         }
     }
 
@@ -32,9 +70,9 @@ class InstagramService {
      */
     async createFeedContainer(igAccountId, imageUrl, caption, accessToken) {
         try {
-            // Usamos weserv.nl para garantir que a imagem seja quadrada (white background) sem distorcer
             const proxiedUrl = `https://images.weserv.nl/?url=${encodeURIComponent(imageUrl)}&w=1080&h=1080&fit=contain&bg=white`;
-            
+            console.log('📸 Feed container URL:', proxiedUrl.substring(0, 80) + '...');
+
             const response = await axios.post(`${this.baseUrl}/${igAccountId}/media`, {
                 image_url: proxiedUrl,
                 caption: caption,
@@ -42,18 +80,17 @@ class InstagramService {
             });
             return response.data.id;
         } catch (error) {
-            console.error('❌ Erro ao criar container de Feed:', error.response ? error.response.data : error.message);
-            throw error;
+            const detail = error.response ? JSON.stringify(error.response.data) : error.message;
+            console.error('❌ Erro ao criar container de Feed:', detail);
+            throw new Error(this._extractError(error));
         }
     }
 
     /**
      * Cria um container de mídia para o Story (Imagem)
-     * productLink: link do produto que será associado ao Story
      */
     async createStoryContainer(igAccountId, imageUrl, productLink, accessToken) {
         try {
-            // Para Stories, forçamos 1080x1920 (9:16) com fundo preto para evitar distorção
             const proxiedUrl = `https://images.weserv.nl/?url=${encodeURIComponent(imageUrl)}&w=1080&h=1920&fit=contain&bg=black`;
 
             const payload = {
@@ -62,29 +99,17 @@ class InstagramService {
                 access_token: accessToken
             };
 
-            // Link Stickers (Nova implementação profissional)
-            if (productLink) {
-                payload.interactive_components = JSON.stringify([
-                    {
-                        type: 'link',
-                        url: productLink,
-                        x: 0.5,
-                        y: 0.8
-                    }
-                ]);
-            }
-
             const response = await axios.post(`${this.baseUrl}/${igAccountId}/media`, payload);
             return response.data.id;
         } catch (error) {
-            console.error('❌ Erro ao criar container de Story:', error.response ? error.response.data : error.message);
-            throw error;
+            const detail = error.response ? JSON.stringify(error.response.data) : error.message;
+            console.error('❌ Erro ao criar container de Story:', detail);
+            throw new Error(this._extractError(error));
         }
     }
 
-
     /**
-     * Pública o container de mídia (Feed ou Story se for o caso de container pronto)
+     * Publica o container de mídia (Feed ou Story)
      */
     async publishMedia(igAccountId, creationId, accessToken) {
         try {
@@ -94,8 +119,9 @@ class InstagramService {
             });
             return response.data.id;
         } catch (error) {
-            console.error('❌ Erro ao publicar mídia:', error.response ? error.response.data : error.message);
-            throw error;
+            const detail = error.response ? JSON.stringify(error.response.data) : error.message;
+            console.error('❌ Erro ao publicar mídia:', detail);
+            throw new Error(this._extractError(error));
         }
     }
 }
