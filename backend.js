@@ -8,20 +8,11 @@ import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import os from 'os';
 import igService from './src/instagramService.js';
-import { createClient } from '@supabase/supabase-js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 dotenv.config({ path: fs.existsSync('../nuvemshop-mcp/.env') ? '../nuvemshop-mcp/.env' : '.env' });
-
-// --- CONFIGURAÇÃO SUPABASE ---
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_KEY = process.env.SUPABASE_KEY;
-const supabase = (SUPABASE_URL && SUPABASE_KEY) ? createClient(SUPABASE_URL, SUPABASE_KEY) : null;
-if (supabase) console.log('✅ Supabase conectado para persistência.');
-else console.warn('⚠️ Supabase não configurado. Usando stores.json (efêmero no Render).');
-
 
 const app = express();
 app.use(cors());
@@ -50,38 +41,15 @@ const APP_ID = process.env.NUVEMSHOP_APP_ID;
 const APP_SECRET = process.env.NUVEMSHOP_APP_SECRET;
 const PUBLIC_URL = process.env.PUBLIC_URL || 'https://ai-manager-nuvemshop.onrender.com';
 
-// Persistência de Tokens (Múltiplas Lojas)
+// --- PERSISTÊNCIA DE TOKENS (LOCAL) ---
 const STORES_FILE = path.join(__dirname, 'stores.json');
 
 async function getStores() {
-  let stores = {};
-  
-  // 1. Tenta carregar do Supabase primeiro
-  if (supabase) {
-    try {
-      const { data, error } = await supabase.from('ai_manager_config').select('*');
-      if (!error && data) {
-        data.forEach(row => {
-          stores[row.store_id] = {
-            access_token: row.access_token,
-            meta_token: row.meta_token,
-            fb_page_id: row.fb_page_id,
-            feed_caption_template: row.feed_caption_template,
-            updatedAt: row.updated_at
-          };
-        });
-        return stores;
-      }
-    } catch (e) {
-      console.error('Erro ao ler Supabase:', e);
-    }
-  }
-
-  // 2. Fallback para stores.json local
   if (fs.existsSync(STORES_FILE)) {
     try {
       return JSON.parse(fs.readFileSync(STORES_FILE, 'utf8'));
     } catch (e) {
+      console.error('Erro ao ler stores.json:', e);
       return {};
     }
   }
@@ -89,25 +57,6 @@ async function getStores() {
 }
 
 async function saveStore(storeId, data) {
-  // 1. Salva no Supabase se disponível
-  if (supabase) {
-    try {
-      const { error } = await supabase.from('ai_manager_config').upsert({
-        store_id: storeId.toString(),
-        access_token: data.access_token,
-        meta_token: data.meta_token,
-        fb_page_id: data.fb_page_id,
-        feed_caption_template: data.feed_caption_template,
-        updated_at: new Date().toISOString()
-      }, { onConflict: 'store_id' });
-      
-      if (error) console.error('Erro ao salvar no Supabase:', error);
-    } catch (e) {
-      console.error('Erro ao salvar no Supabase:', e);
-    }
-  }
-
-  // 2. Atualiza local também
   const stores = await getStores();
   stores[storeId] = { 
     ...stores[storeId], 
