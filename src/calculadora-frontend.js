@@ -535,12 +535,16 @@
     if (!activeVariant) return;
 
     var text = (activeVariant.innerText || activeVariant.getAttribute('title') || '').trim();
-    // Regex mais flexível: busca todos os números com vírgula ou ponto
-    var nums = text.replace(',', '.').match(/\d+(\.\d+)?/g);
+    // Regex mais flexível: busca todos os números com vírgula ou ponto (trocando globalmente , por .)
+    var cleanText = text.replace(/,/g, '.');
+    var nums = cleanText.match(/\d+(\.\d+)?/g);
     
     if (!nums || nums.length < 2) {
         var radio = activeVariant.previousElementSibling || activeVariant.querySelector('input');
-        if (radio && radio.value) nums = radio.value.replace(',', '.').match(/\d+(\.\d+)?/g);
+        if (radio && radio.value) {
+            cleanText = radio.value.replace(/,/g, '.');
+            nums = cleanText.match(/\d+(\.\d+)?/g);
+        }
     }
 
     if (nums && nums.length >= 2) {
