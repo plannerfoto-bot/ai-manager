@@ -2,10 +2,12 @@ import express from 'express';
 import axios from 'axios';
 import path from 'path';
 import fs from 'fs';
+import crypto from 'crypto';
 import cors from 'cors';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import os from 'os';
+import igService from './src/instagramService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -443,6 +445,121 @@ async function cleanupExpiredVariants() {
 // Inicia o scheduler de limpeza
 setInterval(cleanupExpiredVariants, CLEANUP_INTERVAL_MS);
 console.log('[Limpeza 24h] Scheduler iniciado - rodara a cada 30 minutos.');
+
+/**
+ * SALVAR CONFIGURAÇÕES DE MARKETING (META/INSTAGRAM)
+ */
+app.post('/api/marketing/settings', (req, res) => {
+    const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
+    const { meta_token, fb_page_id } = req.body;
+
+    if (!meta_token || !fb_page_id) {
+        return res.status(400).json({ error: 'Token e Page ID são obrigatórios.' });
+    }
+
+    try {
+        saveStore(storeId, {
+            meta_token,
+            fb_page_id
+        });
+        res.json({ success: true, message: 'Configurações de marketing salvas com sucesso!' });
+    } catch (e) {
+        res.status(500).json({ error: 'Erro ao salvar configurações.' });
+    }
+});
+
+/**
+ * BUSCAR CONFIGURAÇÕES DE MARKETING
+ */
+app.get('/api/marketing/settings', (req, res) => {
+    const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
+    const stores = getStores();
+    const storeData = stores[storeId] || {};
+
+    res.json({
+        meta_token: storeData.meta_token || '',
+        fb_page_id: storeData.fb_page_id || ''
+    });
+});
+
+/**
+ * WEBHOOK: Novo Produto Criado
+ * Aciona a postagem automática no Instagram
+ */
+app.post('/api/webhooks/product-created', async (req, res) => {
+    // Nuvemshop Webhooks podem enviar o storeId no header ou body
+    const storeId = req.headers['x-linkedstore-store-id'] || req.body.store_id || DEFAULT_STORE_ID;
+    const event = req.body.event;
+    const productId = req.body.id;
+
+    console.log(`\n📦 Webhook recebido: ${event} para loja ${storeId} (Produto: ${productId})`);
+
+    // Responde 200 imediatamente para a Nuvemshop não reenviar
+    res.status(200).send('OK');
+
+    if (event !== 'product/created') return;
+
+    try {
+        const stores = getStores();
+        const storeData = stores[storeId];
+
+        if (!storeData || !storeData.access_token) {
+            console.warn(`⚠️ Loja ${storeId} não encontrada ou sem token para automação.`);
+            return;
+        }
+
+        // 1. Busca detalhes completos do produto na Nuvemshop
+        const client = getApiClient(storeId);
+        const productRes = await client.get(`/products/${productId}`);
+
+        const product = productRes.data;
+        const productName = (product.name && product.name.pt) ? product.name.pt : (product.name ? Object.values(product.name)[0] : 'Novo Produto');
+        const productHandle = (product.handle && product.handle.pt) ? product.handle.pt : (product.handle ? Object.values(product.handle)[0] : '');
+        const productLink = `https://${storeData.domain || 'clothsublimacao.com.br'}/produtos/${productHandle}`;
+        const mainImage = product.images && product.images.length > 0 ? product.images[0].src : null;
+
+        if (!mainImage) {
+            console.warn(`⚠️ Produto ${productId} sem imagem. Ignorando postagem.`);
+            return;
+        }
+
+        // 2. Verifica se a loja tem as chaves do Instagram configuradas (Meta)
+        const metaToken = process.env.META_ACCESS_TOKEN || storeData.meta_token;
+        const fbPageId = process.env.FB_PAGE_ID || storeData.fb_page_id;
+
+        if (!metaToken || !fbPageId) {
+            console.warn(`⚠️ Meta Access Token ou Page ID não configurados para a loja ${storeId}.`);
+            return;
+        }
+
+        console.log(`🚀 Iniciando postagem automática para: ${productName}`);
+
+        // 3. Obtém ID da conta do Instagram
+        const igAccountId = await igService.getInstagramAccountId(fbPageId, metaToken);
+        if (!igAccountId) {
+            console.error('❌ Falha ao obter conta do Instagram Vinculada.');
+            return;
+        }
+
+        // 4. Formata a legenda (Feed)
+        const caption = `✨ NOVIDADE NA CLOTH! ✨\n\nAcabamos de cadastrar: ${productName}\n\nGaranta o seu agora mesmo no nosso site! 🚀\n\n🔗 ${productLink}\n\n#clothsublimacao #novidade #sublimacao #personalizados`;
+
+        // 5. Postagem no FEED
+        console.log('📸 Criando post no Feed...');
+        const feedContainerId = await igService.createFeedContainer(igAccountId, mainImage, caption, metaToken);
+        await igService.publishMedia(igAccountId, feedContainerId, metaToken);
+        console.log('✅ Post no Feed realizado!');
+
+        // 6. Postagem no STORY
+        console.log('📱 Criando post no Story...');
+        const storyContainerId = await igService.createStoryContainer(igAccountId, mainImage, metaToken);
+        await igService.publishMedia(igAccountId, storyContainerId, metaToken);
+        console.log('✅ Post no Story realizado!');
+
+    } catch (error) {
+        console.error('❌ Erro no processamento do Webhook:', error.message);
+    }
+});
 
 // Endpoint para frontend descobrir storeId padrão
 app.get('/api/me', (req, res) => {

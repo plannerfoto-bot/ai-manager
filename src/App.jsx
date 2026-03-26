@@ -9,6 +9,7 @@ import AICreator from './pages/AICreator';
 import Orders from './pages/Orders';
 import BulkUpload from './pages/BulkUpload';
 import ScriptManager from './pages/ScriptManager';
+import Marketing from './pages/Marketing';
 
 // ─── Componentes Auxiliares Fora da Função Principal ───────────────────
 class ErrorBoundary extends React.Component {
@@ -196,6 +197,8 @@ const App = () => {
         return <BulkUpload />;
       case 'script-manager':
         return <ScriptManager storeId={storeId} apiBase={API_BASE_URL} />;
+      case 'marketing':
+        return <Marketing />;
       default:
         return <Dashboard stats={stats} />;
     }
