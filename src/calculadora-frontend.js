@@ -362,11 +362,11 @@
 
       if(!l || !a) return;
 
-      var items = document.querySelectorAll('.js-product-variants label, .js-product-variants span, .product-variants label, .product-variants span, .js-variant-option, .variant-option');
+      var items = document.querySelectorAll('.js-product-variants label, .js-product-variants span, .product-variants label, .product-variants span, .js-variant-option, .variant-option, .js-insta-variant');
       var found = null;
 
       for(var i=0; i<items.length; i++){
-        var text = items[i].innerText || '';
+        var text = (items[i].innerText || items[i].getAttribute('title') || '').trim();
         if(text.indexOf(l) !== -1 && text.indexOf(a) !== -1){
            found = items[i];
            break;
@@ -463,7 +463,7 @@
 
   function initImageAdjuster() {
     // Busca a imagem principal do produto (funciona na maioria dos temas Nuvemshop)
-    var mainImg = document.querySelector('.js-product-main-image, #product_image, .js-main-image-src, .product-image img, [data-main-product-image]');
+    var mainImg = document.querySelector('.js-product-active-image, .js-product-main-image, #product_image, .js-main-image-src, .product-image img, [data-main-product-image], .js-product-slide-link img');
     if (!mainImg) return;
 
     // Configura estilos iniciais para permitir o redimensionamento suave
@@ -473,10 +473,10 @@
     }
 
     // Identifica qual variante está selecionada no momento
-    var activeVariant = document.querySelector('.js-variant-option.selected, .variant-option.active, .js-variant-option.active, input[type="radio"]:checked + label, .selected-variant');
+    var activeVariant = document.querySelector('.js-variant-option.selected, .variant-option.active, .js-variant-option.active, input[type="radio"]:checked + label, .selected-variant, .js-insta-variant.selected, .js-insta-variant.active');
     if (!activeVariant) return;
 
-    var text = activeVariant.innerText || '';
+    var text = (activeVariant.innerText || activeVariant.getAttribute('title') || '').trim();
     var match = text.match(/(\d+,\d+)\s*[xX]\s*(\d+,\d+)/);
     
     // Se não achou no texto, tenta buscar em atributos data ou inputs (fallback)
