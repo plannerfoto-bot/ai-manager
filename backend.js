@@ -497,29 +497,23 @@ console.log('[Limpeza 24h] Scheduler iniciado - rodara a cada 30 minutos.');
  */
 app.post('/api/marketing/settings', async (req, res) => {
     const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
-    const { meta_token, fb_page_id, feed_caption_template } = req.body;
-
-    if (!meta_token || !fb_page_id) {
-        return res.status(400).json({ error: 'Token e Page ID são obrigatórios.' });
-    }
+    const { metaToken, pageId, captionTemplate } = req.body;
 
     try {
-        const stores = await getStores();
-        const storeData = stores[storeId] || {};
-        
-        // Se a loja ainda não tem o access_token no banco (nova migração), 
-        // mas temos ele no ambiente (.env/Render), salvamos ele agora para persistir.
-        const effectiveToken = storeData.access_token || DEFAULT_ACCESS_TOKEN;
+        const { error } = await supabase
+            .from('marketing_settings')
+            .upsert({
+                store_id: String(storeId),
+                meta_access_token: metaToken,
+                facebook_page_id: pageId,
+                feed_caption_template: captionTemplate,
+                updated_at: new Date().toISOString()
+            });
 
-        await saveStore(storeId, {
-            access_token: effectiveToken,
-            meta_token,
-            fb_page_id,
-            feed_caption_template: feed_caption_template || ''
-        });
-        res.json({ success: true, message: 'Configurações de marketing salvas com sucesso!' });
-    } catch (e) {
-        res.status(500).json({ error: 'Erro ao salvar configurações.' });
+        if (error) throw error;
+        res.json({ success: true, message: 'Configurações salvas permanentemente!' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
     }
 });
 
@@ -528,14 +522,32 @@ app.post('/api/marketing/settings', async (req, res) => {
  */
 app.get('/api/marketing/settings', async (req, res) => {
     const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
-    const stores = await getStores();
-    const storeData = stores[storeId] || {};
+    
+    try {
+        const { data, error } = await supabase
+            .from('marketing_settings')
+            .select('*')
+            .eq('store_id', String(storeId))
+            .maybeSingle();
 
-    res.json({
-        meta_token: storeData.meta_token || '',
-        fb_page_id: storeData.fb_page_id || '',
-        feed_caption_template: storeData.feed_caption_template || ''
-    });
+        if (error) throw error;
+
+        if (!data) {
+            return res.json({ 
+                metaToken: '', 
+                pageId: '', 
+                captionTemplate: '🛍️ *NOVIDADE NA CLOTH!* 🛍️\n\n{{product_name}}\n\nGaranta o seu agora mesmo no nosso site! 🚀\n\n🔗 {{product_link}}\n\n#clothsublimacao #novidade #sublimacao #personalizados' 
+            });
+        }
+
+        res.json({
+            metaToken: data.meta_access_token,
+            pageId: data.facebook_page_id,
+            captionTemplate: data.feed_caption_template
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 });
 
 /**
@@ -559,15 +571,21 @@ app.post('/api/instagram/publish', async (req, res) => {
     const { productId, customCaption, postFeed = true, postStory = true } = req.body;
 
     try {
-        const stores = await getStores();
-        const storeData = stores[storeId] || {};
+        const { data: settings } = await supabase
+            .from('marketing_settings')
+            .select('*')
+            .eq('store_id', String(storeId))
+            .maybeSingle();
 
-        const metaToken = process.env.META_ACCESS_TOKEN || storeData.meta_token;
-        const fbPageId = process.env.FB_PAGE_ID || storeData.fb_page_id;
+        const metaToken = settings?.meta_access_token;
+        const fbPageId = settings?.facebook_page_id;
 
         if (!metaToken || !fbPageId) {
             return res.status(400).json({ error: 'Meta Access Token ou Page ID não configurados. Vá em Marketing > Configurações.' });
         }
+
+        const stores = await getStores();
+        const storeData = stores[storeId] || {};
 
         // Busca dados do produto para obter imagem e link
         const client = await getApiClient(storeId);
