@@ -465,9 +465,13 @@
     // Busca a imagem principal do produto (funciona na maioria dos temas Nuvemshop)
     var mainImg = document.querySelector('.js-product-active-image, .js-product-main-image, #product_image, .js-main-image-src, .product-image img, [data-main-product-image], .js-product-slide-link img');
     if (!mainImg) return;
+    
+    // Se a imagem ainda não carregou as dimensões reais, aguarda o próximo ciclo
+    if (mainImg.naturalWidth === 0) return;
 
     // Configura estilos iniciais para permitir o redimensionamento suave
     if (!mainImg.dataset.adjusterReady) {
+      console.log('🚀 AI Manager: Simulador de Imagem Ativado no elemento:', mainImg);
       mainImg.style.transition = 'aspect-ratio 0.4s cubic-bezier(0.4, 0, 0.2, 1), object-fit 0.4s';
       mainImg.dataset.adjusterReady = 'true';
     }
@@ -490,7 +494,6 @@
       var v2 = parseFloat(match[2].replace(',', '.'));
       
       // REGRA DE OURO: A maior medida segue a orientação original da imagem
-      // Se a imagem natural é mais larga que alta, a maior medida é a largura.
       var isLandscape = mainImg.naturalWidth > mainImg.naturalHeight;
       var w, h;
       
@@ -505,10 +508,10 @@
       // Só atualiza se houver mudança para evitar loops de processamento
       var newRatio = w + ' / ' + h;
       if (mainImg.style.aspectRatio !== newRatio) {
+        console.log('🖼️ AI Manager: Redimensionando para ' + newRatio + ' (Base Original: ' + (isLandscape ? 'Paisagem' : 'Retrato') + ')');
         mainImg.style.aspectRatio = newRatio;
-        mainImg.style.objectFit = 'fill'; // "Fill" mostra a distorção/esticamento real da arte
+        mainImg.style.objectFit = 'fill'; 
         
-        // Efeito visual de feedback
         mainImg.style.opacity = '0.7';
         setTimeout(function(){ mainImg.style.opacity = '1'; }, 200);
       }
