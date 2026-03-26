@@ -461,6 +461,65 @@
     bind();
   }
 
-  document.readyState==='loading' ? document.addEventListener('DOMContentLoaded',inject) : inject();
-  setInterval(inject,2500);
+  function initImageAdjuster() {
+    // Busca a imagem principal do produto (funciona na maioria dos temas Nuvemshop)
+    var mainImg = document.querySelector('.js-product-main-image, #product_image, .js-main-image-src, .product-image img, [data-main-product-image]');
+    if (!mainImg) return;
+
+    // Configura estilos iniciais para permitir o redimensionamento suave
+    if (!mainImg.dataset.adjusterReady) {
+      mainImg.style.transition = 'aspect-ratio 0.4s cubic-bezier(0.4, 0, 0.2, 1), object-fit 0.4s';
+      mainImg.dataset.adjusterReady = 'true';
+    }
+
+    // Identifica qual variante está selecionada no momento
+    var activeVariant = document.querySelector('.js-variant-option.selected, .variant-option.active, .js-variant-option.active, input[type="radio"]:checked + label, .selected-variant');
+    if (!activeVariant) return;
+
+    var text = activeVariant.innerText || '';
+    var match = text.match(/(\d+,\d+)\s*[xX]\s*(\d+,\d+)/);
+    
+    // Se não achou no texto, tenta buscar em atributos data ou inputs (fallback)
+    if (!match) {
+        var radio = activeVariant.previousElementSibling || activeVariant.querySelector('input');
+        if (radio && radio.value) match = radio.value.match(/(\d+,\d+)\s*[xX]\s*(\d+,\d+)/);
+    }
+
+    if (match) {
+      var v1 = parseFloat(match[1].replace(',', '.'));
+      var v2 = parseFloat(match[2].replace(',', '.'));
+      
+      // REGRA DE OURO: A maior medida segue a orientação original da imagem
+      // Se a imagem natural é mais larga que alta, a maior medida é a largura.
+      var isLandscape = mainImg.naturalWidth > mainImg.naturalHeight;
+      var w, h;
+      
+      if (isLandscape) {
+        w = Math.max(v1, v2);
+        h = Math.min(v1, v2);
+      } else {
+        h = Math.max(v1, v2);
+        w = Math.min(v1, v2);
+      }
+
+      // Só atualiza se houver mudança para evitar loops de processamento
+      var newRatio = w + ' / ' + h;
+      if (mainImg.style.aspectRatio !== newRatio) {
+        mainImg.style.aspectRatio = newRatio;
+        mainImg.style.objectFit = 'fill'; // "Fill" mostra a distorção/esticamento real da arte
+        
+        // Efeito visual de feedback
+        mainImg.style.opacity = '0.7';
+        setTimeout(function(){ mainImg.style.opacity = '1'; }, 200);
+      }
+    }
+  }
+
+  document.readyState==='loading' ? document.addEventListener('DOMContentLoaded', function(){ inject(); initImageAdjuster(); }) : (function(){ inject(); initImageAdjuster(); })();
+  
+  // Loop de monitoramento para garantir que mudanças dinâmicas do tema (AJAX) sejam capturadas
+  setInterval(function(){
+    inject();
+    initImageAdjuster();
+  }, 2000);
 })();
