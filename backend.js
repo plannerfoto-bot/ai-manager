@@ -591,13 +591,15 @@ app.post('/api/instagram/publish', async (req, res) => {
 app.post('/api/webhooks/register', async (req, res) => {
     try {
         const stores = await getStores();
-        // Usa a primeira loja encontrada (single-tenant)
-        const storeId = Object.keys(stores)[0];
-        const storeData = stores[storeId];
+        // Fallback: Se não houver lojas em stores.json, tenta usar o DEFAULT configurado no ambiente
+        let storeId = Object.keys(stores)[0] || DEFAULT_STORE_ID;
+        let storeData = stores[storeId] || { access_token: DEFAULT_ACCESS_TOKEN };
 
-        if (!storeData || !storeData.access_token) {
-            return res.status(400).json({ error: 'Loja não encontrada ou sem access token configurado.' });
+        if (!storeId || !storeData.access_token) {
+            return res.status(400).json({ error: 'Loja não identificada. Por favor, re-conecte o App ou configure as variáveis NUVEMSHOP_ACCESS_TOKEN e STORE_ID no servidor.' });
         }
+
+        console.log(`[Webhook Register] Tentando registrar para loja ${storeId}...`);
 
         // URL pública do AI Manager (Render)
         const baseUrl = process.env.APP_URL || 'https://ai-manager-nuvemshop.onrender.com';
@@ -641,10 +643,10 @@ app.post('/api/webhooks/register', async (req, res) => {
 app.get('/api/webhooks/list', async (req, res) => {
     try {
         const stores = await getStores();
-        const storeId = Object.keys(stores)[0];
-        const storeData = stores[storeId];
+        const storeId = Object.keys(stores)[0] || DEFAULT_STORE_ID;
+        const storeData = stores[storeId] || { access_token: DEFAULT_ACCESS_TOKEN };
 
-        if (!storeData || !storeData.access_token) {
+        if (!storeId || !storeData.access_token) {
             return res.status(400).json({ error: 'Loja não encontrada ou sem access token.' });
         }
 
@@ -679,7 +681,7 @@ app.post('/api/webhooks/product-created', async (req, res) => {
 
     try {
         const stores = await getStores();
-        const storeData = stores[storeId];
+        const storeData = stores[storeId] || { access_token: DEFAULT_ACCESS_TOKEN, meta_token: process.env.META_ACCESS_TOKEN, fb_page_id: process.env.FB_PAGE_ID };
 
         if (!storeData || !storeData.access_token) {
             console.warn(`⚠️ Loja ${storeId} não encontrada ou sem token para automação.`);
