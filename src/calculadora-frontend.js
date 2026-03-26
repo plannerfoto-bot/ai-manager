@@ -313,6 +313,9 @@
         b.innerHTML = originalText;
         if(data.error) throw new Error(data.error);
         renderSuccess(data.price120, data.price160, a, l, data.measureType);
+        
+        // NOVO: Atualiza a proporção da imagem imediatamente após o cálculo de sucesso
+        try { updateImageRatio(l, a); } catch(ev){}
       })
       .catch(err => {
         b.disabled = false;
@@ -461,29 +464,46 @@
     bind();
   }
 
-  function initImageAdjuster() {
-    // Busca a imagem principal do produto (funciona na maioria dos temas Nuvemshop)
+  function updateImageRatio(w, h) {
     var mainImg = document.querySelector('.js-product-active-image, .js-product-main-image, #product_image, .js-main-image-src, .product-image img, [data-main-product-image], .js-product-slide-link img');
-    if (!mainImg) return;
-    
-    // Se a imagem ainda não carregou as dimensões reais, aguarda o próximo ciclo
+    if (!mainImg || !w || !h) return;
     if (mainImg.naturalWidth === 0) return;
 
-    // Configura estilos iniciais para permitir o redimensionamento suave
     if (!mainImg.dataset.adjusterReady) {
-      console.log('🚀 AI Manager: Simulador de Imagem Ativado no elemento:', mainImg);
+      console.log('🚀 AI Manager: Simulador de Imagem Ativado');
       mainImg.style.transition = 'aspect-ratio 0.4s cubic-bezier(0.4, 0, 0.2, 1), object-fit 0.4s';
       mainImg.dataset.adjusterReady = 'true';
     }
 
-    // Identifica qual variante está selecionada no momento
+    var isLandscape = mainImg.naturalWidth > mainImg.naturalHeight;
+    var finalW, finalH;
+    
+    // Regra: Maior valor segue orientação original
+    if (isLandscape) {
+      finalW = Math.max(w, h);
+      finalH = Math.min(w, h);
+    } else {
+      finalH = Math.max(w, h);
+      finalW = Math.min(w, h);
+    }
+
+    var newRatio = finalW + ' / ' + finalH;
+    if (mainImg.style.aspectRatio !== newRatio) {
+      console.log('🖼️ Redimensionando para: ' + newRatio);
+      mainImg.style.aspectRatio = newRatio;
+      mainImg.style.objectFit = 'fill';
+      mainImg.style.opacity = '0.7';
+      setTimeout(function(){ mainImg.style.opacity = '1'; }, 150);
+    }
+  }
+
+  function initImageAdjuster() {
     var activeVariant = document.querySelector('.js-variant-option.selected, .variant-option.active, .js-variant-option.active, input[type="radio"]:checked + label, .selected-variant, .js-insta-variant.selected, .js-insta-variant.active');
     if (!activeVariant) return;
 
     var text = (activeVariant.innerText || activeVariant.getAttribute('title') || '').trim();
     var match = text.match(/(\d+,\d+)\s*[xX]\s*(\d+,\d+)/);
     
-    // Se não achou no texto, tenta buscar em atributos data ou inputs (fallback)
     if (!match) {
         var radio = activeVariant.previousElementSibling || activeVariant.querySelector('input');
         if (radio && radio.value) match = radio.value.match(/(\d+,\d+)\s*[xX]\s*(\d+,\d+)/);
@@ -492,37 +512,22 @@
     if (match) {
       var v1 = parseFloat(match[1].replace(',', '.'));
       var v2 = parseFloat(match[2].replace(',', '.'));
-      
-      // REGRA DE OURO: A maior medida segue a orientação original da imagem
-      var isLandscape = mainImg.naturalWidth > mainImg.naturalHeight;
-      var w, h;
-      
-      if (isLandscape) {
-        w = Math.max(v1, v2);
-        h = Math.min(v1, v2);
-      } else {
-        h = Math.max(v1, v2);
-        w = Math.min(v1, v2);
-      }
-
-      // Só atualiza se houver mudança para evitar loops de processamento
-      var newRatio = w + ' / ' + h;
-      if (mainImg.style.aspectRatio !== newRatio) {
-        console.log('🖼️ AI Manager: Redimensionando para ' + newRatio + ' (Base Original: ' + (isLandscape ? 'Paisagem' : 'Retrato') + ')');
-        mainImg.style.aspectRatio = newRatio;
-        mainImg.style.objectFit = 'fill'; 
-        
-        mainImg.style.opacity = '0.7';
-        setTimeout(function(){ mainImg.style.opacity = '1'; }, 200);
-      }
+      updateImageRatio(v1, v2);
     }
   }
 
+  // Monitora cliques em variantes para resposta imediata
+  document.addEventListener('click', function(e){
+    if (e.target.closest('.js-variant-option, .js-insta-variant, .variant-option')) {
+      setTimeout(initImageAdjuster, 50); // Delay curto para o tema atualizar a classe 'selected'
+    }
+  });
+
   document.readyState==='loading' ? document.addEventListener('DOMContentLoaded', function(){ inject(); initImageAdjuster(); }) : (function(){ inject(); initImageAdjuster(); })();
   
-  // Loop de monitoramento para garantir que mudanças dinâmicas do tema (AJAX) sejam capturadas
   setInterval(function(){
     inject();
+    // O monitoramento por intervalo continua como backup
     initImageAdjuster();
-  }, 2000);
+  }, 2500);
 })();
