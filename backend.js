@@ -1312,7 +1312,13 @@ app.get('/api/marketing/settings', async (req, res) => {
         .maybeSingle();
         
     if (error) throw error;
-    res.json(data || { meta_token: '', fb_page_id: '', feed_caption_template: '' });
+    
+    // Mapeamento CORRETO para o React não apagar os campos:
+    res.json({
+        meta_token: data?.meta_access_token || '',
+        fb_page_id: data?.facebook_page_id || '',
+        feed_caption_template: data?.feed_caption_template || ''
+    });
   } catch (error) {
     console.error('Erro GET marketing/settings:', error);
     res.status(500).json({ error: error.message });
