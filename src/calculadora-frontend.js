@@ -499,29 +499,22 @@
       }
     }
 
-    var isLandscape = mainImg.naturalWidth > mainImg.naturalHeight;
-    var finalW, finalH;
-    
-    if (isLandscape) {
-      finalW = Math.max(w, h);
-      finalH = Math.min(w, h);
-    } else {
-      finalH = Math.max(w, h);
-      finalW = Math.min(w, h);
-    }
-
-    var newRatio = finalW + ' / ' + finalH;
+    var newRatio = w + ' / ' + h;
     if (mainImg.style.aspectRatio !== newRatio) {
-      console.log('🖼️ Ajustando Ratio: ' + newRatio);
-      mainImg.style.aspectRatio = newRatio;
-      mainImg.style.objectFit = 'fill';
-      mainImg.style.width = '100%';
-      mainImg.style.height = 'auto';
+      console.log('🖼️ Ajustando Ratio (Ordem Exata): ' + newRatio);
+      
+      // Estilos forçados na imagem
+      mainImg.style.setProperty('aspect-ratio', newRatio, 'important');
+      mainImg.style.setProperty('object-fit', 'fill', 'important');
+      mainImg.style.setProperty('width', '100%', 'important');
+      mainImg.style.setProperty('height', 'auto', 'important');
+      mainImg.style.setProperty('max-height', 'none', 'important');
       
       var parent = mainImg.closest('.js-product-slide-link, .product-image-container');
       if (parent) {
-          parent.style.aspectRatio = newRatio;
-          parent.style.paddingBottom = '0';
+          parent.style.setProperty('aspect-ratio', newRatio, 'important');
+          parent.style.setProperty('padding-bottom', '0', 'important');
+          parent.style.setProperty('height', 'auto', 'important');
       }
 
       mainImg.style.opacity = '0.5';
