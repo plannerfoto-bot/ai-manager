@@ -1,41 +1,36 @@
 (function(){
-  console.log("🚀 AI Manager: v2.4.0 (Global Variant Shield)");
+  console.log("🚀 AI Manager: v2.4.1 (Clean Shield)");
   
-  // 🚫 Ocultação Universal e Redundante
+  // 🚫 Ocultação Universal (CSS Padrão apenas)
   var style = document.createElement('style');
   style.innerHTML = `
-    [title*="Whatsapp" i], [title*="Personalizada" i], 
-    a:has(span:contains("Whatsapp")), 
-    .js-insta-variant:contains("Whatsapp"),
-    [data-variant-title*="Whatsapp" i] { 
+    [title*="Whatsapp" i], [title*="whatsapp" i], [title*="Personalizada" i], 
+    [data-variant-title*="Whatsapp" i], [data-variant-title*="whatsapp" i],
+    .js-insta-variant[title*="Whatsapp" i], .js-insta-variant[title*="whatsapp" i] { 
       display: none !important; 
       visibility: hidden !important; 
       opacity: 0 !important; 
-      pointer-events: none !important;
-      position: absolute !important;
-      left: -9999px !important;
     }
   `;
-  document.documentElement.appendChild(style);
+  (document.head || document.documentElement).appendChild(style);
 
   function nukeVariants() {
-    document.querySelectorAll('a, button, span, label, .js-insta-variant').forEach(function(el) {
-      var t = (el.innerText || el.getAttribute('title') || el.getAttribute('data-variant-title') || "").toLowerCase();
-      if (t.indexOf('whatsapp') !== -1 || t.indexOf('personalizada via') !== -1) {
-        el.style.setProperty('display', 'none', 'important');
-        el.style.setProperty('visibility', 'hidden', 'important');
-        var p = el.parentElement;
-        if (p && p.classList.contains('js-variant-option')) p.style.display = 'none';
-      }
-    });
+    var targets = document.querySelectorAll('a, button, span, label, div, li, .js-insta-variant');
+    for (var i = 0; i < targets.length; i++) {
+        var el = targets[i];
+        var txt = (el.innerText || el.getAttribute('title') || el.getAttribute('data-variant-title') || "").toLowerCase();
+        if (txt.indexOf('whatsapp') !== -1 || txt.indexOf('personalizada via') !== -1) {
+            el.style.setProperty('display', 'none', 'important');
+            el.style.setProperty('visibility', 'hidden', 'important');
+        }
+    }
   }
 
   if (window.MutationObserver) {
     new MutationObserver(nukeVariants).observe(document.documentElement, { childList: true, subtree: true });
   }
   
-  // Varreduras extras nos primeiros segundos (redundância para temas lentos)
-  [100, 500, 1000, 2000, 5000].forEach(t => setTimeout(nukeVariants, t));
+  setInterval(nukeVariants, 1000); // Varredura constante de segurança
 
   var CALCULATOR_ENABLED = __ENABLED__;
   var API_BASE_URL = '__PUBLIC_URL__';
