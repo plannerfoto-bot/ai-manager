@@ -36,6 +36,20 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
+// --- LOGS DE WEBHOOK EM MEMÓRIA (DEBUG) ---
+const WEBHOOK_HISTORY = [];
+const addWebhookLog = (data) => {
+    WEBHOOK_HISTORY.unshift({
+        ts: new Date().toISOString(),
+        ...data
+    });
+    if (WEBHOOK_HISTORY.length > 20) WEBHOOK_HISTORY.pop();
+};
+
+app.get('/api/webhooks/history', (req, res) => {
+    res.json(WEBHOOK_HISTORY);
+});
+
 // --- CONFIGURAÇÕES DE APLICATIVO PARCEIRO (OAUTH) ---
 const APP_ID = process.env.NUVEMSHOP_APP_ID;
 const APP_SECRET = process.env.NUVEMSHOP_APP_SECRET;
@@ -687,10 +701,18 @@ app.post('/api/webhooks/product-created', async (req, res) => {
 
     try {
         const stores = await getStores();
-        const storeData = stores[storeId] || { access_token: DEFAULT_ACCESS_TOKEN, meta_token: process.env.META_ACCESS_TOKEN, fb_page_id: process.env.FB_PAGE_ID };
+        const storeData = stores[storeId] || {};
+        
+        // Resolução de Tokens com Fallback Inteligente
+        const nsToken = storeData.access_token || DEFAULT_ACCESS_TOKEN;
+        const metaToken = storeData.meta_token || process.env.META_ACCESS_TOKEN;
+        const fbPageId = storeData.fb_page_id || process.env.FB_PAGE_ID;
 
-        if (!storeData || !storeData.access_token) {
-            console.warn(`⚠️ Loja ${storeId} não encontrada ou sem token para automação.`);
+        addWebhookLog({ storeId, event, productId, status: 'Processing' });
+
+        if (!nsToken) {
+            console.warn(`⚠️ Loja ${storeId} sem token Nuvemshop.`);
+            addWebhookLog({ storeId, productId, status: 'Error', error: 'Token Nuvemshop ausente' });
             return;
         }
 
@@ -710,11 +732,9 @@ app.post('/api/webhooks/product-created', async (req, res) => {
         }
 
         // 2. Verifica se a loja tem as chaves do Instagram configuradas (Meta)
-        const metaToken = process.env.META_ACCESS_TOKEN || storeData.meta_token;
-        const fbPageId = process.env.FB_PAGE_ID || storeData.fb_page_id;
-
         if (!metaToken || !fbPageId) {
             console.warn(`⚠️ Meta Access Token ou Page ID não configurados para a loja ${storeId}.`);
+            addWebhookLog({ storeId, productId, status: 'Error', error: 'Credenciais Meta ausentes (Token/PageID)' });
             return;
         }
 
@@ -724,6 +744,7 @@ app.post('/api/webhooks/product-created', async (req, res) => {
         const igAccountId = await igService.getInstagramAccountId(fbPageId, metaToken);
         if (!igAccountId) {
             console.error('❌ Falha ao obter conta do Instagram Vinculada.');
+            addWebhookLog({ storeId, productId, status: 'Error', error: 'Conta do Instagram não encontrada para este Page ID' });
             return;
         }
 
@@ -734,16 +755,19 @@ app.post('/api/webhooks/product-created', async (req, res) => {
         console.log('📸 Criando post no Feed...');
         const feedContainerId = await igService.createFeedContainer(igAccountId, mainImage, caption, metaToken);
         await igService.publishMedia(igAccountId, feedContainerId, metaToken);
-        console.log('✅ Post no Feed realizado!');
-
+        
         // 6. Postagem no STORY (apenas a imagem + link do produto)
         console.log('📱 Criando post no Story...');
         const storyContainerId = await igService.createStoryContainer(igAccountId, mainImage, productLink, metaToken);
         await igService.publishMedia(igAccountId, storyContainerId, metaToken);
-        console.log('✅ Post no Story realizado!');
+        
+        console.log('✅ Automação de postagem concluída!');
+        addWebhookLog({ storeId, productId, productName, status: 'Success', details: 'Postado no Feed e Story' });
 
     } catch (error) {
-        console.error('❌ Erro no processamento do Webhook:', error.message);
+        const errorMsg = error.response?.data || error.message;
+        console.error('❌ Erro no processamento do Webhook:', errorMsg);
+        addWebhookLog({ storeId, productId, status: 'Error', error: errorMsg });
     }
 });
 

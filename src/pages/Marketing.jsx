@@ -13,37 +13,44 @@ const Marketing = () => {
         fb_page_id: '',
         feed_caption_template: ''
     });
-    const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
     const [webhooks, setWebhooks] = useState([]);
+    const [history, setHistory] = useState([]);
+    const [loadingHistory, setLoadingHistory] = useState(false);
     const [registering, setRegistering] = useState(false);
 
     const defaultCaption = `✨ NOVIDADE NA CLOTH! ✨\n\n{{product_name}}\n\nGaranta o seu agora mesmo no nosso site! 🚀\n\n🔗 {{product_link}}\n\n#clothsublimacao #novidade #sublimacao #personalizados`;
 
+    const fetchData = async () => {
+        setLoadingHistory(true); // Assuming loadingHistory will cover initial data fetch
+        try {
+            const [settingsRes, webhooksRes, historyRes] = await Promise.all([
+                axios.get('/api/marketing/settings'),
+                axios.get('/api/webhooks/list'),
+                axios.get('/api/webhooks/history')
+            ]);
+            setSettings(settingsRes.data);
+            setWebhooks(webhooksRes.data.webhooks || []);
+            setHistory(historyRes.data || []);
+        } catch (error) {
+            console.error('Erro ao buscar dados:', error);
+        } finally {
+            setLoadingHistory(false);
+        }
+    };
+
     useEffect(() => {
-        const fetchSettings = async () => {
-            setLoading(true);
+        fetchData();
+        // Atualiza histórico a cada 30s se a aba estiver aberta
+        const interval = setInterval(async () => {
             try {
-                const res = await axios.get('/api/marketing/settings');
-                setSettings(res.data);
+                const res = await axios.get('/api/webhooks/history');
+                setHistory(res.data || []);
             } catch (error) {
-                console.error('Erro ao buscar settings:', error);
-            } finally {
-                setLoading(false);
+                console.error('Erro ao buscar histórico no intervalo:', error);
             }
-        };
-
-        const fetchWebhooks = async () => {
-            try {
-                const res = await axios.get('/api/webhooks/list');
-                setWebhooks(res.data.webhooks || []);
-            } catch (error) {
-                console.error('Erro ao buscar webhooks:', error);
-            }
-        };
-
-        fetchSettings();
-        fetchWebhooks();
+        }, 30000);
+        return () => clearInterval(interval);
     }, []);
 
     const handleRegisterWebhook = async () => {
@@ -339,6 +346,42 @@ const Marketing = () => {
                             <pre className="text-xs text-slate-400 whitespace-pre-wrap leading-relaxed font-sans break-words italic">
                                 "{captionPreview}"
                             </pre>
+                        </div>
+                    </div>
+
+                    {/* Histórico de Automação */}
+                    <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-4">
+                        <h4 className="text-sm font-black text-slate-500 uppercase tracking-widest flex items-center justify-between">
+                            Histórico Recente
+                            <button onClick={fetchData} className="text-blue-400 hover:text-blue-300 transition-colors">
+                                <Share2 size={12} className={loadingHistory ? 'animate-spin' : ''} />
+                            </button>
+                        </h4>
+                        <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                            {history.length === 0 ? (
+                                <p className="text-[10px] text-slate-600 italic px-2">Nenhuma atividade registrada ainda.</p>
+                            ) : (
+                                history.map((log, i) => (
+                                    <div key={i} className="bg-slate-950/40 border border-slate-800/40 rounded-xl p-3 space-y-1">
+                                        <div className="flex items-center justify-between">
+                                            <span className={`text-[10px] font-bold uppercase ${
+                                                log.status === 'Success' ? 'text-green-500' : 
+                                                log.status === 'Processing' ? 'text-blue-400' : 'text-red-400'
+                                            }`}>
+                                                {log.status === 'Success' ? '✅ Postado' : 
+                                                 log.status === 'Processing' ? '⏳ Processando' : '❌ Falhou'}
+                                            </span>
+                                            <span className="text-[9px] text-slate-700">{new Date(log.ts).toLocaleTimeString()}</span>
+                                        </div>
+                                        <p className="text-[11px] text-white font-medium truncate">{log.productName || `Produto: ${log.productId}`}</p>
+                                        {log.error && (
+                                            <p className="text-[9px] text-red-500 leading-tight italic bg-red-500/5 p-1 rounded">
+                                                {typeof log.error === 'string' ? log.error : JSON.stringify(log.error)}
+                                            </p>
+                                        )}
+                                    </div>
+                                ))
+                            )}
                         </div>
                     </div>
                 </div>
