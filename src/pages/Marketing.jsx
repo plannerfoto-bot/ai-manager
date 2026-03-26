@@ -101,9 +101,10 @@ const Marketing = () => {
                             <Zap size={14} className="fill-pink-400" />
                             Marketing Autônomo
                         </div>
-                        <h1 className="text-4xl font-black text-white tracking-tight">
-                            Instagram <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-orange-400">Auto-Post</span>
-                        </h1>
+                        <h1 className="text-2xl font-black text-white tracking-tighter flex items-center gap-3">
+                        Instagram Auto-Post
+                        <span className="text-[10px] bg-slate-800 text-slate-500 px-2 py-0.5 rounded-full font-mono">v5.2</span>
+                    </h1>
                         <p className="text-slate-400 max-w-xl text-lg">
                             Configure suas credenciais e personalize a legenda do Feed. Stories postam automaticamente com o link do produto.
                         </p>
