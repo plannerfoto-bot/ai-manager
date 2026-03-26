@@ -37,19 +37,27 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
-// --- LOGS DE WEBHOOK EM MEMÓRIA (DEBUG) ---
-const WEBHOOK_HISTORY = [];
-const addWebhookLog = (data) => {
-    WEBHOOK_HISTORY.unshift({
-        ts: new Date().toISOString(),
-        ...data
-    });
-    if (WEBHOOK_HISTORY.length > 20) WEBHOOK_HISTORY.pop();
-};
-
-app.get('/api/webhooks/history', (req, res) => {
-    res.json(WEBHOOK_HISTORY);
-});
+/**
+ * Registra atividade de webhook no Supabase (Persistente)
+ */
+async function addWebhookLog({ storeId, productId, event, status, details, error }) {
+    try {
+        const { error: dbError } = await supabase
+            .from('automation_history')
+            .insert([{
+                store_id: String(storeId),
+                product_id: String(productId || ''),
+                event: event || 'product/updated',
+                status: status || 'Processing',
+                details: details || '',
+                error: error || ''
+            }]);
+        
+        if (dbError) console.error('❌ Erro ao gravar log no Supabase:', dbError);
+    } catch (err) {
+        console.error('❌ Erro fatal ao gravar log:', err);
+    }
+}
 
 // --- CONFIGURAÇÕES DE APLICATIVO PARCEIRO (OAUTH) ---
 const APP_ID = process.env.NUVEMSHOP_APP_ID;
@@ -714,7 +722,12 @@ app.get('/api/webhooks/list', async (req, res) => {
  * Aciona a postagem automática no Instagram
  */
 app.post('/api/webhooks/product-created', async (req, res) => {
-    // Nuvemshop Webhooks podem enviar o storeId no header ou body
+    // Debug profundo: Logar exatamente o que chega
+    console.log('--- WEBHOOK RAW BODY ---');
+    console.log(JSON.stringify(req.body, null, 2));
+    console.log('--- WEBHOOK HEADERS ---');
+    console.log(JSON.stringify(req.headers, null, 2));
+
     const storeId = req.headers['x-linked-store-id'] || req.body.store_id || DEFAULT_STORE_ID;
     const event = req.body.event;
     const productId = req.body.id;
@@ -724,8 +737,8 @@ app.post('/api/webhooks/product-created', async (req, res) => {
     // Responde 200 imediatamente para a Nuvemshop não reenviar
     res.status(200).send('OK');
 
-    // Registra o início do recebimento IMEDIATAMENTE (para visibilidade no dashboard)
-    addWebhookLog({ storeId, event, productId, status: 'Processing', details: `Evento ${event} recebido. Iniciando processamento...` });
+    // Registra o início do recebimento IMEDIATAMENTE (No Supabase)
+    await addWebhookLog({ storeId, event, productId, status: 'Processing', details: `Evento ${event} recebido. Iniciando...` });
 
     // Aceita tanto criação quanto atualização
     const allowedEvents = ['product/created', 'product/updated'];
