@@ -783,6 +783,7 @@ function serveScript(res, enabled, whatsapp) {
     jsContent = fs.readFileSync(scriptPath, 'utf8');
     jsContent = jsContent
       .replace('__ENABLED__', enabled.toString())
+      .replace('__WHATSAPP__', whatsapp.toString())
       .replace(/__PUBLIC_URL__/g, process.env.PUBLIC_URL || 'https://ai-manager-nuvemshop.onrender.com');
   } catch (err) {
     console.error("Erro ao ler front script:", err);

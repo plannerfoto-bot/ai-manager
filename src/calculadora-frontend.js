@@ -2,7 +2,7 @@
   var CALCULATOR_ENABLED = __ENABLED__;
   var API_BASE_URL = '__PUBLIC_URL__';
   // ⚙️ Número do WhatsApp para cotação de medidas especiais
-  var WHATSAPP_NUMBER = '5511971439948';
+  var WHATSAPP_NUMBER = '__WHATSAPP__';
 
   function isProductPage(){
     return window.location.pathname.indexOf('/produtos/') !== -1 || 
