@@ -21,7 +21,7 @@
   function html(){
     var d = document.createElement('div');
     d.id = 'cloth-calc-widget';
-    d.innerHTML = '<style>#cloth-calc-widget{margin:16px 0 8px;border:1.5px solid #2563eb44;border-radius:18px;background:linear-gradient(135deg,#0f172a,#1e293b);padding:18px 20px 16px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;max-width:440px;box-shadow:0 4px 24px #2563eb18}#cloth-calc-header{display:flex;align-items:center;gap:10px;margin-bottom:14px}#cloth-calc-icon{background:#2563eb22;border-radius:10px;padding:7px;display:flex}#cloth-calc-icon svg{width:18px;height:18px;stroke:#60a5fa;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}#cloth-calc-title{font-size:14px;font-weight:800;color:#fff;margin:0}#cloth-calc-subtitle{font-size:10px;color:#60a5fa;margin:0;opacity:.75}#cloth-calc-inputs{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px}.cloth-calc-field label{display:flex;align-items:center;gap:4px;font-size:10px;text-transform:uppercase;font-weight:700;color:#94a3b8;margin-bottom:5px;letter-spacing:.05em}.cloth-calc-field label svg{width:11px;height:11px;stroke:#60a5fa;fill:none;stroke-width:2;stroke-linecap:round}.cloth-calc-field input{width:100%;box-sizing:border-box;background:#0f172a;border:1.5px solid #334155;border-radius:10px;padding:9px 12px;font-size:14px;color:#fff;outline:none;transition:border-color .2s;-webkit-appearance:none}.cloth-calc-field input:focus{border-color:#2563eb99;background:#1e293b}.cloth-calc-field input::placeholder{color:#475569}#cloth-calc-btn{width:100%;padding:11px;background:#2563eb;border:none;border-radius:12px;font-size:13px;font-weight:800;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;letter-spacing:.04em;transition:background .2s,transform .15s;margin-bottom:8px}#cloth-calc-btn:hover{background:#1d4ed8}#cloth-calc-btn:active{transform:scale(.97)}#cloth-calc-btn:disabled{opacity:0.6;cursor:not-allowed}#cloth-calc-btn svg{width:14px;height:14px;stroke:#fff;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}#cloth-calc-result{margin-top:12px;animation:clothIn .3s ease}@keyframes clothIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}#cloth-calc-result.error{background:#450a0a44;border:1.5px solid #ef444455;border-radius:12px;padding:12px 14px;display:flex;align-items:flex-start;gap:8px}#cloth-calc-result.error svg{width:15px;height:15px;stroke:#f87171;fill:none;stroke-width:2;flex-shrink:0;margin-top:1px}#cloth-calc-result.error span{font-size:12px;color:#f87171;line-height:1.5}#cloth-calc-success{background:#052e1644;border:1.5px solid #22c55e44;border-radius:12px;padding:14px 16px}#cloth-calc-preview{margin-bottom:12px;text-align:center}.cc-preview-box{display:flex;align-items:center;justify-content:center;width:100%;height:140px;overflow:hidden;border:2px dashed #334155;border-radius:6px;background:#0f172a}.cc-preview-box img{max-width:100%;max-height:100%;object-fit:cover}.cc-badge-seamless{display:inline-flex;align-items:center;gap:5px;background:#0369a122;border:1px solid #0ea5e944;border-radius:8px;padding:6px 10px;font-size:11px;color:#38bdf8;font-weight:700;margin-bottom:10px}.cc-badge-seamless svg{width:12px;height:12px;stroke:#38bdf8;fill:none;stroke-width:2}#cloth-calc-footer{text-align:center;font-size:10px;color:#475569;margin-top:8px}</style>' +
+    d.innerHTML = '<style>#cloth-calc-widget{margin:16px 0 8px;border:1.5px solid #2563eb44;border-radius:18px;background:linear-gradient(135deg,#0f172a,#1e293b);padding:18px 20px 16px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;max-width:440px;box-shadow:0 4px 24px #2563eb18}#cloth-calc-header{display:flex;align-items:center;gap:10px;margin-bottom:14px}#cloth-calc-icon{background:#2563eb22;border-radius:10px;padding:7px;display:flex}#cloth-calc-icon svg{width:18px;height:18px;stroke:#60a5fa;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}#cloth-calc-title{font-size:14px;font-weight:800;color:#fff;margin:0}#cloth-calc-subtitle{font-size:10px;color:#60a5fa;margin:0;opacity:.75}#cloth-calc-inputs{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px}.cloth-calc-field label{display:flex;align-items:center;gap:4px;font-size:10px;text-transform:uppercase;font-weight:700;color:#94a3b8;margin-bottom:5px;letter-spacing:.05em}.cloth-calc-field label svg{width:11px;height:11px;stroke:#60a5fa;fill:none;stroke-width:2;stroke-linecap:round}.cloth-calc-field input{width:100%;box-sizing:border-box;background:#0f172a;border:1.5px solid #334155;border-radius:10px;padding:9px 12px;font-size:14px;color:#fff;outline:none;transition:border-color .2s;-webkit-appearance:none}.cloth-calc-field input:focus{border-color:#2563eb99;background:#1e293b}.cloth-calc-field input::placeholder{color:#475569}#cloth-calc-btn{width:100%;padding:11px;background:#2563eb;border:none;border-radius:12px;font-size:13px;font-weight:800;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;letter-spacing:.04em;transition:background .2s,transform .15s;margin-bottom:8px}#cloth-calc-btn:hover{background:#1d4ed8}#cloth-calc-btn:active{transform:scale(.97)}#cloth-calc-btn:disabled{opacity:0.6;cursor:not-allowed}#cloth-calc-btn svg{width:14px;height:14px;stroke:#fff;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}#cloth-calc-result{margin-top:12px;animation:clothIn .3s ease}@keyframes clothIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}#cloth-calc-result.error{background:#450a0a44;border:1.5px solid #ef444455;border-radius:12px;padding:12px 14px;display:flex;align-items:flex-start;gap:8px}#cloth-calc-result.error svg{width:15px;height:15px;stroke:#f87171;fill:none;stroke-width:2;flex-shrink:0;margin-top:1px}#cloth-calc-result.error span{font-size:12px;color:#f87171;line-height:1.5}#cloth-calc-success{background:#052e1644;border:1.5px solid #22c55e44;border-radius:12px;padding:14px 16px}#cloth-calc-preview{margin-bottom:12px;text-align:center}.cc-preview-box{display:flex;align-items:center;justify-content:center;width:100%;height:140px;overflow:hidden;border:2px dashed #334155;border-radius:6px;background:#0f172a}.cc-preview-box img{max-width:100%;max-height:100%;object-fit:cover}.cc-badge-seamless{display:inline-flex;align-items:center;gap:5px;background:#0369a122;border:1px solid #0ea5e944;border-radius:8px;padding:6px 10px;font-size:11px;color:#38bdf8;font-weight:700;margin-bottom:10px}.cc-badge-seamless svg{width:12px;height:12px;stroke:#38bdf8;fill:none;stroke-width:2}#cloth-calc-footer{text-align:center;font-size:10px;color:#475569;margin-top:8px}@keyframes cc-blink{0%{outline:2px solid transparent;box-shadow:0 0 0 0 rgba(37,99,235,0)}50%{outline:2px solid #2563eb;box-shadow:0 0 15px 5px rgba(37,99,235,0.4)}100%{outline:2px solid transparent;box-shadow:0 0 0 0 rgba(37,99,235,0)}}.cc-blink-effect{animation:cc-blink 1s ease-in-out infinite;border-radius:8px;scroll-margin-top:120px}</style>' +
     '<div id="cloth-calc-header"><div id="cloth-calc-icon"><svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></div><div><p id="cloth-calc-title">Painel Personalizado</p><p id="cloth-calc-subtitle">Digite as medidas e confira o enquadramento</p></div></div>' +
     '<div id="cloth-calc-inputs"><div class="cloth-calc-field"><label><svg viewBox="0 0 24 24"><line x1="5" y1="3" x2="5" y2="21"/><line x1="19" y1="3" x2="19" y2="21"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Altura (m)</label><input id="cloth-calc-alt" type="text" inputmode="decimal" placeholder="0,00"></div><div class="cloth-calc-field"><label><svg viewBox="0 0 24 24"><line x1="3" y1="5" x2="21" y2="5"/><line x1="3" y1="19" x2="21" y2="19"/><line x1="12" y1="5" x2="12" y2="19"/></svg>Largura (m)</label><input id="cloth-calc-larg" type="text" inputmode="decimal" placeholder="0,00"></div></div>' +
     '<button type="button" id="cloth-calc-btn"><svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>SIMULAR PREÇOS</button>' +
@@ -186,13 +186,14 @@
         resultDiv.innerHTML = '<div style="background:#052e1644;border:1.5px solid #22c55e44;border-radius:12px;padding:16px;text-align:center;animation:clothIn 0.3s ease;">' +
            '<svg viewBox="0 0 24 24" width="36" height="36" style="stroke:#4ade80;fill:none;stroke-width:2;margin-bottom:12px;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>' +
            '<h3 style="color:#fff;font-size:16px;margin:0 0 8px;">Opção Criada!</h3>' +
-           '<p style="color:#94a3b8;font-size:12px;margin:0 0 12px;line-height:1.5;">A página será atualizada agora.<br/>Selecione sua nova medida nas opções ao lado e finalize a compra.</p>' +
+           '<p style="color:#94a3b8;font-size:12px;margin:0 0 12px;line-height:1.5;">A página será atualizada agora.<br/><strong style="color:#60a5fa;">Fique de olho no menu de medidas</strong> que irá piscar para você selecionar.</p>' +
            '<div style="font-size:11px;color:#60a5fa;opacity:0.8;">Atualizando...</div>' +
         '</div>';
         
+        sessionStorage.setItem('cc_just_created', 'true');
         setTimeout(function(){
             window.location.reload();
-        }, 3200);
+        }, 3800);
     })
     .catch(err => {
         alert('Erro ao criar variação na loja.');
@@ -294,7 +295,30 @@
     });
   }
 
+  function highlightVariants(){
+    if(sessionStorage.getItem('cc_just_created') === 'true'){
+      sessionStorage.removeItem('cc_just_created');
+      // Tenta encontrar o seletor de variantes da Nuvemshop
+      var v = document.querySelector('.js-product-variants') || 
+              document.querySelector('.product-variants') || 
+              document.querySelector('.js-product-form') ||
+              document.querySelector('[data-product-form]');
+      
+      if(v){
+        v.classList.add('cc-blink-effect');
+        v.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        console.log('Calculadora: Destaque aplicado ao seletor de variantes');
+        setTimeout(function(){
+          v.classList.remove('cc-blink-effect');
+        }, 6000);
+      }
+    }
+  }
+
   if(!isProductPage()) return;
+  
+  // Executa o destaque se necessário
+  highlightVariants();
 
   function findTarget(){
     var c = document.querySelector('.js-product-buy-container') || document.querySelector('.product-buy-container');
