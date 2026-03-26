@@ -37,6 +37,20 @@
       renderWhatsApp();
       return;
     }
+
+    // Se for aviso de medida padrão já existente
+    var isStandardInfo = e && e.indexOf('disponível nas opções padrão') !== -1;
+    if (isStandardInfo) {
+       var resultEl = document.getElementById('cloth-calc-result');
+       resultEl.style.display = 'block';
+       resultEl.className = ''; 
+       resultEl.innerHTML = '<div style="background:#0f172a;border:1.5px solid #60a5fa66;border-radius:12px;padding:12px 14px;display:flex;align-items:flex-start;gap:10px;">' +
+         '<svg viewBox="0 0 24 24" width="18" height="18" style="stroke:#60a5fa;fill:none;stroke-width:2.5;flex-shrink:0;margin-top:1px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>' +
+         '<span style="font-size:12px;color:#cbd5e1;line-height:1.5;">'+e+'</span>' +
+       '</div>';
+       return;
+    }
+
     var el = document.getElementById('cloth-calc-result');
     el.style.display = 'block';
     el.className = 'error';
