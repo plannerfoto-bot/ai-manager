@@ -42,21 +42,28 @@
     
     var imgSrc = getProductImage();
     
-    // --- Preview Proporcional ---
-    // Calcula o tamanho do preview respeitando a proporção real (largura x altura)
-    // Limitado a max 240px x 140px mantendo aspecto
-    var maxW = 240, maxH = 140;
-    var scaleW = maxW / l; // pixels por metro largura
-    var scaleH = maxH / a; // pixels por metro altura
-    var scale = Math.min(scaleW, scaleH);
-    var pxW = Math.round(l * scale);
-    var pxH = Math.round(a * scale);
     
     var previewHtml = '';
     if (imgSrc) {
+      // Calcula o tamanho do box respeitando a proporção L:A da medida
+      // Limita ao máximo de 240px de largura ou 140px de altura
+      var maxW = 240, maxH = 140;
+      var ratio = l / a; // largura/altura
+      var boxW, boxH;
+      if (ratio >= 1) {
+        // Mais largo que alto: ancora na largura máxima
+        boxW = maxW;
+        boxH = Math.round(maxW / ratio);
+        if (boxH > maxH) { boxH = maxH; boxW = Math.round(maxH * ratio); }
+      } else {
+        // Mais alto que largo: ancora na altura máxima
+        boxH = maxH;
+        boxW = Math.round(maxH * ratio);
+        if (boxW > maxW) { boxW = maxW; boxH = Math.round(maxW / ratio); }
+      }
       previewHtml = '<div id="cloth-calc-preview">' +
-        '<div class="cc-preview-box" style="height:140px;">' +
-          '<img src="' + imgSrc + '" style="width:' + pxW + 'px;height:' + pxH + 'px;object-fit:cover;border-radius:4px;" />' +
+        '<div style="display:flex;align-items:center;justify-content:center;width:100%;height:' + maxH + 'px;">' +
+          '<img src="' + imgSrc + '" style="width:' + boxW + 'px;height:' + boxH + 'px;object-fit:fill;border:2px dashed #334155;border-radius:6px;" />' +
         '</div>' +
         '<div style="font-size:10px;color:#64748b;margin-top:6px;">Preview do corte (' + dim(l) + ' L x ' + dim(a) + ' A)</div>' +
       '</div>';
