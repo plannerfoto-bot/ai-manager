@@ -28,11 +28,15 @@ class InstagramService {
 
     /**
      * Cria um container de mídia para o Feed (Imagem)
+     * Garantimos proporção 1:1 via proxy para evitar erro 400 do Meta
      */
     async createFeedContainer(igAccountId, imageUrl, caption, accessToken) {
         try {
+            // Usamos weserv.nl para garantir que a imagem seja quadrada (white background) sem distorcer
+            const proxiedUrl = `https://images.weserv.nl/?url=${encodeURIComponent(imageUrl)}&w=1080&h=1080&fit=contain&bg=white`;
+            
             const response = await axios.post(`${this.baseUrl}/${igAccountId}/media`, {
-                image_url: imageUrl,
+                image_url: proxiedUrl,
                 caption: caption,
                 access_token: accessToken
             });
@@ -49,15 +53,27 @@ class InstagramService {
      */
     async createStoryContainer(igAccountId, imageUrl, productLink, accessToken) {
         try {
+            // Para Stories, forçamos 1080x1920 (9:16) com fundo preto para evitar distorção
+            const proxiedUrl = `https://images.weserv.nl/?url=${encodeURIComponent(imageUrl)}&w=1080&h=1920&fit=contain&bg=black`;
+
             const payload = {
-                image_url: imageUrl,
+                image_url: proxiedUrl,
                 media_type: 'STORIES',
                 access_token: accessToken
             };
-            // Associa o link do produto ao Story (funciona em contas Business)
+
+            // Link Stickers (Nova implementação profissional)
             if (productLink) {
-                payload.link = productLink;
+                payload.interactive_components = JSON.stringify([
+                    {
+                        type: 'link',
+                        url: productLink,
+                        x: 0.5,
+                        y: 0.8
+                    }
+                ]);
             }
+
             const response = await axios.post(`${this.baseUrl}/${igAccountId}/media`, payload);
             return response.data.id;
         } catch (error) {

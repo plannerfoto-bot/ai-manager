@@ -40,19 +40,20 @@ app.get('/', (req, res) => {
 /**
  * Registra atividade de webhook no Supabase (Persistente)
  */
-async function addWebhookLog({ storeId, productId, event, status, details, error }) {
+async function addWebhookLog({ storeId, productId, productName, event, status, details, error }) {
     try {
         const { error: dbError } = await supabase
             .from('automation_history')
             .insert([{
                 store_id: String(storeId),
                 product_id: String(productId || ''),
+                product_name: productName || '',
                 event: event || 'product/updated',
                 status: status || 'Processing',
                 details: details || '',
-                error: error || ''
+                error: (error && typeof error === 'object') ? JSON.stringify(error) : (error || '')
             }]);
-        
+
         if (dbError) console.error('❌ Erro ao gravar log no Supabase:', dbError);
     } catch (err) {
         console.error('❌ Erro fatal ao gravar log:', err);
@@ -621,7 +622,7 @@ app.post('/api/instagram/publish', async (req, res) => {
             // Usa legenda customizada do campo (se enviada), senão usa o template salvo
             const feedCaption = customCaption
                 ? customCaption
-                : buildFeedCaption(storeData.feed_caption_template, productName, productLink);
+                : buildFeedCaption(settings?.feed_caption_template, productName, productLink);
 
             const feedContainerId = await igService.createFeedContainer(igAccountId, mainImage, feedCaption, metaToken);
             const feedPostId = await igService.publishMedia(igAccountId, feedContainerId, metaToken);
@@ -755,7 +756,16 @@ app.get('/api/webhooks/logs', async (req, res) => {
             .limit(50);
             
         if (error) throw error;
-        res.json(data || []);
+
+        // Mapeia para o formato que o frontend espera (ts, productName)
+        const mapped = (data || []).map(log => ({
+            ...log,
+            ts: log.created_at,
+            productName: log.product_name,
+            productId: log.product_id
+        }));
+
+        res.json(mapped);
     } catch (error) {
         console.error('Erro ao buscar logs:', error.message);
         res.status(500).json({ error: 'Erro ao carregar histórico.' });
@@ -839,7 +849,7 @@ app.post('/api/webhooks/product-created', async (req, res) => {
 
         if (!mainImage) {
             console.warn(`⚠️ Produto ${productId} sem imagem. Aguardando edição para postar.`);
-            addWebhookLog({ storeId, productId, status: 'Waiting', details: 'Produto sem imagem: Postagem ocorrerá assim que você adicionar a foto na Nuvemshop.' });
+            addWebhookLog({ storeId, productId, productName, status: 'Waiting', details: 'Produto sem imagem: Postagem ocorrerá assim que você adicionar a foto na Nuvemshop.' });
             return;
         }
 
@@ -864,7 +874,7 @@ app.post('/api/webhooks/product-created', async (req, res) => {
         const igAccountId = await igService.getInstagramAccountId(fbPageId, metaToken);
         if (!igAccountId) {
             console.error('❌ Falha ao obter conta do Instagram Vinculada.');
-            addWebhookLog({ storeId, productId, status: 'Error', error: 'Conta do Instagram não encontrada para este Page ID' });
+            addWebhookLog({ storeId, productId, productName, status: 'Error', error: 'Conta do Instagram não encontrada para este Page ID' });
             return;
         }
 
@@ -882,7 +892,7 @@ app.post('/api/webhooks/product-created', async (req, res) => {
             console.log(`✅ Feed postado: ${productId}`);
         } catch (e) {
             console.error('Erro no Feed:', e.message);
-            addWebhookLog({ storeId, productId, status: 'Error', error: `Feed: ${e.message}` });
+            addWebhookLog({ storeId, productId, productName, status: 'Error', error: `Feed: ${e.message}` });
         }
 
         // 7. Postagem no STORY
@@ -896,7 +906,7 @@ app.post('/api/webhooks/product-created', async (req, res) => {
             console.log(`✅ Story postado: ${productId}`);
         } catch (e) {
             console.error('Erro no Story:', e.message);
-            addWebhookLog({ storeId, productId, status: 'Error', error: `Story: ${e.message}` });
+            addWebhookLog({ storeId, productId, productName, status: 'Error', error: `Story: ${e.message}` });
         }
 
         // 8. Marca como processado para evitar duplicata (mantemos os últimos 50 produtos)
