@@ -716,7 +716,15 @@ app.post('/api/webhooks/product-created', async (req, res) => {
     // Responde 200 imediatamente para a Nuvemshop não reenviar
     res.status(200).send('OK');
 
-    if (event !== 'product/created') return;
+    // Registra o início do recebimento IMEDIATAMENTE (para visibilidade no dashboard)
+    addWebhookLog({ storeId, event, productId, status: 'Processing', details: `Evento ${event} recebido. Processando...` });
+
+    // Aceita tanto criação quanto atualização
+    const allowedEvents = ['product/created', 'product/updated'];
+    if (!allowedEvents.includes(event)) {
+        console.warn(`⚠️ Evento ${event} ignorado.`);
+        return;
+    }
 
     try {
         const stores = await getStores();
@@ -726,8 +734,6 @@ app.post('/api/webhooks/product-created', async (req, res) => {
         const nsToken = storeData.access_token || DEFAULT_ACCESS_TOKEN;
         const metaToken = storeData.meta_token || process.env.META_ACCESS_TOKEN;
         const fbPageId = storeData.fb_page_id || process.env.FB_PAGE_ID;
-
-        addWebhookLog({ storeId, event, productId, status: 'Processing', details: 'Iniciando automação...' });
 
         if (!nsToken) {
             console.warn(`⚠️ Loja ${storeId} sem token Nuvemshop.`);
