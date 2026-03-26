@@ -15,6 +15,8 @@ const Marketing = () => {
     });
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [webhooks, setWebhooks] = useState([]);
+    const [registering, setRegistering] = useState(false);
 
     const defaultCaption = `✨ NOVIDADE NA CLOTH! ✨\n\n{{product_name}}\n\nGaranta o seu agora mesmo no nosso site! 🚀\n\n🔗 {{product_link}}\n\n#clothsublimacao #novidade #sublimacao #personalizados`;
 
@@ -30,8 +32,36 @@ const Marketing = () => {
                 setLoading(false);
             }
         };
+
+        const fetchWebhooks = async () => {
+            try {
+                const res = await axios.get('/api/webhooks/list');
+                setWebhooks(res.data.webhooks || []);
+            } catch (error) {
+                console.error('Erro ao buscar webhooks:', error);
+            }
+        };
+
         fetchSettings();
+        fetchWebhooks();
     }, []);
+
+    const handleRegisterWebhook = async () => {
+        setRegistering(true);
+        try {
+            const res = await axios.post('/api/webhooks/register');
+            toast.success(res.data.message || 'Webhook registrado!');
+            
+            // Atualiza a lista
+            const listRes = await axios.get('/api/webhooks/list');
+            setWebhooks(listRes.data.webhooks || []);
+        } catch (error) {
+            toast.error('Erro ao registrar webhook.');
+            console.error(error);
+        } finally {
+            setRegistering(false);
+        }
+    };
 
     const handleSave = async (e) => {
         e.preventDefault();
@@ -253,12 +283,62 @@ const Marketing = () => {
                         <HelpCircle size={14} className="text-slate-700" />
                     </div>
 
+                    {/* Automação Nuvemshop */}
+                    <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-4 shadow-xl">
+                        <div className="flex items-center justify-between">
+                            <h4 className="text-sm font-black text-slate-500 uppercase tracking-widest">Automação Nuvemshop</h4>
+                            <div className={`w-2 h-2 rounded-full ${webhooks.some(wh => wh.event === 'product/created') ? 'bg-green-500 animate-pulse' : 'bg-slate-700'}`} />
+                        </div>
+                        
+                        <p className="text-xs text-slate-400 leading-relaxed">
+                            Ative o <b>Gatilho Automático</b> para que cada novo produto cadastrado na Nuvemshop seja postado imediatamente.
+                        </p>
+
+                        {webhooks.some(wh => wh.event === 'product/created') ? (
+                            <div className="bg-green-500/10 border border-green-500/20 rounded-2xl p-4 flex items-center gap-3">
+                                <CheckCircle2 className="text-green-500 shrink-0" size={18} />
+                                <span className="text-xs font-bold text-green-400">Automação Ativa</span>
+                            </div>
+                        ) : (
+                            <button
+                                onClick={handleRegisterWebhook}
+                                disabled={registering}
+                                className="w-full py-3 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-white text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 group border border-slate-700"
+                            >
+                                {registering ? (
+                                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white/30 border-t-white" />
+                                ) : (
+                                    <>
+                                        <Zap size={14} className="group-hover:text-yellow-400 transition-colors" />
+                                        Ativar Automação
+                                    </>
+                                )}
+                            </button>
+                        )}
+                        
+                        {webhooks.length > 0 && (
+                            <div className="pt-2">
+                                <p className="text-[10px] text-slate-600 uppercase font-bold mb-2">Webhooks Ativos:</p>
+                                <div className="space-y-1">
+                                    {webhooks.map((wh, i) => (
+                                        <div key={i} className="text-[10px] text-slate-500 bg-slate-950/50 p-2 rounded-lg border border-slate-800/50 flex items-center justify-between">
+                                            <span>{wh.event}</span>
+                                            <span className="text-slate-700 truncate max-w-[100px] ml-2">{wh.url}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
                     {/* Preview legenda em tempo real */}
                     <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-3">
                         <h4 className="text-sm font-black text-slate-500 uppercase tracking-widest">Preview do Feed</h4>
-                        <pre className="text-xs text-slate-400 whitespace-pre-wrap leading-relaxed font-sans break-words">
-                            {captionPreview}
-                        </pre>
+                        <div className="bg-slate-950/50 border border-slate-800/50 rounded-2xl p-4">
+                            <pre className="text-xs text-slate-400 whitespace-pre-wrap leading-relaxed font-sans break-words italic">
+                                "{captionPreview}"
+                            </pre>
+                        </div>
                     </div>
                 </div>
             </div>

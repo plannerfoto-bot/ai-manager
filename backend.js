@@ -572,6 +572,82 @@ app.post('/api/instagram/publish', async (req, res) => {
 });
 
 /**
+ * REGISTRO AUTOMÁTICO DE WEBHOOK NA NUVEMSHOP
+ * Cadastra o evento product/created para disparar a postagem automática no Instagram
+ */
+app.post('/api/webhooks/register', async (req, res) => {
+    try {
+        const stores = getStores();
+        // Usa a primeira loja encontrada (single-tenant)
+        const storeId = Object.keys(stores)[0];
+        const storeData = stores[storeId];
+
+        if (!storeData || !storeData.access_token) {
+            return res.status(400).json({ error: 'Loja não encontrada ou sem access token configurado.' });
+        }
+
+        // URL pública do AI Manager (Render)
+        const baseUrl = process.env.APP_URL || 'https://ai-manager-nuvemshop.onrender.com';
+        const webhookUrl = `${baseUrl}/api/webhooks/product-created`;
+
+        // Consulta webhooks existentes para evitar duplicata
+        const listRes = await axios.get(
+            `https://api.tiendanube.com/v1/${storeId}/webhooks`,
+            { headers: { 'Authentication': `bearer ${storeData.access_token}`, 'User-Agent': 'AIManager/1.0' } }
+        );
+        const existingWebhooks = listRes.data || [];
+        const alreadyRegistered = existingWebhooks.find(
+            wh => wh.event === 'product/created' && wh.url === webhookUrl
+        );
+
+        if (alreadyRegistered) {
+            console.log('✅ Webhook já registrado:', alreadyRegistered.id);
+            return res.json({ success: true, message: 'Webhook já estava registrado.', webhook: alreadyRegistered });
+        }
+
+        // Cria o novo webhook
+        const createRes = await axios.post(
+            `https://api.tiendanube.com/v1/${storeId}/webhooks`,
+            { event: 'product/created', url: webhookUrl },
+            { headers: { 'Authentication': `bearer ${storeData.access_token}`, 'User-Agent': 'AIManager/1.0', 'Content-Type': 'application/json' } }
+        );
+
+        console.log('✅ Webhook registrado com sucesso:', createRes.data);
+        res.json({ success: true, message: 'Webhook registrado com sucesso!', webhook: createRes.data });
+
+    } catch (error) {
+        const detail = error.response?.data || error.message;
+        console.error('❌ Erro ao registrar webhook:', detail);
+        res.status(500).json({ error: 'Erro ao registrar webhook na Nuvemshop.', details: detail });
+    }
+});
+
+/**
+ * LISTAR WEBHOOKS: Retorna os webhooks registrados
+ */
+app.get('/api/webhooks/list', async (req, res) => {
+    try {
+        const stores = getStores();
+        const storeId = Object.keys(stores)[0];
+        const storeData = stores[storeId];
+
+        if (!storeData || !storeData.access_token) {
+            return res.status(400).json({ error: 'Loja não encontrada ou sem access token.' });
+        }
+
+        const listRes = await axios.get(
+            `https://api.tiendanube.com/v1/${storeId}/webhooks`,
+            { headers: { 'Authentication': `bearer ${storeData.access_token}`, 'User-Agent': 'AIManager/1.0' } }
+        );
+
+        res.json({ success: true, webhooks: listRes.data || [] });
+    } catch (error) {
+        const detail = error.response?.data || error.message;
+        res.status(500).json({ error: 'Erro ao listar webhooks.', details: detail });
+    }
+});
+
+/**
  * WEBHOOK: Novo Produto Criado
  * Aciona a postagem automática no Instagram
  */
