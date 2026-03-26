@@ -27,7 +27,7 @@ const Marketing = () => {
             const [settingsRes, webhooksRes, historyRes] = await Promise.all([
                 axios.get('/api/marketing/settings'),
                 axios.get('/api/webhooks/list'),
-                axios.get('/api/webhooks/history')
+                axios.get('/api/webhooks/logs')
             ]);
             setSettings(settingsRes.data);
             setWebhooks(webhooksRes.data.webhooks || []);
@@ -46,7 +46,7 @@ const Marketing = () => {
         // Atualiza histórico a cada 30s se a aba estiver aberta
         const interval = setInterval(async () => {
             try {
-                const res = await axios.get('/api/webhooks/history');
+                const res = await axios.get('/api/webhooks/logs');
                 setHistory(res.data || []);
             } catch (error) {
                 console.error('Erro ao buscar histórico no intervalo:', error);

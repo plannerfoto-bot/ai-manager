@@ -74,8 +74,15 @@ async function getStores() {
     const { data, error } = await supabase.from('stores').select('*');
     if (error) throw error;
     
+    // Se estiver vazio no banco, mas tivermos no ambiente (vazamento ou nova instalação), inserimos automaticamente
+    if ((!data || data.length === 0) && DEFAULT_ACCESS_TOKEN && DEFAULT_STORE_ID) {
+        console.log('🌱 Seed: Inserindo store padrão no Supabase...');
+        await saveStore(DEFAULT_STORE_ID, { access_token: DEFAULT_ACCESS_TOKEN });
+        return { [DEFAULT_STORE_ID]: { id: DEFAULT_STORE_ID, access_token: DEFAULT_ACCESS_TOKEN } };
+    }
+
     const stores = {};
-    data.forEach(s => {
+    (data || []).forEach(s => {
       stores[s.id] = s;
     });
     return stores;
