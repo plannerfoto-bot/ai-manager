@@ -427,16 +427,6 @@ async function cleanupExpiredVariants() {
 setInterval(cleanupExpiredVariants, CLEANUP_INTERVAL_MS);
 console.log('[Limpeza 24h] Scheduler iniciado - rodara a cada 30 minutos.');
 
-  try {
-    const { productId, width, height, gramatura } = req.body;
-    const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
-    if (!storeId || !productId) return res.status(400).json({ error: 'Loja ou Produto nao identificado.' });
-    
-    const client = getApiClient(storeId);
-    
-    const w = parseFloat(String(width).replace(',', '.'));
-
-
 // Endpoint para frontend descobrir storeId padrão
 app.get('/api/me', (req, res) => {
   res.json({
