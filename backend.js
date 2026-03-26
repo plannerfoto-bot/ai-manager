@@ -1301,6 +1301,48 @@ app.get('/api/store-script-settings', (req, res) => {
   res.json(getScriptSettings());
 });
 
+// --- MARKETING SETTINGS ---
+app.get('/api/marketing/settings', async (req, res) => {
+  try {
+    const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
+    const { data, error } = await supabase
+        .from('marketing_settings')
+        .select('*')
+        .eq('store_id', String(storeId))
+        .maybeSingle();
+        
+    if (error) throw error;
+    res.json(data || { meta_token: '', fb_page_id: '', feed_caption_template: '' });
+  } catch (error) {
+    console.error('Erro GET marketing/settings:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/marketing/settings', async (req, res) => {
+  try {
+    const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
+    const { meta_token, fb_page_id, feed_caption_template } = req.body;
+    
+    // As colunas no banco são `meta_access_token` e `facebook_page_id`
+    const { error } = await supabase
+        .from('marketing_settings')
+        .upsert({
+            store_id: String(storeId),
+            meta_access_token: meta_token || null,
+            facebook_page_id: fb_page_id || null,
+            feed_caption_template: feed_caption_template || null,
+            updated_at: new Date().toISOString()
+        }, { onConflict: 'store_id' });
+        
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Erro POST marketing/settings:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.post('/api/store-script-settings', async (req, res) => {
   const { enabled, whatsapp } = req.body;
   saveScriptSettings({ enabled, whatsapp });

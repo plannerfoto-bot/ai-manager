@@ -1,0 +1,17 @@
+116: async function getApiClient(storeId = DEFAULT_STORE_ID) {
+331: const client = getApiClient(storeId);
+455: const client = await getApiClient(storeId);
+599: const client = await getApiClient(storeId);
+836: const client = await getApiClient(storeId);
+954: const client = await getApiClient(storeId);
+982: const client = getApiClient(storeId);
+993: const client = getApiClient(storeId);
+1005: const client = getApiClient(storeId);
+1027: const client = getApiClient(storeId);
+1039: const client = await getApiClient(storeId);
+1072: const client = await getApiClient(storeId);
+1110: const client = await getApiClient(storeId);
+1311: const client = getApiClient(storeId);
+1336: const client = await getApiClient(storeId);
+1363: const client = await getApiClient(storeId);
+1413: const client = await getApiClient(storeId);
