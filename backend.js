@@ -753,8 +753,8 @@ app.post('/api/webhooks/product-created', async (req, res) => {
         const mainImage = product.images && product.images.length > 0 ? product.images[0].src : null;
 
         if (!mainImage) {
-            console.warn(`⚠️ Produto ${productId} sem imagem. Ignorando postagem e esperando pela edição.`);
-            addWebhookLog({ storeId, productId, status: 'Ignored', details: 'Produto sem imagens (aguardando edição)' });
+            console.warn(`⚠️ Produto ${productId} sem imagem. Aguardando edição para postar.`);
+            addWebhookLog({ storeId, productId, status: 'Waiting', details: 'Produto sem imagem: Postagem ocorrerá assim que você adicionar a foto na Nuvemshop.' });
             return;
         }
 

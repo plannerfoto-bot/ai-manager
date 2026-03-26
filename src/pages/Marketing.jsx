@@ -369,10 +369,12 @@ const Marketing = () => {
                                         <div className="flex items-center justify-between">
                                             <span className={`text-[10px] font-bold uppercase ${
                                                 log.status === 'Success' ? 'text-green-500' : 
-                                                log.status === 'Processing' ? 'text-blue-400' : 'text-red-400'
+                                                log.status === 'Processing' ? 'text-blue-400' : 
+                                                log.status === 'Waiting' ? 'text-orange-400' : 'text-red-400'
                                             }`}>
                                                 {log.status === 'Success' ? '✅ Postado' : 
-                                                 log.status === 'Processing' ? '⏳ Processando' : '❌ Falhou'}
+                                                 log.status === 'Processing' ? '⏳ Processando' : 
+                                                 log.status === 'Waiting' ? '🕒 Aguardando Foto' : '❌ Falhou'}
                                             </span>
                                             <span className="text-[9px] text-slate-700">{new Date(log.ts).toLocaleTimeString()}</span>
                                         </div>
