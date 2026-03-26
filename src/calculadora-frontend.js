@@ -191,9 +191,12 @@
         '</div>';
         
         sessionStorage.setItem('cc_just_created', 'true');
+        sessionStorage.setItem('cc_last_l', width.toFixed(2).replace('.', ','));
+        sessionStorage.setItem('cc_last_a', height.toFixed(2).replace('.', ','));
+
         setTimeout(function(){
             window.location.reload();
-        }, 3800);
+        }, 4000);
     })
     .catch(err => {
         alert('Erro ao criar variação na loja.');
@@ -298,19 +301,40 @@
   function highlightVariants(){
     if(sessionStorage.getItem('cc_just_created') === 'true'){
       sessionStorage.removeItem('cc_just_created');
-      // Tenta encontrar o seletor de variantes da Nuvemshop
-      var v = document.querySelector('.js-product-variants') || 
-              document.querySelector('.product-variants') || 
-              document.querySelector('.js-product-form') ||
-              document.querySelector('[data-product-form]');
-      
-      if(v){
-        v.classList.add('cc-blink-effect');
-        v.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        console.log('Calculadora: Destaque aplicado ao seletor de variantes');
+      var l = sessionStorage.getItem('cc_last_l');
+      var a = sessionStorage.getItem('cc_last_a');
+      sessionStorage.removeItem('cc_last_l');
+      sessionStorage.removeItem('cc_last_a');
+
+      if(!l || !a) return;
+
+      // Busca elementos de rótulo onde as variantes da Nuvemshop costumam estar
+      var items = document.querySelectorAll('.js-product-variants label, .js-product-variants span, .product-variants label, .product-variants span, .js-variant-option, .variant-option');
+      var found = null;
+
+      for(var i=0; i<items.length; i++){
+        var text = items[i].innerText || '';
+        // Procura pela medida exata (Largura e Altura) no texto do botão
+        if(text.indexOf(l) !== -1 && text.indexOf(a) !== -1){
+           found = items[i];
+           break;
+        }
+      }
+
+      if(found){
+        found.classList.add('cc-blink-effect');
+        found.scrollIntoView({ behavior: 'smooth', block: 'center' });
         setTimeout(function(){
-          v.classList.remove('cc-blink-effect');
-        }, 6000);
+          found.classList.remove('cc-blink-effect');
+        }, 8000);
+      } else {
+        // Fallback: se não achar o botão específico, destaca o bloco todo
+        var v = document.querySelector('.js-product-variants') || document.querySelector('.product-variants');
+        if(v) {
+          v.classList.add('cc-blink-effect');
+          v.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          setTimeout(function(){ v.classList.remove('cc-blink-effect'); }, 6000);
+        }
       }
     }
   }
