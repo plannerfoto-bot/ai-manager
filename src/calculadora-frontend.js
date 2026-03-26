@@ -536,6 +536,18 @@
   function initImageAdjuster() {
     var sel = '.js-variant-option.selected, .variant-option.active, .js-variant-option.active, input[type="radio"]:checked + label, .selected-variant, .js-insta-variant.selected, .js-insta-variant.active';
     var activeVariant = document.querySelector(sel);
+    // Oculta a variante de WhatsApp antiga (Painel de tamanhos)
+    document.querySelectorAll('.js-insta-variant, .js-product-variant-option').forEach(function(el) {
+        var txt = (el.innerText || "").toLowerCase();
+        if (txt.indexOf('whatsapp') !== -1 || txt.indexOf('personalizada via') !== -1) {
+            el.style.display = 'none';
+            // Se for um item de lista ou container, oculta o pai também se necessário
+            if (el.parentElement.classList.contains('insta-variations')) {
+                // Manter apenas o botão oculto é mais seguro para não quebrar o layout
+            }
+        }
+    });
+
     if (!activeVariant) return;
 
     var text = (activeVariant.innerText || activeVariant.getAttribute('title') || '').trim();
