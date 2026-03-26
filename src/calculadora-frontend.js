@@ -418,11 +418,11 @@
   highlightVariants();
 
   function findTarget(){
-    var c = document.querySelector('.js-product-buy-container') || document.querySelector('.product-buy-container');
+    var c = document.querySelector('.js-product-buy-container, .product-buy-container, .js-variant-container, .variant-container');
     if (c) return { el: c, act: 'before' };
 
-    var f = document.querySelector('#product_form') || document.querySelector('[data-product-form]') || document.querySelector('.js-product-form');
-    var b = document.querySelector('.js-addtocart') || (f ? f.querySelector('button') : null);
+    var f = document.querySelector('#product_form, .js-product-form, [data-product-form]');
+    var b = document.querySelector('.js-addtocart, .js-main-add-to-cart, .btn-add-to-cart');
 
     if (b) {
       var curr = b;
