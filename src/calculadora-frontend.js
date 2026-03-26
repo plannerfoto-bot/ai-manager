@@ -499,9 +499,20 @@
       }
     }
 
-    var newRatio = w + ' / ' + h;
+    var isLandscape = mainImg.naturalWidth > mainImg.naturalHeight;
+    var finalW, finalH;
+    
+    if (isLandscape) {
+      finalW = Math.max(w, h);
+      finalH = Math.min(w, h);
+    } else {
+      finalH = Math.max(w, h);
+      finalW = Math.min(w, h);
+    }
+
+    var newRatio = finalW + ' / ' + finalH;
     if (mainImg.style.aspectRatio !== newRatio) {
-      console.log('🖼️ Ajustando Ratio (Ordem Exata): ' + newRatio);
+      console.log('🖼️ Ajustando Ratio (Smart Orientation): ' + newRatio);
       
       // Estilos forçados na imagem
       mainImg.style.setProperty('aspect-ratio', newRatio, 'important');
