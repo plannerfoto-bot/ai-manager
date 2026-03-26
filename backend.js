@@ -328,7 +328,7 @@ app.post('/api/create-variant', async (req, res) => {
     const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
     if (!storeId || !productId) return res.status(400).json({ error: 'Loja ou Produto nao identificado.' });
     
-    const client = getApiClient(storeId);
+    const client = await getApiClient(storeId);
     
     const w = parseFloat(String(width).replace(',', '.'));
     const h = parseFloat(String(height).replace(',', '.'));
@@ -979,7 +979,7 @@ app.get('/api/stats', async (req, res) => {
 // Vendas (Orders)
 app.get('/api/orders', async (req, res) => {
   const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
-  const client = getApiClient(storeId);
+  const client = await getApiClient(storeId);
   try {
     const response = await client.get('/orders', { params: { per_page: 50, status: 'any' } });
     res.json(response.data);
@@ -990,7 +990,7 @@ app.get('/api/orders', async (req, res) => {
 
 app.get('/api/orders/:id', async (req, res) => {
   const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
-  const client = getApiClient(storeId);
+  const client = await getApiClient(storeId);
   try {
     const response = await client.get(`/orders/${req.params.id}`);
     res.json(response.data);
@@ -1002,7 +1002,7 @@ app.get('/api/orders/:id', async (req, res) => {
 // Produtos (Products) com Paginação e Busca
 app.get('/api/products', async (req, res) => {
   const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
-  const client = getApiClient(storeId);
+  const client = await getApiClient(storeId);
   try {
     const { page = 1, per_page = 24, q = '' } = req.query;
     const params = { page, per_page, sort_by: 'created-descending' };
@@ -1024,7 +1024,7 @@ app.get('/api/products', async (req, res) => {
 
 app.get('/api/products/:id', async (req, res) => {
   const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
-  const client = getApiClient(storeId);
+  const client = await getApiClient(storeId);
   try {
     const response = await client.get(`/products/${req.params.id}`);
     res.json(response.data);
@@ -1308,7 +1308,7 @@ app.post('/api/store-script-settings', async (req, res) => {
   try {
     const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
     if(!storeId) throw new Error("Sem Store ID local. Logue na Loja via painel Cloud.");
-    const client = getApiClient(storeId);
+    const client = await getApiClient(storeId);
     
     const getRes = await client.get('/scripts');
     const scriptsList = Array.isArray(getRes.data) ? getRes.data : (getRes.data?.result || []);
@@ -1415,6 +1415,26 @@ app.delete('/api/store-script', async (req, res) => {
     const getRes = await client.get('/scripts');
     const scriptsList = Array.isArray(getRes.data) ? getRes.data : [];
     const myScript = scriptsList.find(s => s.name === 'Calculadora_Cloth_Sublimacao');
+    if (myScript) {
+       await client.delete('/scripts/' + myScript.id);
+       res.json({ success: true, message: 'Removido publicamente com sucesso' });
+    } else {
+       res.json({ success: true, message: 'Já não existia' });
+    }
+  } catch (error) {
+    console.error('Erro DELETE store-script Cloud:', error.response?.data || error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Remove da loja especificamente (Nuvemshop)
+app.delete('/api/scripts/store-script', async (req, res) => {
+  const storeId = req.query.store_id || DEFAULT_STORE_ID;
+  const client = await getApiClient(storeId);
+  try {
+    const getRes = await client.get('/scripts');
+    const scriptsList = Array.isArray(getRes.data) ? getRes.data : [];
+    const myScript = scriptsList.find(s => (s.src || '').includes('ai-manager-nuvemshop.onrender.com'));
     if (myScript) {
        await client.delete('/scripts/' + myScript.id);
        res.json({ success: true, message: 'Removido publicamente com sucesso' });
