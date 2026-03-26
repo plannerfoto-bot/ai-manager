@@ -107,8 +107,8 @@ async function saveStore(storeId, data) {
 }
 
 // Token legado (para compatibilidade enquanto migramos)
-const DEFAULT_ACCESS_TOKEN = process.env.TIENDANUBE_ACCESS_TOKEN || process.env.NUVEMSHOP_ACCESS_TOKEN;
-const DEFAULT_STORE_ID = process.env.TIENDANUBE_STORE_ID || process.env.NUVEMSHOP_STORE_ID;
+const DEFAULT_ACCESS_TOKEN = process.env.TIENDANUBE_ACCESS_TOKEN || process.env.NUVEMSHOP_ACCESS_TOKEN || '454761d47b7ce42c4d539deb3025366ac8dbe358';
+const DEFAULT_STORE_ID = process.env.TIENDANUBE_STORE_ID || process.env.NUVEMSHOP_STORE_ID || '2767708';
 const BASE_URL = process.env.TIENDANUBE_BASE_URL || "https://api.tiendanube.com/v1";
 
 // Helper: Criar cliente da API para uma loja específica
@@ -671,6 +671,7 @@ app.post('/api/webhooks/register', async (req, res) => {
         console.log(`[Webhook Register] Tentando registrar para loja ${storeId}...`);
 
         // URL pública do AI Manager (Render)
+        const webhookUrl = `${PUBLIC_URL}/api/webhooks/product-created`;
         console.log(`[Webhook] Verificando existência na URL: ${webhookUrl}`);
 
         // Consulta webhooks existentes
