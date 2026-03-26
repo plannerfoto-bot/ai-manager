@@ -505,22 +505,28 @@ console.log('[Limpeza 24h] Scheduler iniciado - rodara a cada 30 minutos.');
  */
 app.post('/api/marketing/settings', async (req, res) => {
     const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
-    const { metaToken, pageId, captionTemplate } = req.body;
+    // Aceita os dois formatos de nome para máxima compatibilidade
+    const meta_token = req.body.meta_token || req.body.metaToken || null;
+    const fb_page_id = req.body.fb_page_id || req.body.pageId || null;
+    const feed_caption_template = req.body.feed_caption_template || req.body.captionTemplate || null;
+
+    console.log(`[Marketing POST] storeId=${storeId} meta_token=${meta_token ? 'OK' : 'VAZIO'} fb_page_id=${fb_page_id || 'VAZIO'}`);
 
     try {
         const { error } = await supabase
             .from('marketing_settings')
             .upsert({
                 store_id: String(storeId),
-                meta_access_token: metaToken,
-                facebook_page_id: pageId,
-                feed_caption_template: captionTemplate,
+                meta_access_token: meta_token,
+                facebook_page_id: fb_page_id,
+                feed_caption_template: feed_caption_template,
                 updated_at: new Date().toISOString()
-            });
+            }, { onConflict: 'store_id' });
 
         if (error) throw error;
-        res.json({ success: true, message: 'Configurações salvas permanentemente!' });
+        res.json({ success: true, message: 'Configurações salvas com sucesso!' });
     } catch (error) {
+        console.error('[Marketing POST] Erro:', error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -540,18 +546,11 @@ app.get('/api/marketing/settings', async (req, res) => {
 
         if (error) throw error;
 
-        if (!data) {
-            return res.json({ 
-                metaToken: '', 
-                pageId: '', 
-                captionTemplate: '🛍️ *NOVIDADE NA CLOTH!* 🛍️\n\n{{product_name}}\n\nGaranta o seu agora mesmo no nosso site! 🚀\n\n🔗 {{product_link}}\n\n#clothsublimacao #novidade #sublimacao #personalizados' 
-            });
-        }
-
+        // Retorna com os nomes que o React espera (snake_case)
         res.json({
-            metaToken: data.meta_access_token,
-            pageId: data.facebook_page_id,
-            captionTemplate: data.feed_caption_template
+            meta_token: data?.meta_access_token || '',
+            fb_page_id: data?.facebook_page_id || '',
+            feed_caption_template: data?.feed_caption_template || ''
         });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -1301,53 +1300,7 @@ app.get('/api/store-script-settings', (req, res) => {
   res.json(getScriptSettings());
 });
 
-// --- MARKETING SETTINGS ---
-app.get('/api/marketing/settings', async (req, res) => {
-  try {
-    const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
-    const { data, error } = await supabase
-        .from('marketing_settings')
-        .select('*')
-        .eq('store_id', String(storeId))
-        .maybeSingle();
-        
-    if (error) throw error;
-    
-    // Mapeamento CORRETO para o React não apagar os campos:
-    res.json({
-        meta_token: data?.meta_access_token || '',
-        fb_page_id: data?.facebook_page_id || '',
-        feed_caption_template: data?.feed_caption_template || ''
-    });
-  } catch (error) {
-    console.error('Erro GET marketing/settings:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
 
-app.post('/api/marketing/settings', async (req, res) => {
-  try {
-    const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
-    const { meta_token, fb_page_id, feed_caption_template } = req.body;
-    
-    // As colunas no banco são `meta_access_token` e `facebook_page_id`
-    const { error } = await supabase
-        .from('marketing_settings')
-        .upsert({
-            store_id: String(storeId),
-            meta_access_token: meta_token || null,
-            facebook_page_id: fb_page_id || null,
-            feed_caption_template: feed_caption_template || null,
-            updated_at: new Date().toISOString()
-        }, { onConflict: 'store_id' });
-        
-    if (error) throw error;
-    res.json({ success: true });
-  } catch (error) {
-    console.error('Erro POST marketing/settings:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
 
 app.post('/api/store-script-settings', async (req, res) => {
   const { enabled, whatsapp } = req.body;
