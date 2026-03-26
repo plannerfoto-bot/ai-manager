@@ -638,32 +638,40 @@ app.post('/api/webhooks/register', async (req, res) => {
         console.log(`[Webhook Register] Tentando registrar para loja ${storeId}...`);
 
         // URL pública do AI Manager (Render)
-        const baseUrl = process.env.APP_URL || process.env.PUBLIC_URL || 'https://ai-manager-nuvemshop.onrender.com';
-        const webhookUrl = `${baseUrl}/api/webhooks/product-created`;
-
         console.log(`[Webhook] Verificando existência na URL: ${webhookUrl}`);
 
-        // Cria webhooks: product/created e product/updated
+        // Consulta webhooks existentes
+        const listRes = await axios.get(
+            `https://api.tiendanube.com/v1/${storeId}/webhooks`,
+            { headers: { 'Authentication': `bearer ${storeData.access_token}`, 'User-Agent': 'AIManager/1.0' } }
+        );
+        const existingWebhooks = listRes.data || [];
+        
+        // Limpa webhooks que apontam para nossa rota para forçar re-registro limpo
+        for (const wh of existingWebhooks) {
+            if (wh.url.includes('/api/webhooks/product-created') || wh.url === webhookUrl) {
+                console.log(`[Webhook] Removendo antigo: ${wh.id} (${wh.event})`);
+                await axios.delete(`https://api.tiendanube.com/v1/${storeId}/webhooks/${wh.id}`, {
+                    headers: { 'Authentication': `bearer ${storeData.access_token}`, 'User-Agent': 'AIManager/1.0' }
+                });
+            }
+        }
+
+        // Registra TODOS os eventos necessários
         const events = ['product/created', 'product/updated'];
         const results = [];
 
         for (const event of events) {
-            const already = existingWebhooks.find(wh => wh.event === event && (wh.url === webhookUrl || wh.url.includes('/api/webhooks/product-created')));
-            if (!already) {
-                console.log(`[Webhook] Registrando evento: ${event}`);
-                const res = await axios.post(
-                    `https://api.tiendanube.com/v1/${storeId}/webhooks`,
-                    { event, url: webhookUrl },
-                    { headers: { 'Authentication': `bearer ${storeData.access_token}`, 'User-Agent': 'AIManager/1.0', 'Content-Type': 'application/json' } }
-                );
-                results.push(res.data);
-            } else {
-                console.log(`✅ Webhook já registrado para: ${event}`);
-                results.push(already);
-            }
+            console.log(`[Webhook] Registrando novo evento: ${event}`);
+            const res = await axios.post(
+                `https://api.tiendanube.com/v1/${storeId}/webhooks`,
+                { event, url: webhookUrl },
+                { headers: { 'Authentication': `bearer ${storeData.access_token}`, 'User-Agent': 'AIManager/1.0', 'Content-Type': 'application/json' } }
+            );
+            results.push(res.data);
         }
 
-        res.json({ success: true, message: 'Automação ativada com sucesso! (Criação e Edição)', webhooks: results });
+        res.json({ success: true, message: 'Automação sincronizada com sucesso!', webhooks: results });
 
     } catch (error) {
         const detail = error.response?.data || error.message;
@@ -707,7 +715,7 @@ app.get('/api/webhooks/list', async (req, res) => {
  */
 app.post('/api/webhooks/product-created', async (req, res) => {
     // Nuvemshop Webhooks podem enviar o storeId no header ou body
-    const storeId = req.headers['x-linkedstore-store-id'] || req.body.store_id || DEFAULT_STORE_ID;
+    const storeId = req.headers['x-linked-store-id'] || req.body.store_id || DEFAULT_STORE_ID;
     const event = req.body.event;
     const productId = req.body.id;
 
