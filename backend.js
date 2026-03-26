@@ -708,7 +708,7 @@ app.post('/api/webhooks/product-created', async (req, res) => {
         const metaToken = storeData.meta_token || process.env.META_ACCESS_TOKEN;
         const fbPageId = storeData.fb_page_id || process.env.FB_PAGE_ID;
 
-        addWebhookLog({ storeId, event, productId, status: 'Processing' });
+        addWebhookLog({ storeId, event, productId, status: 'Processing', details: 'Iniciando automação...' });
 
         if (!nsToken) {
             console.warn(`⚠️ Loja ${storeId} sem token Nuvemshop.`);
@@ -717,6 +717,7 @@ app.post('/api/webhooks/product-created', async (req, res) => {
         }
 
         // 1. Busca detalhes completos do produto na Nuvemshop
+        addWebhookLog({ storeId, productId, status: 'Processing', details: 'Buscando detalhes do produto na Nuvemshop...' });
         const client = await getApiClient(storeId);
         const productRes = await client.get(`/products/${productId}`);
 
@@ -728,17 +729,19 @@ app.post('/api/webhooks/product-created', async (req, res) => {
 
         if (!mainImage) {
             console.warn(`⚠️ Produto ${productId} sem imagem. Ignorando postagem.`);
+            addWebhookLog({ storeId, productId, status: 'Error', error: 'Produto sem imagens para postar' });
             return;
         }
 
         // 2. Verifica se a loja tem as chaves do Instagram configuradas (Meta)
         if (!metaToken || !fbPageId) {
             console.warn(`⚠️ Meta Access Token ou Page ID não configurados para a loja ${storeId}.`);
-            addWebhookLog({ storeId, productId, status: 'Error', error: 'Credenciais Meta ausentes (Token/PageID)' });
+            addWebhookLog({ storeId, productId, status: 'Error', error: 'Credenciais Meta ausentes no painel Marketing' });
             return;
         }
 
         console.log(`🚀 Iniciando postagem automática para: ${productName}`);
+        addWebhookLog({ storeId, productId, productName, status: 'Processing', details: 'Validando conta do Instagram...' });
 
         // 3. Obtém ID da conta do Instagram
         const igAccountId = await igService.getInstagramAccountId(fbPageId, metaToken);
@@ -752,11 +755,13 @@ app.post('/api/webhooks/product-created', async (req, res) => {
         const caption = buildFeedCaption(storeData.feed_caption_template, productName, productLink);
 
         // 5. Postagem no FEED
+        addWebhookLog({ storeId, productId, productName, status: 'Processing', details: 'Publicando no FEED (Instagram)...' });
         console.log('📸 Criando post no Feed...');
         const feedContainerId = await igService.createFeedContainer(igAccountId, mainImage, caption, metaToken);
         await igService.publishMedia(igAccountId, feedContainerId, metaToken);
         
         // 6. Postagem no STORY (apenas a imagem + link do produto)
+        addWebhookLog({ storeId, productId, productName, status: 'Processing', details: 'Publicando no STORY (Instagram)...' });
         console.log('📱 Criando post no Story...');
         const storyContainerId = await igService.createStoryContainer(igAccountId, mainImage, productLink, metaToken);
         await igService.publishMedia(igAccountId, storyContainerId, metaToken);

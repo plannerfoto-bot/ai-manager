@@ -374,7 +374,10 @@ const Marketing = () => {
                                             </span>
                                             <span className="text-[9px] text-slate-700">{new Date(log.ts).toLocaleTimeString()}</span>
                                         </div>
-                                        <p className="text-[11px] text-white font-medium truncate">{log.productName || `Produto: ${log.productId}`}</p>
+                                        <p className="text-[11px] text-white font-medium truncate">{log.productName || `ID: ${log.productId}`}</p>
+                                        {log.status === 'Processing' && log.details && (
+                                            <p className="text-[9px] text-blue-300/80 animate-pulse font-medium">{log.details}</p>
+                                        )}
                                         {log.error && (
                                             <p className="text-[9px] text-red-500 leading-tight italic bg-red-500/5 p-1 rounded">
                                                 {typeof log.error === 'string' ? log.error : JSON.stringify(log.error)}
