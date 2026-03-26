@@ -496,7 +496,15 @@ app.post('/api/marketing/settings', async (req, res) => {
     }
 
     try {
+        const stores = await getStores();
+        const storeData = stores[storeId] || {};
+        
+        // Se a loja ainda não tem o access_token no banco (nova migração), 
+        // mas temos ele no ambiente (.env/Render), salvamos ele agora para persistir.
+        const effectiveToken = storeData.access_token || DEFAULT_ACCESS_TOKEN;
+
         await saveStore(storeId, {
+            access_token: effectiveToken,
             meta_token,
             fb_page_id,
             feed_caption_template: feed_caption_template || ''
@@ -620,8 +628,11 @@ app.post('/api/webhooks/register', async (req, res) => {
         let storeId = Object.keys(stores)[0] || DEFAULT_STORE_ID;
         let storeData = stores[storeId] || { access_token: DEFAULT_ACCESS_TOKEN };
 
-        if (!storeId || !storeData.access_token) {
-            return res.status(400).json({ error: 'Loja não identificada. Por favor, re-conecte o App ou configure as variáveis NUVEMSHOP_ACCESS_TOKEN e STORE_ID no servidor.' });
+        if (!storeId || !storeData.access_token || storeData.access_token.includes('YOUR_NUVEMSHOP_ACCESS_TOKEN') || storeData.access_token === '4') {
+            return res.status(400).json({ 
+                error: 'Token Nuvemshop Ausente', 
+                message: 'O token de acesso da Nuvemshop não foi encontrado no banco de dados ou é inválido. Certifique-se de que a variável NUVEMSHOP_ACCESS_TOKEN está configurada no Render ou tente salvar as configurações de marketing novamente.' 
+            });
         }
 
         console.log(`[Webhook Register] Tentando registrar para loja ${storeId}...`);

@@ -34,6 +34,8 @@ const Marketing = () => {
             setHistory(historyRes.data || []);
         } catch (error) {
             console.error('Erro ao buscar dados:', error);
+            const msg = error.response?.data?.message || 'Erro ao buscar dados.';
+            toast.error(msg);
         } finally {
             setLoadingHistory(false);
         }
