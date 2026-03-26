@@ -725,13 +725,20 @@ app.post('/api/webhooks/product-created', async (req, res) => {
     res.status(200).send('OK');
 
     // Registra o início do recebimento IMEDIATAMENTE (para visibilidade no dashboard)
-    addWebhookLog({ storeId, event, productId, status: 'Processing', details: `Evento ${event} recebido. Processando...` });
+    addWebhookLog({ storeId, event, productId, status: 'Processing', details: `Evento ${event} recebido. Iniciando processamento...` });
 
     // Aceita tanto criação quanto atualização
     const allowedEvents = ['product/created', 'product/updated'];
     if (!allowedEvents.includes(event)) {
         console.warn(`⚠️ Evento ${event} ignorado.`);
         return;
+    }
+
+    // 2. Delay de Segurança (Sugerido pelo Usuário): Aguarda 2 minutos para dar tempo de terminar o cadastro
+    if (event === 'product/created') {
+        console.log(`[Delay] Aguardando 120s para o produto ${productId}...`);
+        addWebhookLog({ storeId, event, productId, status: 'Processing', details: 'Aguardando 2 minutos para você concluir o cadastro e imagens na Nuvemshop...' });
+        await new Promise(r => setTimeout(r, 120000));
     }
 
     try {
