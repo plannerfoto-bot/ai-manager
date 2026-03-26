@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: ai-manager-nuvemshop
+    env: node
+    plan: free
+    region: ohio
+    buildCommand: npm install && npm run build
+    startCommand: node backend.js
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: PUBLIC_URL
+        sync: false
+      - key: NUVEMSHOP_APP_ID
+        sync: false
+      - key: NUVEMSHOP_APP_SECRET
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: FACEBOOK_PAGE_ID
+        sync: false
+      - key: META_ACCESS_TOKEN
+        sync: false

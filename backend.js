@@ -744,6 +744,25 @@ app.get('/api/webhooks/list', async (req, res) => {
 });
 
 /**
+ * LISTAR LOGS: Retorna o histórico de automação do Supabase
+ */
+app.get('/api/webhooks/logs', async (req, res) => {
+    try {
+        const { data, error } = await supabase
+            .from('automation_history')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(50);
+            
+        if (error) throw error;
+        res.json(data || []);
+    } catch (error) {
+        console.error('Erro ao buscar logs:', error.message);
+        res.status(500).json({ error: 'Erro ao carregar histórico.' });
+    }
+});
+
+/**
  * WEBHOOK: Novo Produto Criado
  * Aciona a postagem automática no Instagram
  */
@@ -853,15 +872,33 @@ app.post('/api/webhooks/product-created', async (req, res) => {
         const caption = buildFeedCaption(storeData.feed_caption_template, productName, productLink);
 
         // 6. Postagem no FEED
-        addWebhookLog({ storeId, productId, productName, status: 'Processing', details: 'Publicando no FEED (Instagram)...' });
-        const feedContainerId = await igService.createFeedContainer(igAccountId, mainImage, caption, metaToken);
-        await igService.publishMedia(igAccountId, feedContainerId, metaToken);
+        console.log('📸 Publicando no FEED (Instagram)...');
+        addWebhookLog({ storeId, productId, productName, status: 'Processing', details: 'Aguardando 10s para processamento da mídia pelo Meta (Feed)...' });
+        await new Promise(r => setTimeout(r, 10000)); 
         
-        // 7. Postagem no STORY (apenas a imagem + link do produto)
-        addWebhookLog({ storeId, productId, productName, status: 'Processing', details: 'Publicando no STORY (Instagram)...' });
-        const storyContainerId = await igService.createStoryContainer(igAccountId, mainImage, productLink, metaToken);
-        await igService.publishMedia(igAccountId, storyContainerId, metaToken);
-        
+        try {
+            const feedContainerId = await igService.createFeedContainer(igAccountId, mainImage, caption, metaToken);
+            await igService.publishMedia(igAccountId, feedContainerId, metaToken);
+            console.log(`✅ Feed postado: ${productId}`);
+        } catch (e) {
+            console.error('Erro no Feed:', e.message);
+            addWebhookLog({ storeId, productId, status: 'Error', error: `Feed: ${e.message}` });
+        }
+
+        // 7. Postagem no STORY
+        console.log('📱 Publicando no STORY (Instagram)...');
+        addWebhookLog({ storeId, productId, productName, status: 'Processing', details: 'Aguardando 10s para processamento da mídia pelo Meta (Story)...' });
+        await new Promise(r => setTimeout(r, 10000));
+
+        try {
+            const storyContainerId = await igService.createStoryContainer(igAccountId, mainImage, productLink, metaToken);
+            await igService.publishMedia(igAccountId, storyContainerId, metaToken);
+            console.log(`✅ Story postado: ${productId}`);
+        } catch (e) {
+            console.error('Erro no Story:', e.message);
+            addWebhookLog({ storeId, productId, status: 'Error', error: `Story: ${e.message}` });
+        }
+
         // 8. Marca como processado para evitar duplicata (mantemos os últimos 50 produtos)
         const newProcessed = [String(productId), ...processed].slice(0, 50);
         await saveStore(storeId, { processed_products: newProcessed });
