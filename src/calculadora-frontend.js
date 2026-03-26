@@ -536,15 +536,19 @@
   function initImageAdjuster() {
     var sel = '.js-variant-option.selected, .variant-option.active, .js-variant-option.active, input[type="radio"]:checked + label, .selected-variant, .js-insta-variant.selected, .js-insta-variant.active';
     var activeVariant = document.querySelector(sel);
-    // Oculta a variante de WhatsApp antiga (Painel de tamanhos)
-    document.querySelectorAll('.js-insta-variant, .js-product-variant-option').forEach(function(el) {
-        var txt = (el.innerText || "").toLowerCase();
+    // Oculta a variante de WhatsApp de forma agressiva (CSS + JS)
+    var styleId = 'hide-whatsapp-variant-style';
+    if (!document.getElementById(styleId)) {
+        var style = document.createElement('style');
+        style.id = styleId;
+        style.innerHTML = 'a[title*="Whatsapp"], a[title*="whatsapp"], a[title*="Personalizada Via"], .js-insta-variant[title*="Whatsapp"] { display: none !important; }';
+        document.head.appendChild(style);
+    }
+    
+    document.querySelectorAll('.js-insta-variant, .js-product-variant-option, a.btn-variant').forEach(function(el) {
+        var txt = (el.innerText || el.getAttribute('title') || "").toLowerCase();
         if (txt.indexOf('whatsapp') !== -1 || txt.indexOf('personalizada via') !== -1) {
-            el.style.display = 'none';
-            // Se for um item de lista ou container, oculta o pai também se necessário
-            if (el.parentElement.classList.contains('insta-variations')) {
-                // Manter apenas o botão oculto é mais seguro para não quebrar o layout
-            }
+            el.style.setProperty('display', 'none', 'important');
         }
     });
 
