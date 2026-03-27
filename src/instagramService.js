@@ -111,7 +111,7 @@ class InstagramService {
         try {
             const response = await axios.get(`${this.baseUrl}/${containerId}`, {
                 params: {
-                    fields: 'status_code,status,error_message',
+                    fields: 'status_code,status',
                     access_token: accessToken
                 }
             });
