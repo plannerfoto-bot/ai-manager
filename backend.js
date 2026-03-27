@@ -835,6 +835,15 @@ app.post('/api/webhooks/product-created', async (req, res) => {
     // Responde 200 imediatamente para a Nuvemshop não reenviar
     res.status(200).send('OK');
 
+    // In-memory Global Lock para webhooks disparados exatamente ao mesmo tempo (Race Condition pura)
+    if (!global.activeWebhooks) global.activeWebhooks = new Set();
+    const lockKey = `${storeId}:${productId}`;
+    if (global.activeWebhooks.has(lockKey)) {
+        console.log(`♻️ Ignorando webhook concorrente (In-Memory Lock) para ${lockKey}`);
+        return;
+    }
+    global.activeWebhooks.add(lockKey);
+
     // Registra o início do recebimento IMEDIATAMENTE (No Supabase)
     await addWebhookLog({ storeId, event, productId, status: 'Processing', details: `Evento ${event} recebido. Iniciando...` });
 
@@ -842,6 +851,7 @@ app.post('/api/webhooks/product-created', async (req, res) => {
     const allowedEvents = ['product/created', 'product/updated'];
     if (!allowedEvents.includes(event)) {
         console.warn(`⚠️ Evento ${event} ignorado.`);
+        global.activeWebhooks.delete(lockKey);
         return;
     }
 
@@ -871,6 +881,7 @@ app.post('/api/webhooks/product-created', async (req, res) => {
         if (!nsToken) {
             console.warn(`⚠️ Loja ${storeId} sem token Nuvemshop.`);
             addWebhookLog({ storeId, productId, status: 'Error', error: 'Token Nuvemshop ausente' });
+            global.activeWebhooks.delete(lockKey);
             return;
         }
 
@@ -900,6 +911,7 @@ app.post('/api/webhooks/product-created', async (req, res) => {
         if (!mainImage) {
             console.warn(`⚠️ Produto ${productId} sem imagem. Aguardando edição para postar.`);
             addWebhookLog({ storeId, productId, productName, status: 'Waiting', details: 'Produto sem imagem: Postagem ocorrerá assim que você adicionar a foto na Nuvemshop.' });
+            global.activeWebhooks.delete(lockKey);
             return;
         }
 
@@ -907,27 +919,33 @@ app.post('/api/webhooks/product-created', async (req, res) => {
         if (!metaToken || !fbPageId) {
             console.warn(`⚠️ Meta Access Token ou Page ID não configurados para a loja ${storeId}.`);
             addWebhookLog({ storeId, productId, status: 'Error', error: 'Credenciais Meta ausentes no painel Marketing' });
+            global.activeWebhooks.delete(lockKey);
             return;
         }
 
-        // 3. Deduplicação IMEDIATA: Evita postar o mesmo produto repetidamente
-        const processed = Array.isArray(storeData.processed_products) ? storeData.processed_products : [];
+        // 3. Deduplicação de Arquivo: Evita postar produtos já processados no passado
+        // Lemos novamente do arquivo de forma garantida antes da validação
+        const freshStores = await getStores();
+        const freshStoreData = freshStores[storeId] || {};
+        const processed = Array.isArray(freshStoreData.processed_products) ? freshStoreData.processed_products : [];
         if (processed.includes(String(productId))) {
             console.log(`♻️ Produto ${productId} já foi processado ou está em andamento. Ignorando webhook.`);
+            global.activeWebhooks.delete(lockKey);
             return;
         }
 
-        // Bloqueio Imediato (Mutex) Otimista
+        // Bloqueio Inicialização (Mutex) Persistido
         let newProcessed = [String(productId), ...processed].slice(0, 50);
         await saveStore(storeId, { processed_products: newProcessed });
 
         console.log(`🚀 Iniciando postagem automática para: ${productName}`);
         addWebhookLog({ storeId, productId, productName, status: 'Processing', details: 'Avaliando dados e conta do Instagram...' });
 
-        // Função utilitária para desbloquear o Mutex em caso de falha e permitir retentativa
+        // Função utilitária para desbloquear o Mutex Persistido em caso de falha controlada
         const unlockMutex = async () => {
-            console.log(`🔓 Desbloqueando Mutex do produto ${productId} para permitir nova tentativa...`);
-            const refreshedStore = await getStore(storeId);
+            console.log(`🔓 Desbloqueando Mutex Local do arquivo para ${productId} permitir nova tentativa...`);
+            const refreshedStores = await getStores();
+            const refreshedStore = refreshedStores[storeId] || {};
             const currentProcessed = Array.isArray(refreshedStore.processed_products) ? refreshedStore.processed_products : [];
             const unlockedList = currentProcessed.filter(id => id !== String(productId));
             await saveStore(storeId, { processed_products: unlockedList });
@@ -990,6 +1008,11 @@ app.post('/api/webhooks/product-created', async (req, res) => {
         const errorMsg = error.response?.data || error.message;
         console.error('❌ Erro no processamento do Webhook:', JSON.stringify(errorMsg));
         await addWebhookLog({ storeId, productId, status: 'Error', error: errorMsg });
+    } finally {
+        // Limpa a trava em memória (Race Condition) ao fim da execução (Sucesso ou Falha)
+        if (global.activeWebhooks) {
+            global.activeWebhooks.delete(lockKey);
+        }
     }
 });
 
