@@ -839,252 +839,193 @@ app.post('/api/webhooks/product-created', async (req, res) => {
     // Responde 200 imediatamente para a Nuvemshop não reenviar
     res.status(200).send('OK');
 
-    // Registra o início do recebimento IMEDIATAMENTE (No Supabase)
-    await addWebhookLog({ storeId, event, productId, status: 'Processing', details: `Evento ${event} recebido. Iniciando...` });
-
-    // Registra o início do recebimento IMEDIATAMENTE (No Supabase)
+    // Registra o início do recebimento (No Supabase)
     await addWebhookLog({ storeId, event, productId, status: 'Processing', details: `Evento ${event} recebido. Iniciando...` });
 
     // Aceita tanto criação quanto atualização
     const allowedEvents = ['product/created', 'product/updated'];
     if (!allowedEvents.includes(event)) {
-        console.warn(`⚠️ Evento ${event} ignorado.`);
-        global.activeWebhooks.delete(lockKey);
-        return;
+        return res.status(200).send('Ignored event');
     }
 
-    // Movemos a checagem de "Já foi processado" para o início a fim de filtrar atualizações de preço ou estoque BEM CEDO.
     try {
-        const initialStores = await getStores();
-        const initialStoreData = initialStores[storeId] || {};
-        const earlyProcessed = Array.isArray(initialStoreData.processed_products) ? initialStoreData.processed_products : [];
-        if (earlyProcessed.includes(String(productId))) {
-            console.log(`♻️ Produto ${productId} já consta como postado anteriormente. Ignorando evento de atualização (${event}).`);
-            return;
-        }
-
-        // Se chegou AQUI, o produto NUNCA FOI POSTADO.
-        // IMEDIATAMENTE buscamos os dados do produto para ter na Fila (Nome/Imagem)
+        // Busca metadata do produto na Nuvemshop
         let productName = 'Novo Produto';
-        let imageUrl = '';
+        let currentImageUrl = '';
         try {
             const client = await getApiClient(storeId);
             const productRes = await client.get(`/products/${productId}`);
             const product = productRes.data;
             productName = (product.name && product.name.pt) ? product.name.pt : (product.name ? Object.values(product.name)[0] : 'Novo Produto');
-            imageUrl = product.images && product.images.length > 0 ? product.images[0].src : '';
-            console.log(`[Queue] Metadata obtida para ${productId}: ${productName}`);
+            currentImageUrl = product.images && product.images.length > 0 ? product.images[0].src : '';
+            console.log(`[Webhook] Metadata obtida para ${productId}: ${productName}`);
         } catch (fetchErr) {
-            console.warn(`[Queue] Não foi possível buscar metadata do produto ${productId} agora. Usando IDs.`);
+            console.warn(`[Webhook] Não foi possível buscar metadata para ${productId}.`);
         }
 
-        // Agendamento padrão é para DAQUI A 2 MINUTOS (tempo de propagação da imagem na Nuvemshop).
-        const scheduledTime = new Date(Date.now() + 120000); 
-
-        console.log(`[Queue] Agendando produto ${productId} para postagem em ${scheduledTime.toISOString()}...`);
-        
-        // Verifica se já existe na fila (evita duplicação se múltiplos webhooks chegarem)
-        const { data: existingJob } = await supabase
+        // Verifica registro existente na fila que não seja sucesso
+        const { data: existingInQueue } = await supabase
             .from('post_queue')
-            .select('id, status')
-            .eq('store_id', String(storeId))
+            .select('*')
             .eq('product_id', String(productId))
+            .neq('status', 'success')
             .maybeSingle();
 
-        if (existingJob && (existingJob.status === 'pending' || existingJob.status === 'processing')) {
-             console.log(`♻️ Produto ${productId} já está na fila com status ${existingJob.status}. Ignorando duplicação.`);
-             return;
-        }
-
-        const { error: queueError } = await supabase
-            .from('post_queue')
-            .upsert([{
-                store_id: String(storeId),
+        if (event === 'product/created') {
+            // DETECÇÃO DE DUPLICAÇÃO: Aguarda imagem se for novo
+            console.log(`📦 [Waiting] Produto ${productId} criado/duplicado. Em espera de nova imagem.`);
+            await supabase.from('post_queue').upsert({
+                store_id: storeId,
                 product_id: String(productId),
                 product_name: productName,
-                image_url: imageUrl,
-                event_type: event,
-                status: 'pending',
-                scheduled_for: scheduledTime.toISOString()
-            }], { 
-                onConflict: 'store_id,product_id',
-                ignoreDuplicates: false // Garante que o UPDATE aconteça se o registro já existir
-            });
+                image_url: currentImageUrl,
+                initial_image_url: currentImageUrl,
+                event_type: 'created',
+                status: 'waiting_image',
+                scheduled_for: new Date(Date.now() + 5 * 60 * 1000).toISOString()
+            }, { onConflict: 'product_id' });
 
-        if (queueError) {
-            console.error('❌ Erro ao enfileirar produto:', queueError);
-            const errorMsg = queueError.message || 'Erro desconhecido';
-            await addWebhookLog({ storeId, event, productId, status: 'Error', error: `Falha ao agendar: ${errorMsg}` });
-        } else {
             await addWebhookLog({ 
-                storeId, event, productId, productName, imageUrl,
+                storeId, productId, productName, imageUrl: currentImageUrl,
                 status: 'Processing', 
-                details: 'Produto agendado na fila! A postagem ocorrerá automaticamente em alguns minutos.' 
+                details: 'Produto detectado. Aguardando inserção de imagem personalizada para agendar.' 
             });
-        }
+        } 
+        else if (event === 'product/updated') {
+            if (existingInQueue && existingInQueue.status === 'waiting_image') {
+                // Compara se a imagem MUDOU em relação à original (do produto "pai")
+                const hasImageChanged = currentImageUrl !== existingInQueue.initial_image_url;
+                
+                if (hasImageChanged && currentImageUrl !== '') {
+                    console.log(`✨ [Ready] Imagem alterada detectada para ${productId}! Agendando.`);
+                    const scheduledDate = new Date(Date.now() + 2 * 60 * 1000); // 2 min drip
+                    
+                    await supabase.from('post_queue').update({ 
+                        status: 'pending', 
+                        scheduled_for: scheduledDate.toISOString(),
+                        image_url: currentImageUrl,
+                        product_name: productName
+                    }).eq('id', existingInQueue.id);
 
+                    await addWebhookLog({ 
+                        storeId, productId, productName, imageUrl: currentImageUrl,
+                        status: 'Processing', 
+                        details: 'Nova foto detectada! Postagem agendada automaticamente.' 
+                    });
+                }
+            } else if (!existingInQueue) {
+                // Update direto: Agenda se tiver imagem
+                console.log(`⚡ [Direct] Update direto para ${productId}. Agendando.`);
+                await supabase.from('post_queue').upsert({
+                    store_id: storeId,
+                    product_id: String(productId),
+                    product_name: productName,
+                    image_url: currentImageUrl,
+                    status: 'pending',
+                    scheduled_for: new Date(Date.now() + 2 * 60 * 1000).toISOString()
+                }, { onConflict: 'product_id' });
+            }
+        }
+        res.sendStatus(200);
     } catch (err) {
-        console.error("Erro no fluxo de enfileiramento:", err);
+        console.error("❌ Erro no fluxo do Webhook:", err);
+        res.status(500).send(err.message);
     }
 });
 
 // --- WORKER DE PROCESSAMENTO DA FILA (DRIP FEED) ---
-/**
- * Rota para ser chamada via CRON que processa a fila de postagens pendentes.
- * Garante que postamos apenas um produto por vez para evitar bloqueios da Meta.
- */
 app.all('/api/cron/process-queue', async (req, res) => {
     const cronKey = req.query.key || req.headers['x-cron-key'];
-    const expectedKey = process.env.CRON_SECRET || 'ClothSecret2026'; // Fallback seguro para dev
+    const expectedKey = process.env.CRON_SECRET || 'ClothSecret2026';
 
-    if (cronKey !== expectedKey) {
-        console.warn('🛑 Tentativa de acesso não autorizada ao Cron!');
-        return res.status(401).json({ error: 'Unauthorized' });
-    }
+    if (cronKey !== expectedKey) return res.status(401).json({ error: 'Unauthorized' });
 
-    console.log('\n⚙️ Cron: Iniciando processamento atômico da fila...');
+    console.log('\n⚙️ Cron: Iniciando processamento múltiplo da fila...');
     
-    let currentJobId = null;
-
     try {
-        // 1. Busca o ID do próximo job pendente pronto para postar
+        // Busca até 3 jobs pendentes de uma vez para agilizar o processamento
         const { data: pendingJobs, error: selectError } = await supabase
             .from('post_queue')
-            .select('id')
+            .select('*')
             .eq('status', 'pending')
             .lte('scheduled_for', new Date().toISOString())
             .order('scheduled_for', { ascending: true })
-            .limit(1);
+            .limit(3);
 
         if (selectError) throw selectError;
-        
-        if (!pendingJobs || pendingJobs.length === 0) {
-            console.log('✅ Cron: Nenhuma postagem pendente para processar agora.');
-            return res.json({ message: 'No pending jobs' });
-        }
+        if (!pendingJobs || pendingJobs.length === 0) return res.json({ message: 'No pending jobs' });
 
-        const targetId = pendingJobs[0].id;
+        const results = [];
 
-        // 2. Tenta "Reserva" o job específico mudando status de pending -> processing
-        // O .eq('status', 'pending') garante atomicidade: se outro worker já 
-        // mudou o status, este update retornará 0 registros.
-        const { data: job, error: updateError } = await supabase
-            .from('post_queue')
-            .update({ status: 'processing' })
-            .eq('id', targetId)
-            .eq('status', 'pending')
-            .select()
-            .maybeSingle();
+        // Processa em sequência curta para evitar concorrência no banco mas agilizar volume
+        for (const job of pendingJobs) {
+            const jobId = job.id;
+            const productId = job.product_id;
+            const storeId = job.store_id;
 
-        if (updateError) throw updateError;
-        if (!job) {
-            console.log('⚠️ Cron: Job já foi reivindicado por outro worker.');
-            return res.json({ message: 'Job already claimed or processed' });
-        }
+            // Reserva o job
+            const { data: grabbedJob } = await supabase
+                .from('post_queue')
+                .update({ status: 'processing' })
+                .eq('id', jobId)
+                .eq('status', 'pending')
+                .select()
+                .maybeSingle();
 
-        const { store_id: storeId, product_id: productId, id: jobId } = job;
-        currentJobId = jobId; 
-        
-        console.log(`🚀 Cron: Job ${jobId} REIVINDICADO (Produto ${productId} da Loja ${storeId})`);
+            if (!grabbedJob) continue;
 
-        // Reutilizamos a lógica de postagem original (agora dentro do worker)
-        const stores = await getStores();
-        const storeData = stores[storeId];
-        
-        const { data: marketingSettings } = await supabase
-            .from('marketing_settings')
-            .select('*')
-            .eq('store_id', String(storeId))
-            .maybeSingle();
+            console.log(`🚀 Cron: Processando Job ${jobId} (Produto ${productId})`);
 
-        const nsToken = storeData?.access_token || DEFAULT_ACCESS_TOKEN;
-        const metaToken = marketingSettings?.meta_access_token || storeData?.meta_token || process.env.META_ACCESS_TOKEN;
-        const fbPageId = marketingSettings?.facebook_page_id || storeData?.fb_page_id || process.env.FB_PAGE_ID;
+            try {
+                const stores = await getStores();
+                const storeData = stores[storeId];
+                const { data: marketingSettings } = await supabase.from('marketing_settings').select('*').eq('store_id', String(storeId)).maybeSingle();
 
-        if (!nsToken || !metaToken || !fbPageId) {
-            throw new Error('Credenciais ausentes (Nuvemshop ou Meta)');
-        }
+                const nsToken = storeData?.access_token || DEFAULT_ACCESS_TOKEN;
+                const metaToken = marketingSettings?.meta_access_token || storeData?.meta_token || process.env.META_ACCESS_TOKEN;
+                const fbPageId = marketingSettings?.facebook_page_id || storeData?.fb_page_id || process.env.FB_PAGE_ID;
 
-        let product;
-        try {
-            const client = await getApiClient(storeId);
-            const productRes = await client.get(`/products/${productId}`);
-            product = productRes.data;
-        } catch (apiErr) {
-            // Trata Erro 404 (Produto deletado na Nuvemshop)
-            if (apiErr.response?.status === 404) {
-                console.warn(`🛑 Produto ${productId} não existe mais na Nuvemshop. Removendo da fila...`);
-                await supabase.from('post_queue').update({ 
-                    status: 'failed', 
-                    error_log: { error: 'Produto não encontrado na loja (foi deletado ou ID inválido).', timestamp: new Date().toISOString() } 
-                }).eq('id', jobId);
-                return res.json({ status: 'product_not_found', productId });
+                // Download da imagem e metadados finais
+                const client = await getApiClient(storeId);
+                const productRes = await client.get(`/products/${productId}`);
+                const product = productRes.data;
+                const productName = (product.name && product.name.pt) ? product.name.pt : (product.name ? Object.values(product.name)[0] : 'Produto');
+                const productHandle = (product.handle && product.handle.pt) ? product.handle.pt : (product.handle ? Object.values(product.handle)[0] : '');
+                const productLink = `https://${storeData.domain || 'clothsublimacao.com.br'}/produtos/${productHandle}`;
+                const mainImage = product.images && product.images.length > 0 ? product.images[0].src : job.image_url;
+
+                const igAccountId = await igService.getInstagramAccountId(fbPageId, metaToken);
+                const caption = buildFeedCaption(marketingSettings?.feed_caption_template, productName, productLink);
+
+                // Meta API Calls
+                const feedContainerId = await igService.createFeedContainer(igAccountId, mainImage, caption, metaToken);
+                await igService.publishMedia(igAccountId, feedContainerId, metaToken);
+                
+                await new Promise(r => setTimeout(r, 5000)); // Delay curto entre postagens
+
+                const storyContainerId = await igService.createStoryContainer(igAccountId, mainImage, productLink, metaToken);
+                await igService.publishMedia(igAccountId, storyContainerId, metaToken);
+
+                // Sucesso
+                await supabase.from('post_queue').update({ status: 'success' }).eq('id', jobId);
+                await addWebhookLog({ storeId, productId, productName, status: 'Success', details: 'Postado com sucesso via Cron!' });
+                
+                results.push({ jobId, status: 'success' });
+            } catch (jobErr) {
+                const jobMsg = jobErr.message || 'Erro no job';
+                console.error(`❌ Cron: Erro no job ${jobId}:`, jobMsg);
+                await supabase.from('post_queue').update({ status: 'failed', error_log: { error: jobMsg, timestamp: new Date().toISOString() } }).eq('id', jobId);
+                results.push({ jobId, status: 'failed', error: jobMsg });
             }
-            throw apiErr;
         }
 
-        const productName = (product.name && product.name.pt) ? product.name.pt : (product.name ? Object.values(product.name)[0] : 'Novo Produto');
-        const productHandle = (product.handle && product.handle.pt) ? product.handle.pt : (product.handle ? Object.values(product.handle)[0] : '');
-        const productLink = `https://${storeData.domain || 'clothsublimacao.com.br'}/produtos/${productHandle}`;
-        const mainImage = product.images && product.images.length > 0 ? product.images[0].src : null;
-
-        // Atualiza os metadados no banco se estiverem nulos (autorreparação)
-        if (!job.product_name || !job.image_url) {
-            await supabase.from('post_queue').update({
-                product_name: productName,
-                image_url: mainImage
-            }).eq('id', jobId);
-        }
-
-        const igAccountId = await igService.getInstagramAccountId(fbPageId, metaToken);
-        if (!igAccountId) throw new Error('Conta do Instagram não encontrada. Verifique se a sua Página do Facebook está vinculada corretamente à sua conta Business do Instagram.');
-
-        const caption = buildFeedCaption(marketingSettings?.feed_caption_template, productName, productLink);
-
-        // Postagem no FEED
-        console.log(`📸 Cron: Publicando Feed para ${productName}...`);
-        const feedContainerId = await igService.createFeedContainer(igAccountId, mainImage, caption, metaToken);
-        await igService.publishMedia(igAccountId, feedContainerId, metaToken);
-
-        // Delay preventivo entre Feed e Story (Fix Meta Error 2)
-        console.log('⏳ Delay de 10s entre Feed e Story...');
-        await new Promise(r => setTimeout(r, 10000));
-
-        // Postagem no STORY
-        console.log(`📱 Cron: Publicando Story para ${productName}...`);
-        const storyContainerId = await igService.createStoryContainer(igAccountId, mainImage, productLink, metaToken);
-        await igService.publishMedia(igAccountId, storyContainerId, metaToken);
-
-        // Sucesso Total: Marca como success e adiciona aos processados
-        await supabase.from('post_queue').update({ status: 'success' }).eq('id', jobId);
-        
-        const freshStores = await getStores();
-        const currentProcessed = Array.isArray(freshStores[storeId]?.processed_products) ? freshStores[storeId].processed_products : [];
-        await saveStore(storeId, { processed_products: [String(productId), ...currentProcessed].slice(0, 100) });
-
-        await addWebhookLog({ 
-            storeId, productId, productName, imageUrl: mainImage,
-            status: 'Success', 
-            details: 'Drip Feed: Postado com sucesso via agendamento!' 
-        });
-        
-        res.json({ status: 'success', product: productName });
-
-    } catch (error) {
-        const errorMsg = error.response?.data ? JSON.stringify(error.response.data) : (error.message || 'Erro desconhecido');
-        console.error('❌ Cron: Erro crítico ao processar fila:', errorMsg);
-        
-        if (currentJobId) {
-            await supabase.from('post_queue').update({ 
-                status: 'failed', 
-                error_log: { error: errorMsg, timestamp: new Date().toISOString() } 
-            }).eq('id', currentJobId);
-            console.log(`⚠️ Job ${currentJobId} marcado como FALHA no banco.`);
-        }
-
-        res.status(500).json({ status: 'error', message: errorMsg });
+        res.json({ processed: results.length, details: results });
+    } catch (err) {
+        console.error('❌ Cron Critical Error:', err);
+        res.status(500).json({ error: err.message });
     }
 });
+
 
 // Remover item individual da fila
 app.delete('/api/marketing/queue/:id', async (req, res) => {
