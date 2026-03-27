@@ -424,19 +424,31 @@ const Marketing = () => {
                                         <div className="flex items-center justify-between">
                                             <span className={`text-[10px] font-bold uppercase ${
                                                 log.status === 'Success' ? 'text-green-500' : 
+                                                log.status === 'Warning' ? 'text-yellow-500' :
                                                 log.status === 'Processing' ? 'text-blue-400' : 
                                                 log.status === 'Waiting' ? 'text-orange-400' : 'text-red-400'
                                             }`}>
                                                 {log.status === 'Success' ? '✅ Postado' : 
+                                                 log.status === 'Warning' ? '⚠️ Postado Parcialmente' :
                                                  log.status === 'Processing' ? '⏳ Processando' : 
                                                  log.status === 'Waiting' ? '🕒 Aguardando Foto' : '❌ Falhou'}
                                             </span>
                                             <span className="text-[9px] text-slate-700">{new Date(log.ts).toLocaleTimeString()}</span>
                                         </div>
                                         <p className="text-[11px] text-white font-medium truncate">{log.productName || `ID: ${log.productId}`}</p>
-                                        {log.status === 'Processing' && log.details && (
-                                            <p className="text-[9px] text-blue-300/80 animate-pulse font-medium">{log.details}</p>
+                                        
+                                        {/* Detalhes para Processing ou Warning */}
+                                        {(log.status === 'Processing' || log.status === 'Warning' || log.status === 'Success') && log.details && (
+                                            <p className={`text-[9px] font-medium leading-tight ${
+                                                log.status === 'Warning' ? 'text-yellow-500/90 italic' : 
+                                                log.status === 'Success' ? 'text-green-400/80' : 
+                                                'text-blue-300/80 animate-pulse'
+                                            }`}>
+                                                {log.details}
+                                            </p>
                                         )}
+
+                                        {/* Erros explícitos */}
                                         {log.error && (
                                             <p className="text-[9px] text-red-500 leading-tight italic bg-red-500/5 p-1 rounded">
                                                 {typeof log.error === 'string' ? log.error : JSON.stringify(log.error)}
