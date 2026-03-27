@@ -1607,7 +1607,7 @@ app.delete('/api/scripts/store-script', async (req, res) => {
 });
 
 // Redireciona todas as outras rotas para o index.html do React (SPA)
-app.get('*', (req, res) => {
+app.get('/*any', (req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
