@@ -70,7 +70,8 @@ class InstagramService {
      */
     async createFeedContainer(igAccountId, imageUrl, caption, accessToken) {
         try {
-            const proxiedUrl = `https://images.weserv.nl/?url=${encodeURIComponent(imageUrl)}&w=1080&h=1080&fit=contain&bg=white`;
+            // Adicionado &output=jpg para forçar o formato JPEG (Meta não aceita WebP)
+            const proxiedUrl = `https://images.weserv.nl/?url=${encodeURIComponent(imageUrl)}&w=1080&h=1080&fit=contain&bg=white&output=jpg`;
             console.log('📸 Feed container URL:', proxiedUrl.substring(0, 80) + '...');
 
             const response = await axios.post(`${this.baseUrl}/${igAccountId}/media`, {
@@ -91,7 +92,8 @@ class InstagramService {
      */
     async createStoryContainer(igAccountId, imageUrl, productLink, accessToken) {
         try {
-            const proxiedUrl = `https://images.weserv.nl/?url=${encodeURIComponent(imageUrl)}&w=1080&h=1920&fit=contain&bg=black`;
+            // Adicionado &output=jpg para forçar formato JPEG
+            const proxiedUrl = `https://images.weserv.nl/?url=${encodeURIComponent(imageUrl)}&w=1080&h=1920&fit=contain&bg=black&output=jpg`;
 
             const payload = {
                 image_url: proxiedUrl,
