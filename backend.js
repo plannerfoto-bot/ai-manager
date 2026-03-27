@@ -891,7 +891,8 @@ app.post('/api/webhooks/product-created', async (req, res) => {
 
         if (queueError) {
             console.error('❌ Erro ao enfileirar produto:', queueError);
-            await addWebhookLog({ storeId, event, productId, status: 'Error', error: 'Falha ao agendar na fila de postagem' });
+            const errorMsg = queueError.message || 'Erro desconhecido';
+            await addWebhookLog({ storeId, event, productId, status: 'Error', error: `Falha ao agendar: ${errorMsg}` });
         } else {
             await addWebhookLog({ storeId, event, productId, status: 'Processing', details: 'Produto agendado na fila! A postagem ocorrerá automaticamente em alguns minutos.' });
         }
