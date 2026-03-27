@@ -156,6 +156,14 @@ class InstagramService {
             // Garantir que está pronto antes de publicar
             await this.waitForContainerReady(creationId, accessToken);
 
+            // [FIX Eventual Consistency da Meta]
+            // Mesmo retornando 'FINISHED', o container leva até 3 segundos para se espalhar
+            // por todos os bancos de dados do Instagram. Se pedirmos o /media_publish
+            // na mesma fração de segundo em que deu FINISHED, a Meta joga um Erro 24 (2207006)
+            // de que o container "não existe".
+            console.log(`⏳ Aguardando 3.5s para consistência interna da Meta antes do publish...`);
+            await new Promise(resolve => setTimeout(resolve, 3500));
+
             const response = await axios.post(`${this.baseUrl}/${igAccountId}/media_publish`, {
                 creation_id: creationId,
                 access_token: accessToken
