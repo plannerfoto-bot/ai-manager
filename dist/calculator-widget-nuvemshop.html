@@ -1,0 +1,313 @@
+<!-- 
+  ╔══════════════════════════════════════════════════════════╗
+  ║  CLOTH SUBLIMAÇÃO — Calculadora de Medidas Personalizadas ║
+  ║  Versão MVP 1.0                                          ║
+  ║                                                          ║
+  ║  COMO USAR:                                              ║
+  ║  1. Acesse o painel Nuvemshop                           ║
+  ║  2. Vá em: Personalizar Tema → Código Adicional         ║
+  ║  3. Cole ESTE ARQUIVO INTEIRO no campo de Scripts        ║
+  ║  4. Salve e acesse qualquer página de produto            ║
+  ║                                                          ║
+  ║  CONFIGURAÇÃO:                                           ║
+  ║  - Altere WHATSAPP_NUMBER para o número da loja          ║
+  ║  - Para desativar: mude CALCULATOR_ENABLED para false    ║
+  ╚══════════════════════════════════════════════════════════╝
+-->
+<style>
+#cloth-calc-widget {
+  margin: 16px 0 8px 0;
+  border: 1.5px solid #2563eb44;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  padding: 18px 20px 16px 20px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  max-width: 440px;
+  box-shadow: 0 4px 24px 0 #2563eb18, 0 1.5px 4px 0 #0001;
+  transition: box-shadow 0.3s;
+}
+#cloth-calc-widget:hover { box-shadow: 0 6px 32px 0 #2563eb28, 0 2px 8px 0 #0002; }
+#cloth-calc-header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+#cloth-calc-icon { background: #2563eb22; border-radius: 10px; padding: 7px; display: flex; align-items: center; justify-content: center; }
+#cloth-calc-icon svg { width: 18px; height: 18px; stroke: #60a5fa; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+#cloth-calc-title { font-size: 14px; font-weight: 800; color: #fff; margin: 0; }
+#cloth-calc-subtitle { font-size: 10px; color: #60a5fa; margin: 0; opacity: 0.75; }
+#cloth-calc-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+.cloth-calc-field label { display: flex; align-items: center; gap: 4px; font-size: 10px; text-transform: uppercase; font-weight: 700; color: #94a3b8; margin-bottom: 5px; letter-spacing: 0.05em; }
+.cloth-calc-field label svg { width: 11px; height: 11px; stroke: #60a5fa; fill: none; stroke-width: 2; stroke-linecap: round; }
+.cloth-calc-field input {
+  width: 100%; box-sizing: border-box;
+  background: #0f172a; border: 1.5px solid #334155;
+  border-radius: 10px; padding: 9px 12px;
+  font-size: 14px; color: #fff; outline: none;
+  transition: border-color 0.2s, background 0.2s;
+  -webkit-appearance: none;
+}
+.cloth-calc-field input:focus { border-color: #2563eb99; background: #1e293b; }
+.cloth-calc-field input::placeholder { color: #475569; }
+#cloth-calc-btn {
+  width: 100%; padding: 11px; background: #2563eb;
+  border: none; border-radius: 12px; font-size: 13px;
+  font-weight: 800; color: #fff; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  transition: background 0.2s, transform 0.15s;
+  letter-spacing: 0.04em;
+}
+#cloth-calc-btn:hover { background: #1d4ed8; }
+#cloth-calc-btn:active { transform: scale(0.97); }
+#cloth-calc-btn svg { width: 14px; height: 14px; stroke: #fff; fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+#cloth-calc-result { margin-top: 12px; animation: clothFadeIn 0.3s ease; }
+@keyframes clothFadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+#cloth-calc-result.error { background: #450a0a44; border: 1.5px solid #ef444455; border-radius: 12px; padding: 12px 14px; display: flex; align-items: flex-start; gap: 8px; }
+#cloth-calc-result.error svg { width: 15px; height: 15px; stroke: #f87171; fill: none; stroke-width: 2; flex-shrink: 0; margin-top: 1px; }
+#cloth-calc-result.error span { font-size: 12px; color: #f87171; line-height: 1.5; }
+#cloth-calc-success { background: #052e1644; border: 1.5px solid #22c55e44; border-radius: 12px; padding: 14px 16px; }
+#cloth-calc-success-header { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+#cloth-calc-success-header svg { width: 14px; height: 14px; stroke: #4ade80; fill: none; stroke-width: 2.5; }
+#cloth-calc-success-header span { font-size: 10px; font-weight: 700; text-transform: uppercase; color: #4ade80; letter-spacing: 0.08em; }
+#cloth-calc-dims { font-size: 11px; color: #94a3b8; margin-bottom: 4px; }
+#cloth-calc-price { font-size: 32px; font-weight: 900; color: #fff; letter-spacing: -0.03em; line-height: 1; }
+#cloth-calc-rule { font-size: 10px; color: #64748b; margin-top: 4px; display: flex; align-items: center; gap: 4px; }
+#cloth-calc-rule svg { width: 10px; height: 10px; stroke: #64748b; fill: none; stroke-width: 2; }
+#cloth-calc-wa-btn {
+  margin-top: 12px; width: 100%; padding: 12px;
+  background: linear-gradient(90deg, #16a34a, #15803d);
+  border: none; border-radius: 12px; font-size: 13px;
+  font-weight: 800; color: #fff; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  transition: opacity 0.2s, transform 0.15s;
+  letter-spacing: 0.04em; text-decoration: none;
+}
+#cloth-calc-wa-btn:hover { opacity: 0.9; }
+#cloth-calc-wa-btn:active { transform: scale(0.97); }
+#cloth-calc-wa-btn svg { width: 16px; height: 16px; fill: #fff; }
+#cloth-calc-hint { text-align: center; font-size: 10px; color: #475569; margin-top: 8px; }
+#cloth-calc-footer { text-align: center; font-size: 10px; color: #334155; margin-top: 10px; }
+</style>
+
+<script>
+(function() {
+  // ─── CONFIGURAÇÃO ─────────────────────────────────────────
+  var CALCULATOR_ENABLED = true;
+  var WHATSAPP_NUMBER    = '5500000000000'; // ← SUBSTITUA pelo número da loja (ex: 5511987654321)
+  var GRAMATURA_LABEL    = '120g';
+  // ──────────────────────────────────────────────────────────
+
+  if (!CALCULATOR_ENABLED) return;
+
+  // Só injeta em páginas de produto
+  function isProdutoPage() {
+    return (
+      window.location.pathname.indexOf('/produtos/') !== -1 ||
+      window.location.pathname.indexOf('/products/') !== -1 ||
+      document.querySelector('[data-product-form]') !== null ||
+      document.querySelector('.js-buy-form') !== null ||
+      document.querySelector('[itemtype*="Product"]') !== null
+    );
+  }
+
+  // ─── Lógica de Cálculo ───────────────────────────────────
+  var LIMITE = 1.56;
+  var MAX_DIM = 3.0;
+
+  function calcularPreco(alt, larg) {
+    var maior = Math.max(alt, larg);
+    var menor = Math.min(alt, larg);
+    if (maior <= 0 || menor <= 0) return { erro: 'Insira valores maiores que zero.' };
+    if (maior > MAX_DIM) return { erro: 'Máximo suportado: 3,00m por dimensão.' };
+    var ambasAcima = alt > LIMITE && larg > LIMITE;
+    if (ambasAcima) {
+      var preco = ((maior * 2) * 22.5 + 15) * 2;
+      return { preco: preco, regra: 'B' };
+    } else {
+      var preco = maior * 22.5 + 3 + 45;
+      return { preco: preco, regra: 'A' };
+    }
+  }
+
+  function formatBRL(v) {
+    return 'R$ ' + v.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  }
+
+  function formatDim(v) { return v.toFixed(2).replace('.', ',') + 'm'; }
+
+  // ─── HTML do Widget ───────────────────────────────────────
+  function buildWidget() {
+    var div = document.createElement('div');
+    div.id = 'cloth-calc-widget';
+    div.innerHTML = [
+      '<div id="cloth-calc-header">',
+        '<div id="cloth-calc-icon">',
+          '<svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>',
+        '</div>',
+        '<div>',
+          '<p id="cloth-calc-title">Calcule sua Medida</p>',
+          '<p id="cloth-calc-subtitle">Gramatura ' + GRAMATURA_LABEL + ' · Sob encomenda</p>',
+        '</div>',
+      '</div>',
+      '<div id="cloth-calc-inputs">',
+        '<div class="cloth-calc-field">',
+          '<label>',
+            '<svg viewBox="0 0 24 24"><line x1="5" y1="3" x2="5" y2="21"/><line x1="19" y1="3" x2="19" y2="21"/><line x1="5" y1="12" x2="19" y2="12"/></svg>',
+            'Altura (m)',
+          '</label>',
+          '<input type="text" id="cloth-calc-alt" inputmode="decimal" placeholder="ex: 1,70">',
+        '</div>',
+        '<div class="cloth-calc-field">',
+          '<label>',
+            '<svg viewBox="0 0 24 24"><line x1="3" y1="5" x2="21" y2="5"/><line x1="3" y1="19" x2="21" y2="19"/><line x1="12" y1="5" x2="12" y2="19"/></svg>',
+            'Largura (m)',
+          '</label>',
+          '<input type="text" id="cloth-calc-larg" inputmode="decimal" placeholder="ex: 2,50">',
+        '</div>',
+      '</div>',
+      '<button id="cloth-calc-btn">',
+        '<svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>',
+        'CALCULAR PREÇO',
+      '</button>',
+      '<div id="cloth-calc-result" style="display:none"></div>',
+      '<p id="cloth-calc-footer">Dimensões aceitas: até 3,00m por lado</p>'
+    ].join('');
+    return div;
+  }
+
+  // ─── Renderizar resultado ─────────────────────────────────
+  function renderResultado(calc, alt, larg) {
+    var el = document.getElementById('cloth-calc-result');
+    el.style.display = 'block';
+    el.className = '';
+    if (calc.erro) {
+      el.className = 'error';
+      el.innerHTML = [
+        '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>',
+        '<span>' + calc.erro + '</span>'
+      ].join('');
+      return;
+    }
+    var regraTxt = calc.regra === 'A'
+      ? 'Regra A — dimensão menor que 1,56m'
+      : 'Regra B — ambas dimensões entre 1,56m e 3,00m';
+    var prodName = document.querySelector(
+      'h1.js-product-name, h1[itemprop="name"], .product-name h1, h1.product__title, h1'
+    );
+    var nome = prodName ? prodName.textContent.trim() : 'Produto sob medida';
+
+    var msgWa = encodeURIComponent(
+      '🖼 *Pedido de Medida Personalizada*\n\n' +
+      '📦 Produto: ' + nome + '\n' +
+      '📐 Medida: ' + formatDim(alt) + ' (alt) × ' + formatDim(larg) + ' (larg)\n' +
+      '🧵 Gramatura: ' + GRAMATURA_LABEL + '\n' +
+      '💰 Valor calculado: ' + formatBRL(calc.preco) + '\n\n' +
+      'Gostaria de confirmar este pedido!'
+    );
+
+    el.innerHTML = [
+      '<div id="cloth-calc-success">',
+        '<div id="cloth-calc-success-header">',
+          '<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>',
+          '<span>Preço Calculado</span>',
+        '</div>',
+        '<p id="cloth-calc-dims">' + formatDim(alt) + ' × ' + formatDim(larg) + ' · ' + GRAMATURA_LABEL + '</p>',
+        '<p id="cloth-calc-price">' + formatBRL(calc.preco) + '</p>',
+        '<p id="cloth-calc-rule">',
+          '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>',
+          regraTxt,
+        '</p>',
+      '</div>',
+      '<a id="cloth-calc-wa-btn" href="https://wa.me/' + WHATSAPP_NUMBER + '?text=' + msgWa + '" target="_blank" rel="noopener">',
+        '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>',
+        'SOLICITAR VIA WHATSAPP',
+      '</a>',
+      '<p id="cloth-calc-hint">Você será direcionado ao WhatsApp com os detalhes da medida.</p>'
+    ].join('');
+  }
+
+  // ─── Evento do botão calcular ─────────────────────────────
+  function bindCalcBtn() {
+    var btn = document.getElementById('cloth-calc-btn');
+    if (!btn) return;
+    btn.addEventListener('click', function() {
+      var altRaw  = (document.getElementById('cloth-calc-alt').value  || '').replace(',', '.');
+      var largRaw = (document.getElementById('cloth-calc-larg').value || '').replace(',', '.');
+      var alt  = parseFloat(altRaw);
+      var larg = parseFloat(largRaw);
+      if (isNaN(alt) || isNaN(larg)) {
+        renderResultado({ erro: 'Preencha altura e largura com valores válidos (ex: 1,70).' }, 0, 0);
+        return;
+      }
+      var calc = calcularPreco(alt, larg);
+      renderResultado(calc, alt, larg);
+    });
+    // Enter nos inputs também calcula
+    ['cloth-calc-alt', 'cloth-calc-larg'].forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) el.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') btn.click();
+        // Limpa resultado ao digitar
+        document.getElementById('cloth-calc-result').style.display = 'none';
+      });
+    });
+  }
+
+  // ─── Encontrar ponto de injeção ───────────────────────────
+  function findInsertionPoint() {
+    // Tenta vários seletores comuns do tema Nuvemshop/Tiendanube
+    var selectors = [
+      '.js-add-to-cart-form .js-variants',
+      '.js-buy-form .product-variants',
+      '[data-variants]',
+      '.product-variants',
+      '.js-product-variants',
+      '.product__variants',
+      '.product-form__variants',
+      // Fallback: antes do botão COMPRAR
+      '.js-add-to-cart',
+      '[data-add-to-cart]',
+      '.js-buy-form',
+      '[data-product-form]',
+      '.product-buy',
+      '.product__actions',
+      '.product-form'
+    ];
+    for (var i = 0; i < selectors.length; i++) {
+      var el = document.querySelector(selectors[i]);
+      if (el) return el;
+    }
+    return null;
+  }
+
+  // ─── Injeção principal ────────────────────────────────────
+  function injectWidget() {
+    if (!isProdutoPage()) return;
+    if (document.getElementById('cloth-calc-widget')) return; // já injetado
+
+    var target = findInsertionPoint();
+    if (!target) {
+      // Último fallback: insere após o preço
+      target = document.querySelector('[itemprop="price"], .product-price, .price');
+    }
+    if (!target) return;
+
+    var widget = buildWidget();
+
+    // Insere depois do elemento alvo
+    if (target.nextSibling) {
+      target.parentNode.insertBefore(widget, target.nextSibling);
+    } else {
+      target.parentNode.appendChild(widget);
+    }
+
+    bindCalcBtn();
+  }
+
+  // Aguarda o DOM estar pronto
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', injectWidget);
+  } else {
+    injectWidget();
+  }
+
+  // Fallback para SPAs/carregamento lento
+  setTimeout(injectWidget, 1500);
+})();
+</script>
