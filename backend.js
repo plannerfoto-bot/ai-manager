@@ -999,6 +999,14 @@ app.post('/api/webhooks/product-created', async (req, res) => {
 
         // 7. Postagem no STORY
         let storySuccess = false;
+
+        // [FIX Meta Anti-Spam/Rate Limit Burst]
+        // Se o Feed tentou postar (com sucesso ou não), devemos dar um respiro 
+        // de pelo menos 8 a 10 segundos antes de bombardear a Meta novamente com a mesma URL de imagem.
+        // O Graph API joga Error 2 (Unexpected Internal Error) se engasgar baixando a imagem repetidamente no mesmo sec.
+        console.log('⏳ Pausa de 8s entre Feed e Story (Prevenção de Meta Error 2)...');
+        await new Promise(r => setTimeout(r, 8000));
+
         console.log('📱 Publicando no STORY (Instagram)...');
         
         try {
