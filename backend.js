@@ -855,11 +855,25 @@ app.post('/api/webhooks/product-created', async (req, res) => {
         return;
     }
 
-    // 2. Delay de Segurança (Sugerido pelo Usuário): Aguarda 2 minutos para dar tempo de terminar o cadastro
-    if (event === 'product/created') {
-        console.log(`[Delay] Aguardando 120s para o produto ${productId}...`);
-        addWebhookLog({ storeId, event, productId, status: 'Processing', details: 'Aguardando 2 minutos para você concluir o cadastro e imagens na Nuvemshop...' });
+    // Movemos a checagem de "Já foi processado" para o início a fim de filtrar atualizações de preço ou estoque BEM CEDO.
+    try {
+        const initialStores = await getStores();
+        const initialStoreData = initialStores[storeId] || {};
+        const earlyProcessed = Array.isArray(initialStoreData.processed_products) ? initialStoreData.processed_products : [];
+        if (earlyProcessed.includes(String(productId))) {
+            console.log(`♻️ Produto ${productId} já consta como postado anteriormente. Ignorando evento de atualização (${event}).`);
+            global.activeWebhooks.delete(lockKey);
+            return;
+        }
+
+        // Se chegou AQUI, o produto NUNCA FOI POSTADO (ainda está sendo criado ou duplicado).
+        // A regra de Delay (Debouncer) protege contra o delay de upload de foto da API da Nuvemshop
+        // e dá tempo para o usuário acabar de digitar a descrição e nome do produto.
+        console.log(`[Delay/Debounce] Aguardando 120s para coletar os dados finais do produto INÉDITO ${productId}...`);
+        await addWebhookLog({ storeId, event, productId, status: 'Processing', details: 'Produto Inédito identificado! Aguardando 2 minutos para que imagens e textos terminem de sincronizar na Nuvemshop...' });
         await new Promise(r => setTimeout(r, 120000));
+    } catch (err) {
+        console.error("Erro ao validar deduplicação inicial:", err);
     }
 
     try {
