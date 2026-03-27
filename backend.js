@@ -18,6 +18,9 @@ dotenv.config({ path: fs.existsSync('../nuvemshop-mcp/.env') ? '../nuvemshop-mcp
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
+
+// Servindo arquivos estáticos do frontend (pasta dist após npm run build)
+app.use(express.static(path.join(__dirname, 'dist')));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Middleware para evitar cache do index.html (forçar atualização do frontend)
@@ -1039,6 +1042,23 @@ app.all('/api/cron/process-queue', async (req, res) => {
     }
 });
 
+// Remover item individual da fila
+app.delete('/api/marketing/queue/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { error } = await supabase
+            .from('post_queue')
+            .delete()
+            .eq('id', id);
+
+        if (error) throw error;
+        res.json({ success: true, message: 'Item removido da fila' });
+    } catch (error) {
+        console.error('Erro ao remover item da fila:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // Endpoint para frontend ver a fila de postagem
 app.get('/api/marketing/queue', async (req, res) => {
     try {
@@ -1586,5 +1606,10 @@ app.delete('/api/scripts/store-script', async (req, res) => {
   }
 });
 
-const PORT = 3001;
-app.listen(PORT, () => console.log(`Backend AIOX v5.1 Operacional em http://localhost:${PORT}`));
+// Redireciona todas as outras rotas para o index.html do React (SPA)
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+});
+
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, '0.0.0.0', () => console.log(`Backend AIOX v5.1 Operacional na porta ${PORT}`));

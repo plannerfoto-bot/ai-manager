@@ -5,7 +5,7 @@ import {
   Share2, Globe, Key, Save, ExternalLink, 
   HelpCircle, CheckCircle2, AlertCircle,
   Zap, Sparkles, FileText, Link2, X, ChevronRight, Info,
-  RefreshCw, Clock, Circle, Layout, Settings, Activity, Monitor
+  RefreshCw, Clock, Circle, Layout, Settings, Activity, Monitor, Trash2
 } from 'lucide-react';
 
 const Marketing = () => {
@@ -150,6 +150,17 @@ const Marketing = () => {
         }
     };
 
+    const handleRemoveFromQueue = async (id) => {
+        if (!window.confirm('Deseja remover este item da fila?')) return;
+        try {
+            await axios.delete(`/api/marketing/queue/${id}`);
+            toast.success('Item removido da fila');
+            setQueue(prev => prev.filter(item => item.id !== id));
+        } catch (error) {
+            toast.error('Erro ao remover item');
+        }
+    };
+
     const captionPreview = (settings.feed_caption_template || defaultCaption)
 
         .replace(/{{product_name}}/g, 'Nome do Produto')
@@ -236,12 +247,24 @@ const Marketing = () => {
                                                 </div>
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex items-center justify-between mb-0.5">
-                                                        <span className="text-xs font-bold text-white">ID: {job.product_id}</span>
-                                                        <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${
-                                                            job.status === 'failed' ? 'bg-rose-500/20 text-rose-500' : 'bg-blue-500/10 text-blue-400'
-                                                        }`}>
-                                                            {job.status}
-                                                        </span>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-xs font-bold text-white">ID: {job.product_id}</span>
+                                                            <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${
+                                                                job.status === 'failed' ? 'bg-rose-500/20 text-rose-500' : 'bg-blue-500/10 text-blue-400'
+                                                            }`}>
+                                                                {job.status}
+                                                            </span>
+                                                        </div>
+                                                        <button 
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleRemoveFromQueue(job.id);
+                                                            }}
+                                                            className="p-1.5 hover:bg-rose-500/10 text-slate-500 hover:text-rose-500 rounded-lg transition-all"
+                                                            title="Remover da fila"
+                                                        >
+                                                            <Trash2 size={12} />
+                                                        </button>
                                                     </div>
                                                     {(() => {
                                                         if (job.status !== 'pending') return <p className="text-[10px] text-slate-500 italic">Processando...</p>;
