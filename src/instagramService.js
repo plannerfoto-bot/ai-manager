@@ -109,10 +109,57 @@ class InstagramService {
     }
 
     /**
+     * Verifica o status de processamento do container de mídia
+     */
+    async getContainerStatus(containerId, accessToken) {
+        try {
+            const response = await axios.get(`${this.baseUrl}/${containerId}`, {
+                params: {
+                    fields: 'status_code,status,error_message',
+                    access_token: accessToken
+                }
+            });
+            return response.data;
+        } catch (error) {
+            console.error('❌ Erro ao buscar status do container:', error.response ? JSON.stringify(error.response.data) : error.message);
+            throw new Error(this._extractError(error));
+        }
+    }
+
+    /**
+     * Aguarda o container ficar pronto (FINISHED) com polling
+     */
+    async waitForContainerReady(containerId, accessToken, maxRetries = 10) {
+        console.log(`⏳ Aguardando processamento do container ${containerId}...`);
+        for (let i = 0; i < maxRetries; i++) {
+            const statusData = await this.getContainerStatus(containerId, accessToken);
+            
+            if (statusData.status_code === 'FINISHED') {
+                console.log(`✅ Container ${containerId} pronto para publicação!`);
+                return true;
+            }
+            
+            if (statusData.status_code === 'ERROR') {
+                const errMsg = statusData.error_message || 'Erro desconhecido no processamento do Meta.';
+                console.error(`❌ Erro no processamento do container ${containerId}:`, errMsg);
+                throw new Error(`[Meta Processing Error] ${errMsg}`);
+            }
+
+            console.log(`...ainda processando (${statusData.status_code}). Tentativa ${i + 1}/${maxRetries}`);
+            await new Promise(resolve => setTimeout(resolve, 3000)); // Espera 3s entre tentativas
+        }
+        throw new Error('Timeout: O Instagram demorou demais para processar a sua imagem. Tente postar novamente em alguns instantes.');
+    }
+
+    /**
      * Publica o container de mídia (Feed ou Story)
+     * Agora verifica o status antes de tentar publicar
      */
     async publishMedia(igAccountId, creationId, accessToken) {
         try {
+            // Garantir que está pronto antes de publicar
+            await this.waitForContainerReady(creationId, accessToken);
+
             const response = await axios.post(`${this.baseUrl}/${igAccountId}/media_publish`, {
                 creation_id: creationId,
                 access_token: accessToken

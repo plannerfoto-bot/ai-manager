@@ -921,55 +921,58 @@ app.post('/api/webhooks/product-created', async (req, res) => {
         addWebhookLog({ storeId, productId, productName, status: 'Processing', details: 'Validando conta do Instagram...' });
 
         // 4. Obtém ID da conta do Instagram
-        const igAccountId = await igService.getInstagramAccountId(fbPageId, metaToken);
-        if (!igAccountId) {
-            console.error('❌ Falha ao obter conta do Instagram Vinculada.');
-            addWebhookLog({ storeId, productId, productName, status: 'Error', error: 'Conta do Instagram não encontrada para este Page ID' });
-            return;
-        }
-
         // 5. Formata a legenda (Feed) usando template salvo pelo usuário
-        const caption = buildFeedCaption(storeData.feed_caption_template, productName, productLink);
+        const caption = buildFeedCaption(marketingSettings?.feed_caption_template, productName, productLink);
 
         // 6. Postagem no FEED
+        let feedSuccess = false;
         console.log('📸 Publicando no FEED (Instagram)...');
-        addWebhookLog({ storeId, productId, productName, status: 'Processing', details: 'Aguardando 10s para processamento da mídia pelo Meta (Feed)...' });
-        await new Promise(r => setTimeout(r, 10000)); 
         
         try {
             const feedContainerId = await igService.createFeedContainer(igAccountId, mainImage, caption, metaToken);
             await igService.publishMedia(igAccountId, feedContainerId, metaToken);
+            feedSuccess = true;
             console.log(`✅ Feed postado: ${productId}`);
         } catch (e) {
             console.error('Erro no Feed:', e.message);
-            addWebhookLog({ storeId, productId, productName, status: 'Error', error: `Feed: ${e.message}` });
+            await addWebhookLog({ storeId, productId, productName, status: 'Error', error: `Feed: ${e.message}` });
         }
 
         // 7. Postagem no STORY
+        let storySuccess = false;
         console.log('📱 Publicando no STORY (Instagram)...');
-        addWebhookLog({ storeId, productId, productName, status: 'Processing', details: 'Aguardando 10s para processamento da mídia pelo Meta (Story)...' });
-        await new Promise(r => setTimeout(r, 10000));
-
+        
         try {
             const storyContainerId = await igService.createStoryContainer(igAccountId, mainImage, productLink, metaToken);
             await igService.publishMedia(igAccountId, storyContainerId, metaToken);
+            storySuccess = true;
             console.log(`✅ Story postado: ${productId}`);
         } catch (e) {
             console.error('Erro no Story:', e.message);
-            addWebhookLog({ storeId, productId, productName, status: 'Error', error: `Story: ${e.message}` });
+            await addWebhookLog({ storeId, productId, productName, status: 'Error', error: `Story: ${e.message}` });
         }
 
-        // 8. Marca como processado para evitar duplicata (mantemos os últimos 50 produtos)
-        const newProcessed = [String(productId), ...processed].slice(0, 50);
-        await saveStore(storeId, { processed_products: newProcessed });
+        // 8. Marca como processado para evitar duplicata
+        if (feedSuccess || storySuccess) {
+            const newProcessed = [String(productId), ...processed].slice(0, 50);
+            await saveStore(storeId, { processed_products: newProcessed });
+        }
 
-        console.log('✅ Automação de postagem concluída!');
-        addWebhookLog({ storeId, productId, productName, status: 'Success', details: 'Postado no Feed e Story' });
+        // 9. Registro Final Consolidado
+        if (feedSuccess && storySuccess) {
+            await addWebhookLog({ storeId, productId, productName, status: 'Success', details: 'Postado com sucesso no Feed e Story!' });
+        } else if (feedSuccess || storySuccess) {
+            const part = feedSuccess ? 'Feed' : 'Story';
+            const fail = feedSuccess ? 'Story' : 'Feed';
+            await addWebhookLog({ storeId, productId, productName, status: 'Warning', details: `Postado apenas no ${part}. Falha no ${fail}.` });
+        } else {
+            await addWebhookLog({ storeId, productId, productName, status: 'Error', error: 'Falha total: Não foi possível postar em nenhum canal.' });
+        }
 
     } catch (error) {
         const errorMsg = error.response?.data || error.message;
         console.error('❌ Erro no processamento do Webhook:', JSON.stringify(errorMsg));
-        addWebhookLog({ storeId, productId, status: 'Error', error: errorMsg });
+        await addWebhookLog({ storeId, productId, status: 'Error', error: errorMsg });
     }
 });
 
