@@ -921,6 +921,13 @@ app.post('/api/webhooks/product-created', async (req, res) => {
         addWebhookLog({ storeId, productId, productName, status: 'Processing', details: 'Validando conta do Instagram...' });
 
         // 4. Obtém ID da conta do Instagram
+        const igAccountId = await igService.getInstagramAccountId(fbPageId, metaToken);
+        if (!igAccountId) {
+            console.error('❌ Falha ao obter conta do Instagram Vinculada.');
+            await addWebhookLog({ storeId, productId, productName, status: 'Error', error: 'Conta do Instagram não encontrada para este Page ID' });
+            return;
+        }
+
         // 5. Formata a legenda (Feed) usando template salvo pelo usuário
         const caption = buildFeedCaption(marketingSettings?.feed_caption_template, productName, productLink);
 
