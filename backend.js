@@ -910,25 +910,35 @@ app.post('/api/webhooks/product-created', async (req, res) => {
             return;
         }
 
-        // 3. Deduplicação IMEDIATA: Evita postar o mesmo produto e trava execuções paralelas
+        // 3. Deduplicação IMEDIATA: Evita postar o mesmo produto repetidamente
         const processed = Array.isArray(storeData.processed_products) ? storeData.processed_products : [];
         if (processed.includes(String(productId))) {
-            console.log(`♻️ Produto ${productId} já está em andamento ou foi postado. Pulando webhook duplicado.`);
+            console.log(`♻️ Produto ${productId} já foi processado ou está em andamento. Ignorando webhook.`);
             return;
         }
 
-        // Bloqueio Imediato (Mutex) - Salva antes de qualquer pausa ou API externa
-        const newProcessed = [String(productId), ...processed].slice(0, 50);
+        // Bloqueio Imediato (Mutex) Otimista
+        let newProcessed = [String(productId), ...processed].slice(0, 50);
         await saveStore(storeId, { processed_products: newProcessed });
 
         console.log(`🚀 Iniciando postagem automática para: ${productName}`);
-        addWebhookLog({ storeId, productId, productName, status: 'Processing', details: 'Validando conta do Instagram...' });
+        addWebhookLog({ storeId, productId, productName, status: 'Processing', details: 'Avaliando dados e conta do Instagram...' });
+
+        // Função utilitária para desbloquear o Mutex em caso de falha e permitir retentativa
+        const unlockMutex = async () => {
+            console.log(`🔓 Desbloqueando Mutex do produto ${productId} para permitir nova tentativa...`);
+            const refreshedStore = await getStore(storeId);
+            const currentProcessed = Array.isArray(refreshedStore.processed_products) ? refreshedStore.processed_products : [];
+            const unlockedList = currentProcessed.filter(id => id !== String(productId));
+            await saveStore(storeId, { processed_products: unlockedList });
+        };
 
         // 4. Obtém ID da conta do Instagram
         const igAccountId = await igService.getInstagramAccountId(fbPageId, metaToken);
         if (!igAccountId) {
             console.error('❌ Falha ao obter conta do Instagram Vinculada.');
             await addWebhookLog({ storeId, productId, productName, status: 'Error', error: 'Conta do Instagram não encontrada para este Page ID' });
+            await unlockMutex();
             return;
         }
 
@@ -963,9 +973,7 @@ app.post('/api/webhooks/product-created', async (req, res) => {
             await addWebhookLog({ storeId, productId, productName, status: 'Error', error: `Story: ${e.message}` });
         }
 
-        // 8. (Removido salvamento redundante de duplicata aqui, agora é feito no início)
-
-        // 9. Registro Final Consolidado
+        // 8. Registro Final Consolidado e Rollback em caso de falha Total
         if (feedSuccess && storySuccess) {
             await addWebhookLog({ storeId, productId, productName, status: 'Success', details: 'Postado com sucesso no Feed e Story!' });
         } else if (feedSuccess || storySuccess) {
@@ -974,6 +982,8 @@ app.post('/api/webhooks/product-created', async (req, res) => {
             await addWebhookLog({ storeId, productId, productName, status: 'Warning', details: `Postado apenas no ${part}. Falha no ${fail}.` });
         } else {
             await addWebhookLog({ storeId, productId, productName, status: 'Error', error: 'Falha total: Não foi possível postar em nenhum canal.' });
+            // Como falhou totalmente (ex: timeout da Meta, erro da imagem), desbloqueia para retentativas!
+            await unlockMutex();
         }
 
     } catch (error) {
