@@ -299,7 +299,7 @@ const Marketing = () => {
                     <div className="lg:col-span-4 space-y-6">
                         <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-6 h-full shadow-2xl flex flex-col">
                             <div className="flex items-center justify-between mb-6">
-                                <h3 className="text-sm font-black text-slate-500 uppercase tracking-widest">Histórico Recente</h3>
+                                <h3 className="text-sm font-black text-slate-500 uppercase tracking-widest">Logs de Automação de Marketing</h3>
                                 <button onClick={fetchData} className="p-2 hover:bg-slate-800 rounded-xl text-blue-400 transition-all">
                                     <RefreshCw size={16} className={loadingHistory ? 'animate-spin' : ''} />
                                 </button>

@@ -1063,10 +1063,13 @@ app.get('/api/stats', async (req, res) => {
   const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
   const client = await getApiClient(storeId);
   try {
-    const [prodRes, ordersRes, storeRes] = await Promise.all([
+    const [prodRes, ordersRes, storeRes, automationsCountRes, queueCountRes, automationLogsRes] = await Promise.all([
       client.get('/products', { params: { per_page: 1 } }),
       client.get('/orders', { params: { per_page: 50, status: 'any' } }),
-      client.get('/store')
+      client.get('/store'),
+      supabase.from('automation_history').select('*', { count: 'exact', head: true }).eq('store_id', storeId),
+      supabase.from('post_queue').select('*', { count: 'exact', head: true }).eq('store_id', storeId).eq('status', 'pending'),
+      supabase.from('automation_history').select('*').eq('store_id', storeId).order('created_at', { ascending: false }).limit(5)
     ]);
     
     const totalSales = ordersRes.data.reduce((acc, order) => acc + parseFloat(order.total || 0), 0);
@@ -1078,7 +1081,14 @@ app.get('/api/stats', async (req, res) => {
       ordersCount: ordersRes.data.length,
       totalSales: totalSales.toLocaleString('pt-BR', { minimumFractionDigits: 2 }),
       recentOrders: ordersRes.data.slice(0, 5),
-      customersCount: 42 // Placeholder se não houver endpoint de clientes fácil
+      automationLogs: (automationLogsRes.data || []).map(log => ({
+        ...log,
+        ts: log.created_at,
+        productName: log.product_name || `ID: ${log.product_id}`
+      })),
+      automationsCount: automationsCountRes.count || 0,
+      queueCount: queueCountRes.count || 0,
+      customersCount: 42
     });
   } catch (error) {
     console.error('Erro ao processar estatísticas:', error.response?.data || error.message);

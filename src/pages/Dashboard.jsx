@@ -5,7 +5,8 @@ import {
   ShoppingBag, 
   DollarSign,
   ArrowUpRight,
-  ArrowDownRight
+  ArrowDownRight,
+  Share2
 } from 'lucide-react';
 import Card from '../components/atoms/Card';
 
@@ -14,7 +15,7 @@ const Dashboard = ({ stats }) => {
     { title: 'Vendas Totais', value: `R$ ${stats.totalSales || '0,00'}`, icon: DollarSign, trend: '+12.5%', color: 'text-green-500' },
     { title: 'Pedidos', value: stats.ordersCount || 0, icon: ShoppingBag, trend: '+8.2%', color: 'text-blue-500' },
     { title: 'Produtos', value: stats.productsCount || 0, icon: TrendingUp, trend: '+3.1%', color: 'text-purple-500' },
-    { title: 'Clientes', value: '42', icon: Users, trend: '+5.4%', color: 'text-orange-500' },
+    { title: 'Automações', value: stats.automationsCount || 0, icon: Share2, trend: stats.queueCount > 0 ? `${stats.queueCount} pendentes` : 'Ativo', color: 'text-pink-500' },
   ];
 
   return (
@@ -46,22 +47,30 @@ const Dashboard = ({ stats }) => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card title="Atividade Recente" subtitle="Últimas movimentações da loja">
-          <div className="space-y-4">
-            {[1, 2, 3].map((_, i) => (
-              <div key={i} className="flex items-center justify-between py-3 border-b border-slate-800 last:border-0">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-blue-600/20 rounded-full flex items-center justify-center">
-                    <ShoppingBag className="text-blue-500" size={16} />
+        <Card title="Atividade Recente (Marketing)">
+          <div className="space-y-6">
+            {(stats.automationLogs || []).length > 0 ? (stats.automationLogs || []).map((log, i) => (
+              <div key={i} className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                    log.status === 'Success' ? 'bg-green-500/10 text-green-500' : 
+                    log.status === 'Error' ? 'bg-rose-500/10 text-rose-500' : 'bg-blue-600/20 text-blue-500'
+                  }`}>
+                    <Share2 size={16} />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-white">Novo pedido #{(4500 + i)}</p>
-                    <p className="text-xs text-slate-500">Há {i + 1} hora(s)</p>
+                    <p className="text-sm font-medium text-white">{log.productName}</p>
+                    <p className="text-xs text-slate-400">
+                      {log.status === 'Success' ? 'Postado com sucesso' : 
+                       log.status === 'Processing' ? 'Agendado na fila' : log.error || 'Falha no processamento'}
+                    </p>
                   </div>
                 </div>
-                <span className="text-sm font-bold text-white">R$ {(150 * (i + 1)).toFixed(2)}</span>
+                <span className="text-xs text-slate-500">{new Date(log.ts).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
               </div>
-            ))}
+            )) : (
+              <div className="py-8 text-center text-slate-500 text-sm">Nenhuma atividade recente.</div>
+            )}
           </div>
         </Card>
 
