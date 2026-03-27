@@ -872,20 +872,25 @@ app.post('/api/webhooks/product-created', async (req, res) => {
         console.log(`[Delay/Debounce] Aguardando 120s para coletar os dados finais do produto INÉDITO ${productId}...`);
         await addWebhookLog({ storeId, event, productId, status: 'Processing', details: 'Produto Inédito identificado! Aguardando 2 minutos para que imagens e textos terminem de sincronizar na Nuvemshop...' });
         await new Promise(r => setTimeout(r, 120000));
+        
+        console.log(`[Debounce] 120s concluídos para ${productId}. Retomando execução...`);
+        await addWebhookLog({ storeId, event, productId, status: 'Processing', details: 'Pausa concluída! Buscando versão final do produto no banco e na Nuvemshop...' });
     } catch (err) {
         console.error("Erro ao validar deduplicação inicial:", err);
     }
 
     try {
-        const stores = await getStores();
+        const stores = await Promise.race([
+            getStores(),
+            new Promise((_, rej) => setTimeout(() => rej(new Error("Timeout ao buscar Lojas no Supabase (Pós-Sleep)")), 15000))
+        ]);
         const storeData = stores[storeId] || {};
         
         // Busca configurações de marketing específicas
-        const { data: marketingSettings } = await supabase
-            .from('marketing_settings')
-            .select('*')
-            .eq('store_id', String(storeId))
-            .maybeSingle();
+        const { data: marketingSettings } = await Promise.race([
+            supabase.from('marketing_settings').select('*').eq('store_id', String(storeId)).maybeSingle(),
+            new Promise((_, rej) => setTimeout(() => rej(new Error("Timeout ao buscar Marketing Settings (Pós-Sleep)")), 15000))
+        ]);
 
         // Resolução de Tokens com Fallback Inteligente (Prioriza marketing_settings)
         const nsToken = storeData.access_token || DEFAULT_ACCESS_TOKEN;
@@ -894,14 +899,15 @@ app.post('/api/webhooks/product-created', async (req, res) => {
 
         if (!nsToken) {
             console.warn(`⚠️ Loja ${storeId} sem token Nuvemshop.`);
-            addWebhookLog({ storeId, productId, status: 'Error', error: 'Token Nuvemshop ausente' });
+            await addWebhookLog({ storeId, productId, status: 'Error', error: 'Token Nuvemshop ausente' });
             global.activeWebhooks.delete(lockKey);
             return;
         }
 
         // 1. Busca detalhes completos do produto na Nuvemshop (com Retry por causa de delay na duplicação)
-        addWebhookLog({ storeId, productId, status: 'Processing', details: 'Buscando detalhes do produto na Nuvemshop...' });
+        await addWebhookLog({ storeId, productId, status: 'Processing', details: 'Requisitando dados finais da Nuvemshop via API...' });
         const client = await getApiClient(storeId);
+        client.defaults.timeout = 15000; // Proteção estrita contra engasgos do TCP (Socket Hang)
         
         let productRes;
         try {
