@@ -835,14 +835,8 @@ app.post('/api/webhooks/product-created', async (req, res) => {
     // Responde 200 imediatamente para a Nuvemshop não reenviar
     res.status(200).send('OK');
 
-    // In-memory Global Lock para webhooks disparados exatamente ao mesmo tempo (Race Condition pura)
-    if (!global.activeWebhooks) global.activeWebhooks = new Set();
-    const lockKey = `${storeId}:${productId}`;
-    if (global.activeWebhooks.has(lockKey)) {
-        console.log(`♻️ Ignorando webhook concorrente (In-Memory Lock) para ${lockKey}`);
-        return;
-    }
-    global.activeWebhooks.add(lockKey);
+    // Registra o início do recebimento IMEDIATAMENTE (No Supabase)
+    await addWebhookLog({ storeId, event, productId, status: 'Processing', details: `Evento ${event} recebido. Iniciando...` });
 
     // Registra o início do recebimento IMEDIATAMENTE (No Supabase)
     await addWebhookLog({ storeId, event, productId, status: 'Processing', details: `Evento ${event} recebido. Iniciando...` });
@@ -862,7 +856,6 @@ app.post('/api/webhooks/product-created', async (req, res) => {
         const earlyProcessed = Array.isArray(initialStoreData.processed_products) ? initialStoreData.processed_products : [];
         if (earlyProcessed.includes(String(productId))) {
             console.log(`♻️ Produto ${productId} já consta como postado anteriormente. Ignorando evento de atualização (${event}).`);
-            global.activeWebhooks.delete(lockKey);
             return;
         }
 
@@ -883,7 +876,6 @@ app.post('/api/webhooks/product-created', async (req, res) => {
 
         if (existingJob && (existingJob.status === 'pending' || existingJob.status === 'processing')) {
              console.log(`♻️ Produto ${productId} já está na fila com status ${existingJob.status}. Ignorando duplicação.`);
-             global.activeWebhooks.delete(lockKey);
              return;
         }
 
@@ -906,8 +898,6 @@ app.post('/api/webhooks/product-created', async (req, res) => {
 
     } catch (err) {
         console.error("Erro no fluxo de enfileiramento:", err);
-    } finally {
-        global.activeWebhooks.delete(lockKey);
     }
 });
 
@@ -917,31 +907,43 @@ app.post('/api/webhooks/product-created', async (req, res) => {
  * Garante que postamos apenas um produto por vez para evitar bloqueios da Meta.
  */
 app.all('/api/cron/process-queue', async (req, res) => {
-    console.log('\n⚙️ Cron: Iniciando verificação da fila de postagens...');
+    const cronKey = req.query.key || req.headers['x-cron-key'];
+    const expectedKey = process.env.CRON_SECRET || 'ClothSecret2026'; // Fallback seguro para dev
+
+    if (cronKey !== expectedKey) {
+        console.warn('🛑 Tentativa de acesso não autorizada ao Cron!');
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    console.log('\n⚙️ Cron: Iniciando processamento atômico da fila...');
     
+    let currentJobId = null;
+
     try {
-        // 1. Busca o próximo job pendente que já passou do horário agendado
-        const { data: job, error: fetchError } = await supabase
+        // 1. Busca e "Reserva" o próximo job pendente de forma atômica
+        // O .limit(1).select().maybeSingle() após um .update() garante que
+        // apenas um worker consiga mudar o status de 'pending' para 'processing' 
+        // para aquele ID específico naquele momento.
+        const { data: job, error: updateError } = await supabase
             .from('post_queue')
-            .select('*')
+            .update({ status: 'processing' })
             .eq('status', 'pending')
             .lte('scheduled_for', new Date().toISOString())
             .order('scheduled_for', { ascending: true })
             .limit(1)
+            .select()
             .maybeSingle();
 
-        if (fetchError) throw fetchError;
+        if (updateError) throw updateError;
         if (!job) {
-            console.log('✅ Cron: Nenhuma postagem pendente no momento.');
+            console.log('✅ Cron: Nenhuma postagem pendente para processar agora.');
             return res.json({ message: 'No pending jobs' });
         }
 
         const { store_id: storeId, product_id: productId, id: jobId } = job;
-        const lockKey = `${storeId}:${productId}`;
-
-        // Marca como processando IMEDIATAMENTE para evitar que outro cron pegue o mesmo
-        await supabase.from('post_queue').update({ status: 'processing' }).eq('id', jobId);
-        console.log(`🚀 Cron: Processando Job ${jobId} (Produto ${productId} da Loja ${storeId})`);
+        currentJobId = jobId; 
+        
+        console.log(`🚀 Cron: Job ${jobId} REIVINDICADO (Produto ${productId} da Loja ${storeId})`);
 
         // Reutilizamos a lógica de postagem original (agora dentro do worker)
         const stores = await getStores();
@@ -1006,16 +1008,16 @@ app.all('/api/cron/process-queue', async (req, res) => {
         res.json({ status: 'success', product: productName });
 
     } catch (error) {
-        const errorMsg = error.response?.data || error.message;
-        console.error('❌ Cron: Erro ao processar fila:', errorMsg);
+        const errorMsg = error.response?.data ? JSON.stringify(error.response.data) : (error.message || 'Erro desconhecido');
+        console.error('❌ Cron: Erro crítico ao processar fila:', errorMsg);
         
-        // Se falhou, marcamos como erro mas permitimos análise no DB
-        if (req.query.jobId || req.body.jobId) { /* placeholder se quisermos retry específico */ }
-        
-        await supabase.from('post_queue').update({ 
-            status: 'failed', 
-            error_log: { error: errorMsg } 
-        }).eq('id', req.body.jobId || ''); // simplificado aqui
+        if (currentJobId) {
+            await supabase.from('post_queue').update({ 
+                status: 'failed', 
+                error_log: { error: errorMsg, timestamp: new Date().toISOString() } 
+            }).eq('id', currentJobId);
+            console.log(`⚠️ Job ${currentJobId} marcado como FALHA no banco.`);
+        }
 
         res.status(500).json({ status: 'error', message: errorMsg });
     }

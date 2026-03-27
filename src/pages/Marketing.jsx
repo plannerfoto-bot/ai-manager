@@ -137,11 +137,13 @@ const Marketing = () => {
     const handleForceProcess = async () => {
         setProcessingQueue(true);
         try {
-            await axios.get('/api/cron/process-queue');
+            // Usamos a chave de segurança definida no backend (ClothSecret2026)
+            await axios.get('/api/cron/process-queue?key=ClothSecret2026');
             toast.success('Processamento disparado com sucesso!');
             fetchData();
         } catch (error) {
-            toast.error('Erro ao processar fila.');
+            console.error('Erro ao processar fila:', error);
+            toast.error('Erro ao processar fila: ' + (error.response?.data?.error || error.message));
         } finally {
             setProcessingQueue(false);
         }
@@ -460,17 +462,37 @@ const Marketing = () => {
                                 </div>
                             ) : (
                                 queue.map((job, i) => (
-                                    <div key={i} className="flex items-center gap-3 bg-slate-950/50 p-3 rounded-xl border border-slate-800/50">
-                                        <div className="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center shrink-0 border border-slate-800">
-                                            <Share2 size={14} className={job.status === 'processing' ? 'text-blue-400 animate-spin' : 'text-slate-600'} />
+                                    <div key={i} className={`flex flex-col gap-2 p-3 rounded-xl border ${
+                                        job.status === 'failed' ? 'bg-red-500/5 border-red-500/20' : 'bg-slate-950/50 border-slate-800/50'
+                                    }`}>
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center shrink-0 border border-slate-800">
+                                                {job.status === 'failed' ? (
+                                                    <AlertCircle size={14} className="text-red-500" />
+                                                ) : (
+                                                    <Share2 size={14} className={job.status === 'processing' ? 'text-blue-400 animate-spin' : 'text-slate-600'} />
+                                                )}
+                                            </div>
+                                            <div className="min-w-0 flex-1">
+                                                <p className="text-[11px] text-white font-bold truncate">ID: {job.product_id}</p>
+                                                <p className="text-[9px] text-slate-500">
+                                                    {job.status === 'pending' ? `Agendado: ${new Date(job.scheduled_for).toLocaleTimeString()}` : 
+                                                     job.status === 'processing' ? 'Processando agora...' : 'Falha na postagem'}
+                                                </p>
+                                            </div>
+                                            <div className={`w-1.5 h-1.5 rounded-full ${
+                                                job.status === 'processing' ? 'bg-blue-400 animate-pulse' : 
+                                                job.status === 'failed' ? 'bg-red-500' : 'bg-yellow-500'
+                                            }`} />
                                         </div>
-                                        <div className="min-w-0 flex-1">
-                                            <p className="text-[11px] text-white font-bold truncate">ID: {job.product_id}</p>
-                                            <p className="text-[9px] text-slate-500">
-                                                {job.status === 'pending' ? `Agendado: ${new Date(job.scheduled_for).toLocaleTimeString()}` : 'Processando...'}
-                                            </p>
-                                        </div>
-                                        <div className={`w-1.5 h-1.5 rounded-full ${job.status === 'processing' ? 'bg-blue-400 animate-pulse' : 'bg-yellow-500'}`} />
+                                        
+                                        {job.status === 'failed' && job.error_log && (
+                                            <div className="mt-1 p-2 bg-red-500/10 rounded-lg border border-red-500/20">
+                                                <p className="text-[9px] text-red-400 leading-tight italic">
+                                                    {typeof job.error_log.error === 'string' ? job.error_log.error : JSON.stringify(job.error_log.error)}
+                                                </p>
+                                            </div>
+                                        )}
                                     </div>
                                 ))
                             )}
