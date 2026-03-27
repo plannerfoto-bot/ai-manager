@@ -910,12 +910,16 @@ app.post('/api/webhooks/product-created', async (req, res) => {
             return;
         }
 
-        // 3. Deduplicação: Evita postar o mesmo produto em um curto intervalo
+        // 3. Deduplicação IMEDIATA: Evita postar o mesmo produto e trava execuções paralelas
         const processed = Array.isArray(storeData.processed_products) ? storeData.processed_products : [];
         if (processed.includes(String(productId))) {
-            console.log(`♻️ Produto ${productId} já foi postado recentemente. Pulando.`);
+            console.log(`♻️ Produto ${productId} já está em andamento ou foi postado. Pulando webhook duplicado.`);
             return;
         }
+
+        // Bloqueio Imediato (Mutex) - Salva antes de qualquer pausa ou API externa
+        const newProcessed = [String(productId), ...processed].slice(0, 50);
+        await saveStore(storeId, { processed_products: newProcessed });
 
         console.log(`🚀 Iniciando postagem automática para: ${productName}`);
         addWebhookLog({ storeId, productId, productName, status: 'Processing', details: 'Validando conta do Instagram...' });
@@ -959,11 +963,7 @@ app.post('/api/webhooks/product-created', async (req, res) => {
             await addWebhookLog({ storeId, productId, productName, status: 'Error', error: `Story: ${e.message}` });
         }
 
-        // 8. Marca como processado para evitar duplicata
-        if (feedSuccess || storySuccess) {
-            const newProcessed = [String(productId), ...processed].slice(0, 50);
-            await saveStore(storeId, { processed_products: newProcessed });
-        }
+        // 8. (Removido salvamento redundante de duplicata aqui, agora é feito no início)
 
         // 9. Registro Final Consolidado
         if (feedSuccess && storySuccess) {
