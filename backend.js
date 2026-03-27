@@ -866,181 +866,174 @@ app.post('/api/webhooks/product-created', async (req, res) => {
             return;
         }
 
-        // Se chegou AQUI, o produto NUNCA FOI POSTADO (ainda está sendo criado ou duplicado).
-        // A regra de Delay (Debouncer) protege contra o delay de upload de foto da API da Nuvemshop
-        // e dá tempo para o usuário acabar de digitar a descrição e nome do produto.
-        console.log(`[Delay/Debounce] Aguardando 120s para coletar os dados finais do produto INÉDITO ${productId}...`);
-        await addWebhookLog({ storeId, event, productId, status: 'Processing', details: 'Produto Inédito identificado! Aguardando 2 minutos para que imagens e textos terminem de sincronizar na Nuvemshop...' });
-        await new Promise(r => setTimeout(r, 120000));
+        // Se chegou AQUI, o produto NUNCA FOI POSTADO.
+        // Em vez de esperar 120s bloqueando o servidor, agendamos na FILA.
+        // O agendamento padrão é para DAQUI A 2 MINUTOS (tempo de propagação da imagem na Nuvemshop).
+        const scheduledTime = new Date(Date.now() + 120000); 
+
+        console.log(`[Queue] Agendando produto ${productId} para postagem em ${scheduledTime.toISOString()}...`);
         
-        console.log(`[Debounce] 120s concluídos para ${productId}. Retomando execução...`);
-        await addWebhookLog({ storeId, event, productId, status: 'Processing', details: 'Pausa concluída! Buscando versão final do produto no banco e na Nuvemshop...' });
+        // Verifica se já existe na fila (evita duplicação se múltiplos webhooks chegarem)
+        const { data: existingJob } = await supabase
+            .from('post_queue')
+            .select('id, status')
+            .eq('store_id', String(storeId))
+            .eq('product_id', String(productId))
+            .maybeSingle();
+
+        if (existingJob && (existingJob.status === 'pending' || existingJob.status === 'processing')) {
+             console.log(`♻️ Produto ${productId} já está na fila com status ${existingJob.status}. Ignorando duplicação.`);
+             global.activeWebhooks.delete(lockKey);
+             return;
+        }
+
+        const { error: queueError } = await supabase
+            .from('post_queue')
+            .upsert([{
+                store_id: String(storeId),
+                product_id: String(productId),
+                event_type: event,
+                status: 'pending',
+                scheduled_for: scheduledTime.toISOString()
+            }], { onConflict: 'store_id,product_id' });
+
+        if (queueError) {
+            console.error('❌ Erro ao enfileirar produto:', queueError);
+            await addWebhookLog({ storeId, event, productId, status: 'Error', error: 'Falha ao agendar na fila de postagem' });
+        } else {
+            await addWebhookLog({ storeId, event, productId, status: 'Processing', details: 'Produto agendado na fila! A postagem ocorrerá automaticamente em alguns minutos.' });
+        }
+
     } catch (err) {
-        console.error("Erro ao validar deduplicação inicial:", err);
+        console.error("Erro no fluxo de enfileiramento:", err);
+    } finally {
+        global.activeWebhooks.delete(lockKey);
     }
+});
 
+// --- WORKER DE PROCESSAMENTO DA FILA (DRIP FEED) ---
+/**
+ * Rota para ser chamada via CRON que processa a fila de postagens pendentes.
+ * Garante que postamos apenas um produto por vez para evitar bloqueios da Meta.
+ */
+app.all('/api/cron/process-queue', async (req, res) => {
+    console.log('\n⚙️ Cron: Iniciando verificação da fila de postagens...');
+    
     try {
-        const stores = await Promise.race([
-            getStores(),
-            new Promise((_, rej) => setTimeout(() => rej(new Error("Timeout ao buscar Lojas no Supabase (Pós-Sleep)")), 15000))
-        ]);
-        const storeData = stores[storeId] || {};
-        
-        // Busca configurações de marketing específicas
-        const { data: marketingSettings } = await Promise.race([
-            supabase.from('marketing_settings').select('*').eq('store_id', String(storeId)).maybeSingle(),
-            new Promise((_, rej) => setTimeout(() => rej(new Error("Timeout ao buscar Marketing Settings (Pós-Sleep)")), 15000))
-        ]);
+        // 1. Busca o próximo job pendente que já passou do horário agendado
+        const { data: job, error: fetchError } = await supabase
+            .from('post_queue')
+            .select('*')
+            .eq('status', 'pending')
+            .lte('scheduled_for', new Date().toISOString())
+            .order('scheduled_for', { ascending: true })
+            .limit(1)
+            .maybeSingle();
 
-        // Resolução de Tokens com Fallback Inteligente (Prioriza marketing_settings)
-        const nsToken = storeData.access_token || DEFAULT_ACCESS_TOKEN;
-        const metaToken = marketingSettings?.meta_access_token || storeData.meta_token || process.env.META_ACCESS_TOKEN;
-        const fbPageId = marketingSettings?.facebook_page_id || storeData.fb_page_id || process.env.FB_PAGE_ID;
-
-        if (!nsToken) {
-            console.warn(`⚠️ Loja ${storeId} sem token Nuvemshop.`);
-            await addWebhookLog({ storeId, productId, status: 'Error', error: 'Token Nuvemshop ausente' });
-            global.activeWebhooks.delete(lockKey);
-            return;
+        if (fetchError) throw fetchError;
+        if (!job) {
+            console.log('✅ Cron: Nenhuma postagem pendente no momento.');
+            return res.json({ message: 'No pending jobs' });
         }
 
-        // 1. Busca detalhes completos do produto na Nuvemshop (com Retry por causa de delay na duplicação)
-        await addWebhookLog({ storeId, productId, status: 'Processing', details: 'Requisitando dados finais da Nuvemshop via API...' });
+        const { store_id: storeId, product_id: productId, id: jobId } = job;
+        const lockKey = `${storeId}:${productId}`;
+
+        // Marca como processando IMEDIATAMENTE para evitar que outro cron pegue o mesmo
+        await supabase.from('post_queue').update({ status: 'processing' }).eq('id', jobId);
+        console.log(`🚀 Cron: Processando Job ${jobId} (Produto ${productId} da Loja ${storeId})`);
+
+        // Reutilizamos a lógica de postagem original (agora dentro do worker)
+        const stores = await getStores();
+        const storeData = stores[storeId];
+        
+        const { data: marketingSettings } = await supabase
+            .from('marketing_settings')
+            .select('*')
+            .eq('store_id', String(storeId))
+            .maybeSingle();
+
+        const nsToken = storeData?.access_token || DEFAULT_ACCESS_TOKEN;
+        const metaToken = marketingSettings?.meta_access_token || storeData?.meta_token || process.env.META_ACCESS_TOKEN;
+        const fbPageId = marketingSettings?.facebook_page_id || storeData?.fb_page_id || process.env.FB_PAGE_ID;
+
+        if (!nsToken || !metaToken || !fbPageId) {
+            throw new Error('Credenciais ausentes (Nuvemshop ou Meta)');
+        }
+
         const client = await getApiClient(storeId);
-        client.defaults.timeout = 15000; // Proteção estrita contra engasgos do TCP (Socket Hang)
-        
-        let productRes;
-        try {
-            productRes = await client.get(`/products/${productId}`);
-        } catch (e) {
-            if (e.response?.status === 404) {
-                console.log(`[Retry] Produto ${productId} não encontrado de imediato. Aguardando 3s...`);
-                await new Promise(r => setTimeout(r, 3000));
-                productRes = await client.get(`/products/${productId}`);
-            } else {
-                throw e;
-            }
-        }
-
+        const productRes = await client.get(`/products/${productId}`);
         const product = productRes.data;
+
         const productName = (product.name && product.name.pt) ? product.name.pt : (product.name ? Object.values(product.name)[0] : 'Novo Produto');
         const productHandle = (product.handle && product.handle.pt) ? product.handle.pt : (product.handle ? Object.values(product.handle)[0] : '');
         const productLink = `https://${storeData.domain || 'clothsublimacao.com.br'}/produtos/${productHandle}`;
         const mainImage = product.images && product.images.length > 0 ? product.images[0].src : null;
 
         if (!mainImage) {
-            console.warn(`⚠️ Produto ${productId} sem imagem. Aguardando edição para postar.`);
-            addWebhookLog({ storeId, productId, productName, status: 'Waiting', details: 'Produto sem imagem: Postagem ocorrerá assim que você adicionar a foto na Nuvemshop.' });
-            global.activeWebhooks.delete(lockKey);
-            return;
+            await supabase.from('post_queue').update({ status: 'failed', error_log: { error: 'Produto sem imagens' } }).eq('id', jobId);
+            return res.json({ status: 'waiting_for_images' });
         }
 
-        // 2. Verifica se a loja tem as chaves do Instagram configuradas (Meta)
-        if (!metaToken || !fbPageId) {
-            console.warn(`⚠️ Meta Access Token ou Page ID não configurados para a loja ${storeId}.`);
-            addWebhookLog({ storeId, productId, status: 'Error', error: 'Credenciais Meta ausentes no painel Marketing' });
-            global.activeWebhooks.delete(lockKey);
-            return;
-        }
-
-        // 3. Deduplicação de Arquivo: Evita postar produtos já processados no passado
-        // Lemos novamente do arquivo de forma garantida antes da validação
-        const freshStores = await getStores();
-        const freshStoreData = freshStores[storeId] || {};
-        const processed = Array.isArray(freshStoreData.processed_products) ? freshStoreData.processed_products : [];
-        if (processed.includes(String(productId))) {
-            console.log(`♻️ Produto ${productId} já foi processado ou está em andamento. Ignorando webhook.`);
-            global.activeWebhooks.delete(lockKey);
-            return;
-        }
-
-        // Bloqueio Inicialização (Mutex) Persistido
-        let newProcessed = [String(productId), ...processed].slice(0, 50);
-        await saveStore(storeId, { processed_products: newProcessed });
-
-        console.log(`🚀 Iniciando postagem automática para: ${productName}`);
-        addWebhookLog({ storeId, productId, productName, status: 'Processing', details: 'Avaliando dados e conta do Instagram...' });
-
-        // Função utilitária para desbloquear o Mutex Persistido em caso de falha controlada
-        const unlockMutex = async () => {
-            console.log(`🔓 Desbloqueando Mutex Local do arquivo para ${productId} permitir nova tentativa...`);
-            const refreshedStores = await getStores();
-            const refreshedStore = refreshedStores[storeId] || {};
-            const currentProcessed = Array.isArray(refreshedStore.processed_products) ? refreshedStore.processed_products : [];
-            const unlockedList = currentProcessed.filter(id => id !== String(productId));
-            await saveStore(storeId, { processed_products: unlockedList });
-        };
-
-        // 4. Obtém ID da conta do Instagram
         const igAccountId = await igService.getInstagramAccountId(fbPageId, metaToken);
-        if (!igAccountId) {
-            console.error('❌ Falha ao obter conta do Instagram Vinculada.');
-            await addWebhookLog({ storeId, productId, productName, status: 'Error', error: 'Conta do Instagram não encontrada para este Page ID' });
-            await unlockMutex();
-            return;
-        }
+        if (!igAccountId) throw new Error('Conta do Instagram não encontrada');
 
-        // 5. Formata a legenda (Feed) usando template salvo pelo usuário
         const caption = buildFeedCaption(marketingSettings?.feed_caption_template, productName, productLink);
 
-        // 6. Postagem no FEED
-        let feedSuccess = false;
-        console.log('📸 Publicando no FEED (Instagram)...');
+        // Postagem no FEED
+        console.log(`📸 Cron: Publicando Feed para ${productName}...`);
+        const feedContainerId = await igService.createFeedContainer(igAccountId, mainImage, caption, metaToken);
+        await igService.publishMedia(igAccountId, feedContainerId, metaToken);
+
+        // Delay preventivo entre Feed e Story (Fix Meta Error 2)
+        console.log('⏳ Delay de 10s entre Feed e Story...');
+        await new Promise(r => setTimeout(r, 10000));
+
+        // Postagem no STORY
+        console.log(`📱 Cron: Publicando Story para ${productName}...`);
+        const storyContainerId = await igService.createStoryContainer(igAccountId, mainImage, productLink, metaToken);
+        await igService.publishMedia(igAccountId, storyContainerId, metaToken);
+
+        // Sucesso Total: Marca como success e adiciona aos processados
+        await supabase.from('post_queue').update({ status: 'success' }).eq('id', jobId);
         
-        try {
-            const feedContainerId = await igService.createFeedContainer(igAccountId, mainImage, caption, metaToken);
-            await igService.publishMedia(igAccountId, feedContainerId, metaToken);
-            feedSuccess = true;
-            console.log(`✅ Feed postado: ${productId}`);
-        } catch (e) {
-            console.error('Erro no Feed:', e.message);
-            await addWebhookLog({ storeId, productId, productName, status: 'Error', error: `Feed: ${e.message}` });
-        }
+        const freshStores = await getStores();
+        const currentProcessed = Array.isArray(freshStores[storeId]?.processed_products) ? freshStores[storeId].processed_products : [];
+        await saveStore(storeId, { processed_products: [String(productId), ...currentProcessed].slice(0, 100) });
 
-        // 7. Postagem no STORY
-        let storySuccess = false;
-
-        // [FIX Meta Anti-Spam/Rate Limit Burst]
-        // Se o Feed tentou postar (com sucesso ou não), devemos dar um respiro 
-        // de pelo menos 8 a 10 segundos antes de bombardear a Meta novamente com a mesma URL de imagem.
-        // O Graph API joga Error 2 (Unexpected Internal Error) se engasgar baixando a imagem repetidamente no mesmo sec.
-        console.log('⏳ Pausa de 8s entre Feed e Story (Prevenção de Meta Error 2)...');
-        await new Promise(r => setTimeout(r, 8000));
-
-        console.log('📱 Publicando no STORY (Instagram)...');
+        await addWebhookLog({ storeId, productId, productName, status: 'Success', details: 'Drip Feed: Postado com sucesso via agendamento!' });
         
-        try {
-            const storyContainerId = await igService.createStoryContainer(igAccountId, mainImage, productLink, metaToken);
-            await igService.publishMedia(igAccountId, storyContainerId, metaToken);
-            storySuccess = true;
-            console.log(`✅ Story postado: ${productId}`);
-        } catch (e) {
-            console.error('Erro no Story:', e.message);
-            await addWebhookLog({ storeId, productId, productName, status: 'Error', error: `Story: ${e.message}` });
-        }
-
-        // 8. Registro Final Consolidado e Rollback em caso de falha Total
-        if (feedSuccess && storySuccess) {
-            await addWebhookLog({ storeId, productId, productName, status: 'Success', details: 'Postado com sucesso no Feed e Story!' });
-        } else if (feedSuccess || storySuccess) {
-            const part = feedSuccess ? 'Feed' : 'Story';
-            const fail = feedSuccess ? 'Story' : 'Feed';
-            await addWebhookLog({ storeId, productId, productName, status: 'Warning', details: `Postado apenas no ${part}. Falha no ${fail}.` });
-        } else {
-            await addWebhookLog({ storeId, productId, productName, status: 'Error', error: 'Falha total: Não foi possível postar em nenhum canal.' });
-            // Como falhou totalmente (ex: timeout da Meta, erro da imagem), desbloqueia para retentativas!
-            await unlockMutex();
-        }
+        res.json({ status: 'success', product: productName });
 
     } catch (error) {
         const errorMsg = error.response?.data || error.message;
-        console.error('❌ Erro no processamento do Webhook:', JSON.stringify(errorMsg));
-        await addWebhookLog({ storeId, productId, status: 'Error', error: errorMsg });
-    } finally {
-        // Limpa a trava em memória (Race Condition) ao fim da execução (Sucesso ou Falha)
-        if (global.activeWebhooks) {
-            global.activeWebhooks.delete(lockKey);
-        }
+        console.error('❌ Cron: Erro ao processar fila:', errorMsg);
+        
+        // Se falhou, marcamos como erro mas permitimos análise no DB
+        if (req.query.jobId || req.body.jobId) { /* placeholder se quisermos retry específico */ }
+        
+        await supabase.from('post_queue').update({ 
+            status: 'failed', 
+            error_log: { error: errorMsg } 
+        }).eq('id', req.body.jobId || ''); // simplificado aqui
+
+        res.status(500).json({ status: 'error', message: errorMsg });
+    }
+});
+
+// Endpoint para frontend ver a fila de postagem
+app.get('/api/marketing/queue', async (req, res) => {
+    try {
+        const { data, error } = await supabase
+            .from('post_queue')
+            .select('*')
+            .order('scheduled_for', { ascending: true })
+            .limit(20);
+
+        if (error) throw error;
+        res.json(data);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
     }
 });
 

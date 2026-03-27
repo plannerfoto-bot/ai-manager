@@ -20,20 +20,26 @@ const Marketing = () => {
     const [loadingHistory, setLoadingHistory] = useState(false);
     const [registering, setRegistering] = useState(false);
     const [showGuide, setShowGuide] = useState(false);
+    const [queue, setQueue] = useState([]);
+    const [processingQueue, setProcessingQueue] = useState(false);
+
 
     const defaultCaption = `✨ NOVIDADE NA CLOTH! ✨\n\n{{product_name}}\n\nGaranta o seu agora mesmo no nosso site! 🚀\n\n🔗 {{product_link}}\n\n#clothsublimacao #novidade #sublimacao #personalizados`;
 
     const fetchData = async () => {
         setLoadingHistory(true); // Assuming loadingHistory will cover initial data fetch
         try {
-            const [settingsRes, webhooksRes, historyRes] = await Promise.all([
+            const [settingsRes, webhooksRes, historyRes, queueRes] = await Promise.all([
                 axios.get('/api/marketing/settings'),
                 axios.get('/api/webhooks/list'),
-                axios.get('/api/webhooks/logs')
+                axios.get('/api/webhooks/logs'),
+                axios.get('/api/marketing/queue')
             ]);
             setSettings(settingsRes.data);
             setWebhooks(webhooksRes.data.webhooks || []);
             setHistory(historyRes.data || []);
+            setQueue(queueRes.data || []);
+
         } catch (error) {
             console.error('Erro ao buscar dados:', error);
             const msg = error.response?.data?.message || 'Erro ao buscar dados.';
@@ -45,16 +51,21 @@ const Marketing = () => {
 
     useEffect(() => {
         fetchData();
-        // Atualiza histórico a cada 30s se a aba estiver aberta
+        // Atualiza histórico e fila a cada 30s se a aba estiver aberta
         const interval = setInterval(async () => {
             try {
-                const res = await axios.get('/api/webhooks/logs');
-                setHistory(res.data || []);
+                const [hRes, qRes] = await Promise.all([
+                    axios.get('/api/webhooks/logs'),
+                    axios.get('/api/marketing/queue')
+                ]);
+                setHistory(hRes.data || []);
+                setQueue(qRes.data || []);
             } catch (error) {
-                console.error('Erro ao buscar histórico no intervalo:', error);
+                console.error('Erro ao buscar atualizações no intervalo:', error);
             }
         }, 30000);
         return () => clearInterval(interval);
+
     }, []);
 
     const handleRegisterWebhook = async () => {
@@ -122,7 +133,21 @@ const Marketing = () => {
         }
     };
 
+    const handleForceProcess = async () => {
+        setProcessingQueue(true);
+        try {
+            await axios.get('/api/cron/process-queue');
+            toast.success('Processamento disparado com sucesso!');
+            fetchData();
+        } catch (error) {
+            toast.error('Erro ao processar fila.');
+        } finally {
+            setProcessingQueue(false);
+        }
+    };
+
     const captionPreview = (settings.feed_caption_template || defaultCaption)
+
         .replace(/{{product_name}}/g, 'Nome do Produto')
         .replace(/{{product_link}}/g, 'clothsublimacao.com.br/produto');
 
@@ -407,8 +432,61 @@ const Marketing = () => {
                         </div>
                     </div>
 
-                    {/* Histórico de Automação */}
+                    {/* Fila de Postagem (Drip Feed) */}
+                    <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-4 shadow-xl relative overflow-hidden">
+                        <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
+                            <Zap size={60} className="text-yellow-400" />
+                        </div>
+                        
+                        <div className="flex items-center justify-between relative z-10">
+                            <h4 className="text-sm font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                                <Sparkles size={14} className="text-yellow-400" />
+                                Fila de Postagem
+                            </h4>
+                            <span className="text-[10px] bg-yellow-500/10 text-yellow-500 px-2 py-0.5 rounded-full font-bold">
+                                Drip Feed
+                            </span>
+                        </div>
+
+                        <p className="text-[11px] text-slate-500 leading-relaxed">
+                            Produtos agendados para evitar bloqueios da Meta. O sistema posta um por vez.
+                        </p>
+
+                        <div className="space-y-3">
+                            {queue.length === 0 ? (
+                                <div className="text-center py-6 bg-slate-950/30 rounded-2xl border border-dashed border-slate-800">
+                                    <p className="text-[10px] text-slate-600 italic">Nenhum post agendado.</p>
+                                </div>
+                            ) : (
+                                queue.map((job, i) => (
+                                    <div key={i} className="flex items-center gap-3 bg-slate-950/50 p-3 rounded-xl border border-slate-800/50">
+                                        <div className="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center shrink-0 border border-slate-800">
+                                            <Share2 size={14} className={job.status === 'processing' ? 'text-blue-400 animate-spin' : 'text-slate-600'} />
+                                        </div>
+                                        <div className="min-w-0 flex-1">
+                                            <p className="text-[11px] text-white font-bold truncate">ID: {job.product_id}</p>
+                                            <p className="text-[9px] text-slate-500">
+                                                {job.status === 'pending' ? `Agendado: ${new Date(job.scheduled_for).toLocaleTimeString()}` : 'Processando...'}
+                                            </p>
+                                        </div>
+                                        <div className={`w-1.5 h-1.5 rounded-full ${job.status === 'processing' ? 'bg-blue-400 animate-pulse' : 'bg-yellow-500'}`} />
+                                    </div>
+                                ))
+                            )}
+                        </div>
+
+                        <button
+                            onClick={handleForceProcess}
+                            disabled={processingQueue || queue.length === 0}
+                            className="w-full py-3 bg-gradient-to-r from-slate-800 to-slate-900 hover:from-slate-700 hover:to-slate-800 disabled:opacity-30 text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all flex items-center justify-center gap-2 border border-slate-700/50 shadow-lg"
+                        >
+                            {processingQueue ? <div className="animate-spin rounded-full h-3 w-3 border-2 border-white/20 border-t-white" /> : 'Processar Agora'}
+                        </button>
+                    </div>
+
+                    {/* Histórico Recente */}
                     <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-4">
+
                         <h4 className="text-sm font-black text-slate-500 uppercase tracking-widest flex items-center justify-between">
                             Histórico Recente
                             <button onClick={fetchData} className="text-blue-400 hover:text-blue-300 transition-colors">
