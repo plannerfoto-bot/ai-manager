@@ -921,24 +921,39 @@ app.all('/api/cron/process-queue', async (req, res) => {
     let currentJobId = null;
 
     try {
-        // 1. Busca e "Reserva" o próximo job pendente de forma atômica
-        // O .limit(1).select().maybeSingle() após um .update() garante que
-        // apenas um worker consiga mudar o status de 'pending' para 'processing' 
-        // para aquele ID específico naquele momento.
-        const { data: job, error: updateError } = await supabase
+        // 1. Busca o ID do próximo job pendente pronto para postar
+        const { data: pendingJobs, error: selectError } = await supabase
             .from('post_queue')
-            .update({ status: 'processing' })
+            .select('id')
             .eq('status', 'pending')
             .lte('scheduled_for', new Date().toISOString())
             .order('scheduled_for', { ascending: true })
-            .limit(1)
+            .limit(1);
+
+        if (selectError) throw selectError;
+        
+        if (!pendingJobs || pendingJobs.length === 0) {
+            console.log('✅ Cron: Nenhuma postagem pendente para processar agora.');
+            return res.json({ message: 'No pending jobs' });
+        }
+
+        const targetId = pendingJobs[0].id;
+
+        // 2. Tenta "Reserva" o job específico mudando status de pending -> processing
+        // O .eq('status', 'pending') garante atomicidade: se outro worker já 
+        // mudou o status, este update retornará 0 registros.
+        const { data: job, error: updateError } = await supabase
+            .from('post_queue')
+            .update({ status: 'processing' })
+            .eq('id', targetId)
+            .eq('status', 'pending')
             .select()
             .maybeSingle();
 
         if (updateError) throw updateError;
         if (!job) {
-            console.log('✅ Cron: Nenhuma postagem pendente para processar agora.');
-            return res.json({ message: 'No pending jobs' });
+            console.log('⚠️ Cron: Job já foi reivindicado por outro worker.');
+            return res.json({ message: 'Job already claimed or processed' });
         }
 
         const { store_id: storeId, product_id: productId, id: jobId } = job;
