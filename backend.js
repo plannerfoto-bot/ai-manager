@@ -1271,11 +1271,13 @@ app.post('/api/products/bulk-create-manual', async (req, res) => {
                 }
 
                 // Mapeia variações garantindo propriedades dimensionais e nomenclaturas (Ex: {pt: "1,50x2,00"})
+                // IMPORTANTE: stock = null na API Nuvemshop significa estoque INFINITO (sem controle de estoque).
+                // Ao replicar um produto, sempre definimos null para garantir estoque infinito nos clones.
                 if (baseProduct.variants && baseProduct.variants.length > 0) {
                     productData.variants = baseProduct.variants.map(v => ({
                         price: v.price || "0.00",
                         promotional_price: v.promotional_price,
-                        stock: v.stock !== null ? v.stock : 1,
+                        stock: null, // null = estoque infinito na API Nuvemshop/Tiendanube
                         weight: v.weight !== null ? v.weight : 0.5,
                         width: v.width,
                         height: v.height,
