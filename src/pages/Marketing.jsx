@@ -243,9 +243,33 @@ const Marketing = () => {
                                                             {job.status}
                                                         </span>
                                                     </div>
-                                                    <p className="text-[10px] text-slate-500 italic">
-                                                        {job.status === 'pending' ? `Agendado: ${new Date(job.scheduled_for).toLocaleTimeString()}` : 'Processando...'}
-                                                    </p>
+                                                    {(() => {
+                                                        if (job.status !== 'pending') return <p className="text-[10px] text-slate-500 italic">Processando...</p>;
+                                                        const scheduledDate = new Date(job.scheduled_for);
+                                                        const now = new Date();
+                                                        const isPast = scheduledDate < now;
+                                                        const timeStr = scheduledDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                                                        const today = new Date(); today.setHours(0,0,0,0);
+                                                        const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
+                                                        const schedDay = new Date(scheduledDate); schedDay.setHours(0,0,0,0);
+                                                        let dateLabel;
+                                                        if (schedDay.getTime() === today.getTime()) dateLabel = 'Hoje';
+                                                        else if (schedDay.getTime() === tomorrow.getTime()) dateLabel = 'Amanhã';
+                                                        else {
+                                                            const days = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+                                                            dateLabel = `${days[scheduledDate.getDay()]}, ${scheduledDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}`;
+                                                        }
+                                                        return (
+                                                            <div className="flex items-center gap-2 mt-1 flex-wrap">
+                                                                {isPast ? (
+                                                                    <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-400 tracking-wider">Atrasado</span>
+                                                                ) : null}
+                                                                <p className={`text-[10px] italic ${isPast ? 'text-rose-400/70' : 'text-slate-400'}`}>
+                                                                    🕐 {dateLabel} às {timeStr}
+                                                                </p>
+                                                            </div>
+                                                        );
+                                                    })()}
                                                 </div>
                                             </div>
                                             {job.status === 'failed' && job.error_log && (
