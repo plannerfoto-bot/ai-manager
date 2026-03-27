@@ -192,13 +192,13 @@ const Marketing = () => {
     const TabButton = ({ id, label, icon: Icon }) => (
         <button
             onClick={() => setActiveTab(id)}
-            className={`flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-bold transition-all ${
+            className={`flex items-center gap-2 px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all ${
                 activeTab === id 
-                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' 
-                    : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/50'
+                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/40 ring-1 ring-white/20' 
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
             }`}
         >
-            <Icon size={18} />
+            <Icon size={14} />
             {label}
         </button>
     );
@@ -274,7 +274,7 @@ const Marketing = () => {
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex justify-between items-start mb-1">
                                                         <span className="text-xs font-bold text-white truncate pr-2">
-                                                            {job.product_name || `Produto: ${job.product_id}`}
+                                                            {job.product_name || `Novo Produto (#${job.product_id})`}
                                                         </span>
                                                         <div className="flex items-center gap-2">
                                                             <span className={`px-2 py-0.5 rounded-full text-[10px] uppercase font-black tracking-tighter ${

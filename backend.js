@@ -906,7 +906,10 @@ app.post('/api/webhooks/product-created', async (req, res) => {
                 event_type: event,
                 status: 'pending',
                 scheduled_for: scheduledTime.toISOString()
-            }], { onConflict: 'store_id,product_id' });
+            }], { 
+                onConflict: 'store_id,product_id',
+                ignoreDuplicates: false // Garante que o UPDATE aconteça se o registro já existir
+            });
 
         if (queueError) {
             console.error('❌ Erro ao enfileirar produto:', queueError);
@@ -1002,22 +1005,39 @@ app.all('/api/cron/process-queue', async (req, res) => {
             throw new Error('Credenciais ausentes (Nuvemshop ou Meta)');
         }
 
-        const client = await getApiClient(storeId);
-        const productRes = await client.get(`/products/${productId}`);
-        const product = productRes.data;
+        let product;
+        try {
+            const client = await getApiClient(storeId);
+            const productRes = await client.get(`/products/${productId}`);
+            product = productRes.data;
+        } catch (apiErr) {
+            // Trata Erro 404 (Produto deletado na Nuvemshop)
+            if (apiErr.response?.status === 404) {
+                console.warn(`🛑 Produto ${productId} não existe mais na Nuvemshop. Removendo da fila...`);
+                await supabase.from('post_queue').update({ 
+                    status: 'failed', 
+                    error_log: { error: 'Produto não encontrado na loja (foi deletado ou ID inválido).', timestamp: new Date().toISOString() } 
+                }).eq('id', jobId);
+                return res.json({ status: 'product_not_found', productId });
+            }
+            throw apiErr;
+        }
 
         const productName = (product.name && product.name.pt) ? product.name.pt : (product.name ? Object.values(product.name)[0] : 'Novo Produto');
         const productHandle = (product.handle && product.handle.pt) ? product.handle.pt : (product.handle ? Object.values(product.handle)[0] : '');
         const productLink = `https://${storeData.domain || 'clothsublimacao.com.br'}/produtos/${productHandle}`;
         const mainImage = product.images && product.images.length > 0 ? product.images[0].src : null;
 
-        if (!mainImage) {
-            await supabase.from('post_queue').update({ status: 'failed', error_log: { error: 'Produto sem imagens' } }).eq('id', jobId);
-            return res.json({ status: 'waiting_for_images' });
+        // Atualiza os metadados no banco se estiverem nulos (autorreparação)
+        if (!job.product_name || !job.image_url) {
+            await supabase.from('post_queue').update({
+                product_name: productName,
+                image_url: mainImage
+            }).eq('id', jobId);
         }
 
         const igAccountId = await igService.getInstagramAccountId(fbPageId, metaToken);
-        if (!igAccountId) throw new Error('Conta do Instagram não encontrada');
+        if (!igAccountId) throw new Error('Conta do Instagram não encontrada. Verifique se a sua Página do Facebook está vinculada corretamente à sua conta Business do Instagram.');
 
         const caption = buildFeedCaption(marketingSettings?.feed_caption_template, productName, productLink);
 
