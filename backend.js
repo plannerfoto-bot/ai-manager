@@ -43,7 +43,7 @@ app.get('/', (req, res) => {
 /**
  * Registra atividade de webhook no Supabase (Persistente)
  */
-async function addWebhookLog({ storeId, productId, productName, event, status, details, error }) {
+async function addWebhookLog({ storeId, productId, productName, event, status, details, error, imageUrl }) {
     try {
         const { error: dbError } = await supabase
             .from('automation_history')
@@ -51,6 +51,7 @@ async function addWebhookLog({ storeId, productId, productName, event, status, d
                 store_id: String(storeId),
                 product_id: String(productId || ''),
                 product_name: productName || '',
+                image_url: imageUrl || '',
                 event: event || 'product/updated',
                 status: status || 'Processing',
                 details: details || '',
@@ -863,8 +864,21 @@ app.post('/api/webhooks/product-created', async (req, res) => {
         }
 
         // Se chegou AQUI, o produto NUNCA FOI POSTADO.
-        // Em vez de esperar 120s bloqueando o servidor, agendamos na FILA.
-        // O agendamento padrão é para DAQUI A 2 MINUTOS (tempo de propagação da imagem na Nuvemshop).
+        // IMEDIATAMENTE buscamos os dados do produto para ter na Fila (Nome/Imagem)
+        let productName = 'Novo Produto';
+        let imageUrl = '';
+        try {
+            const client = await getApiClient(storeId);
+            const productRes = await client.get(`/products/${productId}`);
+            const product = productRes.data;
+            productName = (product.name && product.name.pt) ? product.name.pt : (product.name ? Object.values(product.name)[0] : 'Novo Produto');
+            imageUrl = product.images && product.images.length > 0 ? product.images[0].src : '';
+            console.log(`[Queue] Metadata obtida para ${productId}: ${productName}`);
+        } catch (fetchErr) {
+            console.warn(`[Queue] Não foi possível buscar metadata do produto ${productId} agora. Usando IDs.`);
+        }
+
+        // Agendamento padrão é para DAQUI A 2 MINUTOS (tempo de propagação da imagem na Nuvemshop).
         const scheduledTime = new Date(Date.now() + 120000); 
 
         console.log(`[Queue] Agendando produto ${productId} para postagem em ${scheduledTime.toISOString()}...`);
@@ -887,6 +901,8 @@ app.post('/api/webhooks/product-created', async (req, res) => {
             .upsert([{
                 store_id: String(storeId),
                 product_id: String(productId),
+                product_name: productName,
+                image_url: imageUrl,
                 event_type: event,
                 status: 'pending',
                 scheduled_for: scheduledTime.toISOString()
@@ -897,7 +913,11 @@ app.post('/api/webhooks/product-created', async (req, res) => {
             const errorMsg = queueError.message || 'Erro desconhecido';
             await addWebhookLog({ storeId, event, productId, status: 'Error', error: `Falha ao agendar: ${errorMsg}` });
         } else {
-            await addWebhookLog({ storeId, event, productId, status: 'Processing', details: 'Produto agendado na fila! A postagem ocorrerá automaticamente em alguns minutos.' });
+            await addWebhookLog({ 
+                storeId, event, productId, productName, imageUrl,
+                status: 'Processing', 
+                details: 'Produto agendado na fila! A postagem ocorrerá automaticamente em alguns minutos.' 
+            });
         }
 
     } catch (err) {
@@ -1022,7 +1042,11 @@ app.all('/api/cron/process-queue', async (req, res) => {
         const currentProcessed = Array.isArray(freshStores[storeId]?.processed_products) ? freshStores[storeId].processed_products : [];
         await saveStore(storeId, { processed_products: [String(productId), ...currentProcessed].slice(0, 100) });
 
-        await addWebhookLog({ storeId, productId, productName, status: 'Success', details: 'Drip Feed: Postado com sucesso via agendamento!' });
+        await addWebhookLog({ 
+            storeId, productId, productName, imageUrl: mainImage,
+            status: 'Success', 
+            details: 'Drip Feed: Postado com sucesso via agendamento!' 
+        });
         
         res.json({ status: 'success', product: productName });
 

@@ -5,8 +5,10 @@ import {
   Share2, Globe, Key, Save, ExternalLink, 
   HelpCircle, CheckCircle2, AlertCircle,
   Zap, Sparkles, FileText, Link2, X, ChevronRight, Info,
-  RefreshCw, Clock, Circle, Layout, Settings, Activity, Monitor, Trash2
+  RefreshCw, Clock, Circle, Layout, Settings, Activity, Monitor, Trash2,
+  Image as ImageIcon
 } from 'lucide-react';
+import { supabase } from '../lib/supabaseClient';
 
 const Marketing = () => {
     const [settings, setSettings] = useState({
@@ -53,21 +55,41 @@ const Marketing = () => {
 
     useEffect(() => {
         fetchData();
-        // Atualiza histórico e fila a cada 30s se a aba estiver aberta
-        const interval = setInterval(async () => {
-            try {
-                const [hRes, qRes] = await Promise.all([
-                    axios.get('/api/webhooks/logs'),
-                    axios.get('/api/marketing/queue')
-                ]);
-                setHistory(hRes.data || []);
-                setQueue(qRes.data || []);
-            } catch (error) {
-                console.error('Erro ao buscar atualizações no intervalo:', error);
-            }
-        }, 30000);
-        return () => clearInterval(interval);
 
+        // --- SUB-SCRIÇÃO REALTIME (SUPABASE) ---
+        // Ouvir mudanças na Fila e no Histórico em tempo real
+        const queueChannel = supabase
+            .channel('realtime:post_queue')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'post_queue' }, (payload) => {
+                console.log('🔄 Realtime Queue:', payload);
+                if (payload.eventType === 'INSERT') {
+                    setQueue(prev => [payload.new, ...prev]);
+                } else if (payload.eventType === 'DELETE') {
+                    setQueue(prev => prev.filter(item => item.id !== payload.old.id));
+                } else if (payload.eventType === 'UPDATE') {
+                    setQueue(prev => prev.map(item => item.id === payload.new.id ? payload.new : item));
+                }
+            })
+            .subscribe();
+
+        const historyChannel = supabase
+            .channel('realtime:automation_history')
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'automation_history' }, (payload) => {
+                console.log('🔄 Realtime History:', payload);
+                const newLog = {
+                    ...payload.new,
+                    ts: payload.new.created_at,
+                    productName: payload.new.product_name,
+                    productId: payload.new.product_id
+                };
+                setHistory(prev => [newLog, ...prev].slice(0, 50));
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(queueChannel);
+            supabase.removeChannel(historyChannel);
+        };
     }, []);
 
     const handleRegisterWebhook = async () => {
@@ -239,33 +261,55 @@ const Marketing = () => {
                                         <div key={i} className={`p-4 rounded-2xl border transition-all ${
                                             job.status === 'failed' ? 'bg-rose-500/5 border-rose-500/20' : 'bg-slate-950/80 border-slate-800 group hover:border-slate-700'
                                         }`}>
-                                            <div className="flex items-center gap-4">
-                                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border ${
-                                                    job.status === 'failed' ? 'bg-rose-900/20 border-rose-500/30' : 'bg-slate-900 border-slate-800 group-hover:bg-slate-800'
-                                                }`}>
-                                                    {job.status === 'failed' ? <AlertCircle size={18} className="text-rose-500" /> : <Clock size={18} className="text-blue-400" />}
+                                            <div className="flex gap-4">
+                                                {/* Imagem do Produto */}
+                                                <div className="w-16 h-16 rounded-lg bg-white/5 border border-white/10 flex-shrink-0 overflow-hidden flex items-center justify-center">
+                                                    {job.image_url ? (
+                                                        <img src={job.image_url} alt={job.product_name} className="w-full h-full object-cover" />
+                                                    ) : (
+                                                        <ImageIcon className="text-white/20 w-6 h-6" />
+                                                    )}
                                                 </div>
+                                                
                                                 <div className="flex-1 min-w-0">
-                                                    <div className="flex items-center justify-between mb-0.5">
+                                                    <div className="flex justify-between items-start mb-1">
+                                                        <span className="text-xs font-bold text-white truncate pr-2">
+                                                            {job.product_name || `Produto: ${job.product_id}`}
+                                                        </span>
                                                         <div className="flex items-center gap-2">
-                                                            <span className="text-xs font-bold text-white">ID: {job.product_id}</span>
-                                                            <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${
-                                                                job.status === 'failed' ? 'bg-rose-500/20 text-rose-500' : 'bg-blue-500/10 text-blue-400'
+                                                            <span className={`px-2 py-0.5 rounded-full text-[10px] uppercase font-black tracking-tighter ${
+                                                                job.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/40' :
+                                                                job.status === 'processing' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/40' :
+                                                                'bg-red-500/20 text-red-400 border border-red-500/40'
                                                             }`}>
                                                                 {job.status}
                                                             </span>
+                                                            <button 
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    handleRemoveFromQueue(job.id);
+                                                                }}
+                                                                className="p-1.5 hover:bg-rose-500/10 text-slate-500 hover:text-rose-500 rounded-lg transition-all"
+                                                                title="Remover da fila"
+                                                            >
+                                                                <Trash2 size={12} />
+                                                            </button>
                                                         </div>
-                                                        <button 
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                handleRemoveFromQueue(job.id);
-                                                            }}
-                                                            className="p-1.5 hover:bg-rose-500/10 text-slate-500 hover:text-rose-500 rounded-lg transition-all"
-                                                            title="Remover da fila"
-                                                        >
-                                                            <Trash2 size={12} />
-                                                        </button>
                                                     </div>
+                                                    
+                                                    <div className="flex items-center gap-3 text-[10px] text-white/40 mb-2">
+                                                        <div className="flex items-center gap-1">
+                                                            <Clock className="w-3 h-3" />
+                                                            <span>Posta em: {new Date(job.scheduled_for).toLocaleTimeString()}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-1">
+                                                            <Circle className={`w-1.5 h-1.5 fill-current ${
+                                                                job.status === 'pending' ? 'animate-pulse text-yellow-400' : 
+                                                                job.status === 'processing' ? 'animate-spin text-blue-400' : 'text-red-400'
+                                                            }`} />
+                                                        </div>
+                                                    </div>
+
                                                     {(() => {
                                                         if (job.status !== 'pending') return <p className="text-[10px] text-slate-500 italic">Processando...</p>;
                                                         const scheduledDate = new Date(job.scheduled_for);
@@ -283,7 +327,7 @@ const Marketing = () => {
                                                             dateLabel = `${days[scheduledDate.getDay()]}, ${scheduledDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}`;
                                                         }
                                                         return (
-                                                            <div className="flex items-center gap-2 mt-1 flex-wrap">
+                                                            <div className="flex items-center gap-2 flex-wrap">
                                                                 {isPast ? (
                                                                     <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-400 tracking-wider">Atrasado</span>
                                                                 ) : null}
@@ -295,6 +339,7 @@ const Marketing = () => {
                                                     })()}
                                                 </div>
                                             </div>
+
                                             {job.status === 'failed' && job.error_log && (
                                                 <div className="mt-3 p-3 bg-red-500/10 rounded-xl border border-red-500/10 text-[10px] text-red-400 leading-tight italic">
                                                     {typeof job.error_log.error === 'string' ? job.error_log.error : JSON.stringify(job.error_log.error)}
@@ -360,7 +405,7 @@ const Marketing = () => {
                                 ) : (
                                     history.map((log, i) => (
                                         <div key={i} className="bg-slate-950/60 border border-slate-800/60 rounded-2xl p-4 group hover:border-slate-700 transition-all">
-                                            <div className="flex items-center justify-between mb-2">
+                                            <div className="flex items-center justify-between mb-3">
                                                 <div className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md ${
                                                     log.status === 'Success' ? 'bg-green-500/10 text-green-500' : 
                                                     log.status === 'Warning' ? 'bg-yellow-500/10 text-yellow-500' :
@@ -376,10 +421,30 @@ const Marketing = () => {
                                                     {new Date(log.ts).toLocaleTimeString()}
                                                 </span>
                                             </div>
-                                            <p className="text-xs text-white font-bold truncate mb-1">{log.productName || `Prod ID: ${log.productId}`}</p>
-                                            {log.details && (
-                                                <p className="text-[10px] text-slate-500 leading-tight line-clamp-2 italic">{log.details}</p>
-                                            )}
+                                            
+                                            <div className="flex items-center gap-3">
+                                                {/* Imagem no Histórico */}
+                                                <div className="w-10 h-10 rounded bg-white/5 border border-white/10 flex-shrink-0 overflow-hidden flex items-center justify-center">
+                                                    {log.image_url ? (
+                                                        <img src={log.image_url} alt={log.productName} className="w-full h-full object-cover" />
+                                                    ) : (
+                                                        <ImageIcon className="text-white/20 w-4 h-4" />
+                                                    )}
+                                                </div>
+
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-xs text-white font-bold truncate mb-1">{log.productName || `Prod ID: ${log.productId}`}</p>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className={`px-1.5 py-0.5 rounded text-[8px] uppercase font-bold ${
+                                                            log.status === 'Success' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
+                                                        }`}>
+                                                            {log.status}
+                                                        </span>
+                                                        <span className="text-[10px] text-white/30 truncate">{log.details}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
                                             {log.error && (
                                                 <div className="mt-2 p-2 bg-rose-500/5 rounded-lg border border-rose-500/10">
                                                     <p className="text-[9px] text-rose-500 leading-tight font-mono">{typeof log.error === 'string' ? log.error : 'Log de erro detalhado disponível.'}</p>
