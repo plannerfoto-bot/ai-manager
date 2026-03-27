@@ -66,16 +66,13 @@ class InstagramService {
 
     /**
      * Cria um container de mídia para o Feed (Imagem)
-     * Garantimos proporção 1:1 via proxy para evitar erro 400 do Meta
      */
     async createFeedContainer(igAccountId, imageUrl, caption, accessToken) {
         try {
-            // Adicionado &output=jpg para forçar o formato JPEG (Meta não aceita WebP)
-            const proxiedUrl = `https://images.weserv.nl/?url=${encodeURIComponent(imageUrl)}&w=1080&h=1080&fit=contain&bg=white&output=jpg`;
-            console.log('📸 Feed container URL:', proxiedUrl.substring(0, 80) + '...');
+            console.log('📸 Feed container URL:', imageUrl.substring(0, 80) + '...');
 
             const response = await axios.post(`${this.baseUrl}/${igAccountId}/media`, {
-                image_url: proxiedUrl,
+                image_url: imageUrl,
                 caption: caption,
                 access_token: accessToken
             });
@@ -92,11 +89,8 @@ class InstagramService {
      */
     async createStoryContainer(igAccountId, imageUrl, productLink, accessToken) {
         try {
-            // Adicionado &output=jpg para forçar formato JPEG
-            const proxiedUrl = `https://images.weserv.nl/?url=${encodeURIComponent(imageUrl)}&w=1080&h=1920&fit=contain&bg=black&output=jpg`;
-
             const payload = {
-                image_url: proxiedUrl,
+                image_url: imageUrl,
                 media_type: 'STORIES',
                 access_token: accessToken
             };
