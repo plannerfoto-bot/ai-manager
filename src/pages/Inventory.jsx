@@ -34,7 +34,7 @@ const Inventory = ({ products = [], total = 0, page = 1, loading, onDelete, onRe
       const tpl = res.data.feed_caption_template || '';
       const name = getText(product.name);
       const handle = product.handle?.pt || (product.handle ? Object.values(product.handle)[0] : '');
-      const link = `https://clothsublimacao.com.br/produtos/${handle}`;
+      const link = `https://www.fundofotograficocloth.com.br/produtos/${handle}`;
       const defaultTpl = `✨ NOVIDADE NA CLOTH! ✨\n\n${name}\n\nGaranta o seu agora mesmo no nosso site! 🚀\n\n🔗 ${link}\n\n#clothsublimacao #novidade #sublimacao #personalizados`;
       const filled = tpl
         ? tpl.replace(/{{product_name}}/g, name).replace(/{{product_link}}/g, link)

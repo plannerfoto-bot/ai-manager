@@ -186,7 +186,7 @@ const Marketing = () => {
     const captionPreview = (settings.feed_caption_template || defaultCaption)
 
         .replace(/{{product_name}}/g, 'Nome do Produto')
-        .replace(/{{product_link}}/g, 'clothsublimacao.com.br/produto');
+        .replace(/{{product_link}}/g, 'www.fundofotograficocloth.com.br/produto');
 
     // Componente Auxiliar de Aba
     const TabButton = ({ id, label, icon: Icon }) => (
