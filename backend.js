@@ -613,7 +613,7 @@ app.get('/api/marketing/validate', async (req, res) => {
  * Variáveis suportadas: {{product_name}}, {{product_link}}
  */
 function buildFeedCaption(template, productName, productLink, productPrice) {
-    const defaultTemplate = `✨ NOVIDADE NA CLOTH! ✨\n\n{{product_name}}\n\nGaranta o seu agora mesmo no nosso site! 🚀\n\n🔗 {{product_link}}\n\n#clothsublimacao #novidade #sublimacao #personalizados`;
+    const defaultTemplate = `✨ NOVIDADE NA CLOTH! ✨\n\n{{product_name}}\n\nGaranta o seu agora mesmo no nosso site! 🚀\n\n🔗 {{product_link}}\n\n#fundofotograficocloth #novidade #sublimacao #personalizados`;
     const tpl = (template && template.trim()) ? template : defaultTemplate;
     return tpl
         .replace(/{{product_name}}/g, productName)

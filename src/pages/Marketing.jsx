@@ -28,7 +28,7 @@ const Marketing = () => {
     const [activeTab, setActiveTab] = useState('activity');
 
 
-    const defaultCaption = `✨ NOVIDADE NA CLOTH! ✨\n\n{{product_name}}\n\nGaranta o seu agora mesmo no nosso site! 🚀\n\n🔗 {{product_link}}\n\n#clothsublimacao #novidade #sublimacao #personalizados`;
+    const defaultCaption = `✨ NOVIDADE NA CLOTH! ✨\n\n{{product_name}}\n\nGaranta o seu agora mesmo no nosso site! 🚀\n\n🔗 {{product_link}}\n\n#fundofotograficocloth #novidade #sublimacao #personalizados`;
 
     const fetchData = async () => {
         setLoadingHistory(true); // Assuming loadingHistory will cover initial data fetch
