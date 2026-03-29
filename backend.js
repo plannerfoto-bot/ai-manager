@@ -9,7 +9,8 @@ import dotenv from 'dotenv';
 import os from 'os';
 import { createClient } from '@supabase/supabase-js';
 import igService from './src/instagramService.js';
-import Jimp from 'jimp';
+import { Jimp } from 'jimp';
+
 
 
 const __filename = fileURLToPath(import.meta.url);
