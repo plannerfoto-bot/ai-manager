@@ -9,6 +9,8 @@ import dotenv from 'dotenv';
 import os from 'os';
 import { createClient } from '@supabase/supabase-js';
 import igService from './src/instagramService.js';
+import Jimp from 'jimp';
+
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -609,12 +611,54 @@ app.get('/api/marketing/validate', async (req, res) => {
  * HELPER: Monta a legenda do Feed substituindo variáveis
  * Variáveis suportadas: {{product_name}}, {{product_link}}
  */
-function buildFeedCaption(template, productName, productLink) {
+function buildFeedCaption(template, productName, productLink, productPrice) {
     const defaultTemplate = `✨ NOVIDADE NA CLOTH! ✨\n\n{{product_name}}\n\nGaranta o seu agora mesmo no nosso site! 🚀\n\n🔗 {{product_link}}\n\n#clothsublimacao #novidade #sublimacao #personalizados`;
     const tpl = (template && template.trim()) ? template : defaultTemplate;
     return tpl
         .replace(/{{product_name}}/g, productName)
-        .replace(/{{product_link}}/g, productLink);
+        .replace(/{{product_link}}/g, productLink)
+        .replace(/{{product_price}}/g, productPrice || '');
+}
+
+
+/**
+ * Redimensiona a imagem para 1080x1920 (Instagram Stories) adicionando padding.
+ * @param {string} imageUrl URL da imagem original
+ * @returns {Promise<string>} URL da imagem processada
+ */
+async function prepareStoryImage(imageUrl) {
+    try {
+        console.log('🖼️ Processando imagem para Stories:', imageUrl.substring(0, 50));
+        const image = await Jimp.read(imageUrl);
+        const targetWidth = 1080;
+        const targetHeight = 1920;
+
+        // Cria um canvas preto com o tamanho do Story
+        const canvas = new Jimp(targetWidth, targetHeight, 0x000000ff);
+
+        // Redimensiona a imagem original para caber no canvas mantendo o aspect ratio
+        image.contain(targetWidth, targetHeight);
+
+        // Combina a imagem no canvas (centralizada)
+        canvas.composite(image, 0, 0);
+
+        // Salva temporariamente na pasta public
+        const filename = `story_${Date.now()}_${Math.random().toString(36).substring(7)}.jpg`;
+        const tempPath = path.join(__dirname, 'public', 'temp', filename);
+        
+        // Garante que a pasta existe
+        if (!fs.existsSync(path.join(__dirname, 'public', 'temp'))) {
+            fs.mkdirSync(path.join(__dirname, 'public', 'temp'), { recursive: true });
+        }
+
+        await canvas.quality(90).writeAsync(tempPath);
+        console.log('✅ Imagem de Story gerada:', filename);
+
+        return `${PUBLIC_URL}/temp/${filename}`;
+    } catch (error) {
+        console.error('❌ Erro ao processar imagem para Story:', error.message);
+        return imageUrl; // Fallback para a original se falhar
+    }
 }
 
 /**
@@ -649,8 +693,10 @@ app.post('/api/instagram/publish', async (req, res) => {
 
         const productName = (product.name && product.name.pt) ? product.name.pt : (product.name ? Object.values(product.name)[0] : 'Produto');
         const productHandle = (product.handle && product.handle.pt) ? product.handle.pt : (product.handle ? Object.values(product.handle)[0] : '');
-        const productLink = `https://${storeData.domain || 'clothsublimacao.com.br'}/produtos/${productHandle}`;
+        const productLink = `https://${storeData.domain || 'www.fundofotograficocloth.com.br'}/produtos/${productHandle}`;
+        const productPrice = product.variants && product.variants.length > 0 ? `R$ ${product.variants[0].price}` : '';
         const mainImage = product.images && product.images.length > 0 ? product.images[0].src : null;
+
 
         if (!mainImage) {
             return res.status(400).json({ error: 'Este produto não possui imagem cadastrada.' });
@@ -669,7 +715,8 @@ app.post('/api/instagram/publish', async (req, res) => {
             // Usa legenda customizada do campo (se enviada), senão usa o template salvo
             const feedCaption = customCaption
                 ? customCaption
-                : buildFeedCaption(settings?.feed_caption_template, productName, productLink);
+                : buildFeedCaption(settings?.feed_caption_template, productName, productLink, productPrice);
+
 
             const feedContainerId = await igService.createFeedContainer(igAccountId, mainImage, feedCaption, metaToken);
             const feedPostId = await igService.publishMedia(igAccountId, feedContainerId, metaToken);
@@ -683,7 +730,8 @@ app.post('/api/instagram/publish', async (req, res) => {
             // Usamos o campo link_sticker quando disponível, mas para contas Business
             // o padrão é postar apenas a imagem. O link do produto vai no campo caption
             // do container para que a API o registre (não aparece visivelmente).
-            const storyContainerId = await igService.createStoryContainer(igAccountId, mainImage, productLink, metaToken);
+            const storyImage = await prepareStoryImage(mainImage);
+            const storyContainerId = await igService.createStoryContainer(igAccountId, storyImage, productLink, metaToken);
             const storyPostId = await igService.publishMedia(igAccountId, storyContainerId, metaToken);
             results.story = { success: true, postId: storyPostId };
             console.log(`✅ [Manual] Story postado: ${storyPostId}`);
@@ -991,11 +1039,13 @@ app.all('/api/cron/process-queue', async (req, res) => {
                 const product = productRes.data;
                 const productName = (product.name && product.name.pt) ? product.name.pt : (product.name ? Object.values(product.name)[0] : 'Produto');
                 const productHandle = (product.handle && product.handle.pt) ? product.handle.pt : (product.handle ? Object.values(product.handle)[0] : '');
-                const productLink = `https://${storeData.domain || 'clothsublimacao.com.br'}/produtos/${productHandle}`;
+                const productLink = `https://${storeData.domain || 'www.fundofotograficocloth.com.br'}/produtos/${productHandle}`;
+
                 const mainImage = product.images && product.images.length > 0 ? product.images[0].src : job.image_url;
 
                 const igAccountId = await igService.getInstagramAccountId(fbPageId, metaToken);
-                const caption = buildFeedCaption(marketingSettings?.feed_caption_template, productName, productLink);
+                const caption = buildFeedCaption(marketingSettings?.feed_caption_template, productName, productLink, productPrice);
+
 
                 // Meta API Calls
                 const feedContainerId = await igService.createFeedContainer(igAccountId, mainImage, caption, metaToken);
@@ -1003,8 +1053,10 @@ app.all('/api/cron/process-queue', async (req, res) => {
                 
                 await new Promise(r => setTimeout(r, 5000)); // Delay curto entre postagens
 
-                const storyContainerId = await igService.createStoryContainer(igAccountId, mainImage, productLink, metaToken);
+                const storyImage = await prepareStoryImage(mainImage);
+                const storyContainerId = await igService.createStoryContainer(igAccountId, storyImage, productLink, metaToken);
                 await igService.publishMedia(igAccountId, storyContainerId, metaToken);
+
 
                 // Sucesso
                 await supabase.from('post_queue').update({ status: 'success' }).eq('id', jobId);

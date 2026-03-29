@@ -184,9 +184,10 @@ const Marketing = () => {
     };
 
     const captionPreview = (settings.feed_caption_template || defaultCaption)
-
         .replace(/{{product_name}}/g, 'Nome do Produto')
-        .replace(/{{product_link}}/g, 'www.fundofotograficocloth.com.br/produto');
+        .replace(/{{product_price}}/g, 'R$ 149,90')
+        .replace(/{{product_link}}/g, 'www.fundofotograficocloth.com.br/produtos/exemplo');
+
 
     // Componente Auxiliar de Aba
     const TabButton = ({ id, label, icon: Icon }) => (
@@ -529,10 +530,12 @@ const Marketing = () => {
                                     <span className="text-[10px] font-mono text-slate-600">Suporta Markdown e Emojis</span>
                                 </div>
                                 <div className="relative bg-slate-950 rounded-2xl border border-slate-800 overflow-hidden">
-                                    <div className="flex gap-2 p-2 bg-slate-900/50 border-b border-slate-800">
+                                    <div className="flex gap-2 p-2 bg-slate-900/50 border-b border-slate-800 flex-wrap">
                                         <div className="px-2 py-1 bg-slate-800 rounded-md text-[9px] font-bold text-pink-400">{'{{product_name}}'}</div>
+                                        <div className="px-2 py-1 bg-slate-800 rounded-md text-[9px] font-bold text-pink-400">{'{{product_price}}'}</div>
                                         <div className="px-2 py-1 bg-slate-800 rounded-md text-[9px] font-bold text-pink-400">{'{{product_link}}'}</div>
                                     </div>
+
                                     <textarea
                                         value={settings.feed_caption_template}
                                         onChange={(e) => setSettings({...settings, feed_caption_template: e.target.value})}

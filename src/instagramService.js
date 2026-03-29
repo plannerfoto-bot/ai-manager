@@ -85,7 +85,7 @@ class InstagramService {
     }
 
     /**
-     * Cria um container de mídia para o Story (Imagem)
+     * Cria um container de mídia para o Story (Imagem) com suporte opcional a Link Sticker
      */
     async createStoryContainer(igAccountId, imageUrl, productLink, accessToken) {
         try {
@@ -95,6 +95,13 @@ class InstagramService {
                 access_token: accessToken
             };
 
+            // Se houver um link de produto, tentamos adicionar como sticker
+            if (productLink) {
+                payload.story_link_sticker = JSON.stringify({
+                    url: productLink
+                });
+            }
+
             const response = await axios.post(`${this.baseUrl}/${igAccountId}/media`, payload);
             return response.data.id;
         } catch (error) {
@@ -103,6 +110,7 @@ class InstagramService {
             throw new Error(this._extractError(error));
         }
     }
+
 
     /**
      * Verifica o status de processamento do container de mídia

@@ -1,5 +1,5 @@
 {
-  "name": "ai-manager",
+  "name": "frontend",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -7,25 +7,14 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview",
-    "start": "node backend.js"
+    "preview": "vite preview"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.100.1",
-    "@tailwindcss/vite": "^4.2.2",
-    "autoprefixer": "^10.4.27",
-    "axios": "^1.13.6",
-    "cors": "^2.8.6",
-    "dotenv": "^17.3.1",
-    "express": "^5.2.1",
     "framer-motion": "^12.38.0",
-    "jimp": "^1.6.0",
-    "lucide-react": "^1.6.0",
-    "postcss": "^8.5.8",
+    "lodash": "^4.17.23",
+    "lucide-react": "^1.7.0",
     "react": "^19.2.4",
-    "react-dom": "^19.2.4",
-    "react-hot-toast": "^2.6.0",
-    "tailwindcss": "^4.2.2"
+    "react-dom": "^19.2.4"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
