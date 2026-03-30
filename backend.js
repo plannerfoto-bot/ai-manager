@@ -1321,9 +1321,9 @@ app.post('/api/products/bulk-create-manual', async (req, res) => {
             let productData = {};
 
             if (baseProduct) {
-                // MODO CLONAGEM (Preservar apenas Tags, Categorias, Atributos e Variações)
+                // MODO CLONAGEM (Preservar apenas Descrição, Tags, Categorias, Atributos e Variações)
                 const fieldsToCopy = [
-                    'attributes', 'tags'
+                    'description', 'attributes', 'tags'
                 ];
                 
                 productData = {
