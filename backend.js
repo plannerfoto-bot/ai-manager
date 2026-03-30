@@ -1321,14 +1321,15 @@ app.post('/api/products/bulk-create-manual', async (req, res) => {
             let productData = {};
 
             if (baseProduct) {
-                // MODO CLONAGEM (Preservar SEO, Categorias, Atributos e Variações)
+                // MODO CLONAGEM (Preservar apenas Tags, Categorias, Atributos e Variações)
                 const fieldsToCopy = [
-                    'description', 'seo_title', 'seo_description', 'brand', 
                     'attributes', 'tags'
                 ];
                 
                 productData = {
                     name: typeof baseProduct.name === 'object' ? { pt: item.name } : item.name,
+                    seo_title: item.name,
+                    seo_description: `Fundo fotográfico produzido para ${item.name} com valores a partir de R$94,00`,
                     variants: []
                 };
 
@@ -1343,21 +1344,24 @@ app.post('/api/products/bulk-create-manual', async (req, res) => {
                     productData.categories = baseProduct.categories.map(c => c.id || c);
                 }
 
-                // Mapeia variações garantindo propriedades dimensionais e nomenclaturas (Ex: {pt: "1,50x2,00"})
-                // IMPORTANTE: stock = null na API Nuvemshop significa estoque INFINITO (sem controle de estoque).
-                // Ao replicar um produto, sempre definimos null para garantir estoque infinito nos clones.
                 if (baseProduct.variants && baseProduct.variants.length > 0) {
-                    productData.variants = baseProduct.variants.map(v => ({
-                        price: v.price || "0.00",
-                        promotional_price: v.promotional_price,
-                        stock: null, // null = estoque infinito na API Nuvemshop/Tiendanube
-                        weight: v.weight !== null ? v.weight : 0.5,
-                        width: v.width,
-                        height: v.height,
-                        depth: v.depth,
-                        cost: v.cost,
-                        values: v.values // Copia as propriedades da Variação ("Tamanho", "Gramatura" etc)
-                    }));
+                    productData.variants = baseProduct.variants.map((v) => {
+                        // O usuário pediu o SKU igual ao nome do produto (removendo os hífens)
+                        const finalSku = item.name.replace(/-/g, '');
+
+                        return {
+                            price: v.price || "0.00",
+                            promotional_price: v.promotional_price,
+                            stock: null, // null = estoque infinito na API Nuvemshop/Tiendanube
+                            weight: v.weight !== null ? v.weight : 0.5,
+                            width: v.width,
+                            height: v.height,
+                            depth: v.depth,
+                            cost: v.cost,
+                            values: v.values, // Copia as propriedades da Variação ("Tamanho", "Gramatura" etc)
+                            sku: finalSku     // SKU automático baseado no nome do arquivo (sem hífens)
+                        };
+                    });
                 }
             } else {
                 // MODO MANUAL GENÉRICO (Sem produto base)
