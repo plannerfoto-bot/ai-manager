@@ -10,6 +10,7 @@ import Orders from './pages/Orders';
 import BulkUpload from './pages/BulkUpload';
 import ScriptManager from './pages/ScriptManager';
 import Marketing from './pages/Marketing';
+import AbandonedCart from './components/organisms/AbandonedCart';
 
 // ─── Componentes Auxiliares Fora da Função Principal ───────────────────
 class ErrorBoundary extends React.Component {
@@ -199,6 +200,8 @@ const App = () => {
         return <ScriptManager storeId={storeId} apiBase={API_BASE_URL} />;
       case 'marketing':
         return <Marketing />;
+      case 'abandoned-cart':
+        return <AbandonedCart />;
       default:
         return <Dashboard stats={stats} />;
     }

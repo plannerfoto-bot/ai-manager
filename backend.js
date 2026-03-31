@@ -1648,6 +1648,128 @@ app.delete('/api/scripts/store-script', async (req, res) => {
   }
 });
 
+// ============================================================
+// CARRINHO ABANDONADO — API SUPABASE ✨
+// ============================================================
+
+/** GET /api/abandoned-cart/settings — retorna configurações */
+app.get('/api/abandoned-cart/settings', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('abandoned_cart_config')
+      .select('*')
+      .maybeSingle();
+
+    if (error) throw error;
+    res.json({ success: true, data: data });
+  } catch (err) {
+    console.error('Erro ao buscar configurações:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/** POST /api/abandoned-cart/settings — salva configurações */
+app.post('/api/abandoned-cart/settings', async (req, res) => {
+  try {
+    const { data: current } = await supabase.from('abandoned_cart_config').select('id').maybeSingle();
+    const payload = {
+      ...req.body,
+      updated_at: new Date().toISOString()
+    };
+    
+    let result;
+    if (current?.id) {
+        result = await supabase.from('abandoned_cart_config').update(payload).eq('id', current.id);
+    } else {
+        result = await supabase.from('abandoned_cart_config').insert([payload]);
+    }
+
+    if (result.error) throw result.error;
+    res.json({ success: true, data: payload });
+  } catch (err) {
+    console.error('Erro ao salvar configurações:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/** GET /api/abandoned-cart/history — lista carrinhos já contatados */
+app.get('/api/abandoned-cart/history', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('abandoned_cart_sent')
+      .select('*')
+      .order('sent_at', { ascending: false })
+      .limit(50);
+
+    if (error) throw error;
+    res.json({ success: true, data: data });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/** POST /api/abandoned-cart/mark-sent — registra que um carrinho foi contatado (chamado pelo n8n) */
+app.post('/api/abandoned-cart/mark-sent', async (req, res) => {
+  try {
+    const { checkout_id, customer_name, customer_phone, total, products, status, error_message } = req.body;
+    if (!checkout_id) return res.status(400).json({ success: false, error: 'checkout_id obrigatório' });
+
+    const payload = {
+      checkout_id: String(checkout_id),
+      customer_name: customer_name || 'N/A',
+      customer_phone: customer_phone || 'N/A',
+      sent_at: new Date().toISOString()
+    };
+
+    const { data, error } = await supabase
+      .from('abandoned_cart_sent')
+      .upsert(payload, { onConflict: 'checkout_id' });
+
+    if (error) throw error;
+    res.json({ success: true, record: payload });
+  } catch (err) {
+    console.error('Erro ao marcar como enviado:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/** GET /api/abandoned-cart/check-sent/:checkoutId — verifica se carrinho já foi contatado */
+app.get('/api/abandoned-cart/check-sent/:checkoutId', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('abandoned_cart_sent')
+      .select('*')
+      .eq('checkout_id', String(req.params.checkoutId))
+      .maybeSingle();
+
+    if (error) throw error;
+    res.json({ success: true, already_sent: !!data, record: data || null });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/** GET /api/abandoned-cart/checkouts — busca carrinhos abandonados da Nuvemshop (para o painel) */
+app.get('/api/abandoned-cart/checkouts', async (req, res) => {
+  try {
+    const ACCESS_TOKEN = process.env.NUVEMSHOP_ACCESS_TOKEN;
+    const STORE_ID     = process.env.TIENDANUBE_STORE_ID;
+    const response = await axios.get(`https://api.nuvemshop.com.br/v1/${STORE_ID}/checkouts`, {
+      headers: {
+        'Authentication': `bearer ${ACCESS_TOKEN}`,
+        'User-Agent': 'AI-Manager-PlannerfotoBot (admin@biags.com.br)',
+        'Content-Type': 'application/json'
+      },
+      params: { per_page: 20 }
+    });
+    const checkouts = response.data.filter(c => !c.completed_at);
+    res.json({ success: true, data: checkouts, total: checkouts.length });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.response?.data || err.message });
+  }
+});
+
+// ============================================================
 // Redireciona todas as outras rotas para o index.html do React (SPA)
 app.get('/*any', (req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
@@ -1655,3 +1777,4 @@ app.get('/*any', (req, res) => {
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, '0.0.0.0', () => console.log(`Backend AIOX v5.1 Operacional na porta ${PORT}`));
+
