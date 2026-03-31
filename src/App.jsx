@@ -175,6 +175,7 @@ const App = () => {
   };
 
   const renderContent = () => {
+    console.log("[App] Trocando para:", activeTab);
     switch (activeTab) {
       case 'dashboard':
         return <Dashboard stats={stats} />;

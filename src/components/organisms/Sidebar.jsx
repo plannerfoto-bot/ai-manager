@@ -20,7 +20,7 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
     { id: 'inventory', label: 'Produtos', icon: Package },
     { id: 'bulk-upload', label: 'Upload Massivo', icon: Layers },
     { id: 'ai-creator', label: 'IA Creator', icon: Sparkles },
-    { id: 'abandoned-cart', label: 'Carrinho Abandonado', icon: ShoppingCart },
+    { id: 'abandoned-cart', label: '🛒 Carrinhos', icon: ShoppingBag },
     { id: 'marketing', label: 'Marketing', icon: Share2 },
     { id: 'script-manager', label: 'Script da Loja', icon: Code2 },
     { id: 'settings', label: 'Configurações', icon: Settings },
