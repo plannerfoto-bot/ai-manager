@@ -1697,9 +1697,11 @@ app.post('/api/abandoned-cart/settings', async (req, res) => {
 /** GET /api/abandoned-cart/history — lista carrinhos já contatados */
 app.get('/api/abandoned-cart/history', async (req, res) => {
   try {
+    const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
     const { data, error } = await supabase
       .from('abandoned_cart_sent')
       .select('*')
+      .eq('store_id', String(storeId))
       .order('sent_at', { ascending: false })
       .limit(50);
 
@@ -1713,11 +1715,14 @@ app.get('/api/abandoned-cart/history', async (req, res) => {
 /** POST /api/abandoned-cart/mark-sent — registra que um carrinho foi contatado (chamado pelo n8n) */
 app.post('/api/abandoned-cart/mark-sent', async (req, res) => {
   try {
-    const { checkout_id, customer_name, customer_phone, total, products, status, error_message } = req.body;
+    const { checkout_id, customer_name, customer_phone, total, products, status, error_message, store_id } = req.body;
+    const finalStoreId = store_id || req.headers['x-store-id'] || DEFAULT_STORE_ID;
+    
     if (!checkout_id) return res.status(400).json({ success: false, error: 'checkout_id obrigatório' });
 
     const payload = {
       checkout_id: String(checkout_id),
+      store_id: String(finalStoreId),
       customer_name: customer_name || 'N/A',
       customer_phone: customer_phone || 'N/A',
       status: status || 'sent',
@@ -1981,6 +1986,7 @@ app.post('/api/abandoned-cart/webhook', async (req, res) => {
     // 9. Registrar no Histórico
     await supabase.from('abandoned_cart_sent').upsert({
       checkout_id: String(checkout.id),
+      store_id: String(STORE_ID),
       customer_name: name,
       customer_phone: phone,
       status: 'sent',
