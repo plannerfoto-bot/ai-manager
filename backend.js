@@ -1753,6 +1753,51 @@ app.get('/api/abandoned-cart/check-sent/:checkoutId', async (req, res) => {
 });
 
 /** GET /api/abandoned-cart/checkouts — busca carrinhos abandonados da Nuvemshop (para o painel) */
+/**
+ * POST /api/abandoned-cart/register-webhook — Registra o webhook de abandono na Nuvemshop
+ */
+app.post('/api/abandoned-cart/register-webhook', async (req, res) => {
+  try {
+    const STORE_ID = req.headers['x-store-id'] || process.env.TIENDANUBE_STORE_ID || '2767708';
+    const NUVEMSHOP_TOKEN = process.env.TIENDANUBE_ACCESS_TOKEN || '454761d47b7ce42c4d539deb3025366ac8dbe358';
+    
+    const webhookUrl = `${PUBLIC_URL}/api/abandoned-cart/webhook`;
+    console.log(`[Webhook Auto] Registrando abandono para loja ${STORE_ID} na URL: ${webhookUrl}`);
+
+    // 1. Listar existentes para evitar duplicidade
+    const listRes = await axios.get(
+      `https://api.tiendanube.com/v1/${STORE_ID}/webhooks`,
+      { headers: { 'Authentication': `bearer ${NUVEMSHOP_TOKEN}`, 'User-Agent': 'AIManager/1.0' } }
+    );
+    
+    const existing = listRes.data || [];
+    for (const wh of existing) {
+      if (wh.event === 'abandoned_checkout/created' || wh.url.includes('/api/abandoned-cart/webhook')) {
+        console.log(`[Webhook Auto] Removendo antigo: ${wh.id}`);
+        await axios.delete(`https://api.tiendanube.com/v1/${STORE_ID}/webhooks/${wh.id}`, {
+          headers: { 'Authentication': `bearer ${NUVEMSHOP_TOKEN}`, 'User-Agent': 'AIManager/1.0' }
+        });
+      }
+    }
+
+    // 2. Registrar novo
+    const regRes = await axios.post(
+      `https://api.tiendanube.com/v1/${STORE_ID}/webhooks`,
+      { event: 'abandoned_checkout/created', url: webhookUrl },
+      { headers: { 
+          'Authentication': `bearer ${NUVEMSHOP_TOKEN}`, 
+          'User-Agent': 'AIManager/1.0',
+          'Content-Type': 'application/json' 
+      }}
+    );
+
+    res.json({ success: true, data: regRes.data });
+  } catch (err) {
+    console.error('❌ Erro ao registrar webhook de abandono:', err.response?.data || err.message);
+    res.status(500).json({ success: false, error: err.response?.data || err.message });
+  }
+});
+
 app.get('/api/abandoned-cart/checkouts', async (req, res) => {
   try {
     const storeId = req.headers['x-store-id'] || req.query.store_id || DEFAULT_STORE_ID;

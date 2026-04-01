@@ -58,6 +58,7 @@ export default function AbandonedCart({ storeId }) {
   const [selectedCart, setSelectedCart] = useState(null);
   const [manualSending, setManualSending] = useState(false);
   const [autoSending, setAutoSending] = useState(false);
+  const [regLoading, setRegLoading] = useState(false);
 
   const loadAll = useCallback(async () => {
     setLoading(true);
@@ -242,6 +243,27 @@ export default function AbandonedCart({ storeId }) {
       setMsg(`❌ Erro na simulação: ${e.message}`);
     }
     setAutoSending(false);
+  };
+
+  const registerWebhook = async () => {
+    setRegLoading(true);
+    setMsg('');
+    try {
+      const res = await fetch(`${API}/api/abandoned-cart/register-webhook`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setMsg('✅ Automação sincronizada! Webhook registrado na Nuvemshop.');
+      } else {
+        setMsg(`❌ Erro ao sincronizar: ${data.error || 'Erro desconhecido'}`);
+      }
+    } catch (e) {
+      setMsg(`❌ Erro de conexão: ${e.message}`);
+    }
+    setRegLoading(false);
+    setTimeout(() => setMsg(''), 5000);
   };
 
   if (loading || !config) return (
@@ -596,14 +618,31 @@ export default function AbandonedCart({ storeId }) {
               }}>{msg}</div>
             )}
 
-            <button onClick={save} disabled={saving || saved} style={{
-              padding: '14px 24px', borderRadius: 10, border: 'none',
-              background: saved ? '#10b981' : '#6366f1',
-              color: '#fff', fontSize: 15, fontWeight: 700,
-              cursor: saving ? 'wait' : 'pointer', transition: 'background 0.2s'
-            }}>
-              {saving ? '⏳ Salvando...' : saved ? '✅ Salvo!' : '💾 Salvar Configurações'}
-            </button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <button 
+                onClick={registerWebhook} 
+                disabled={regLoading} 
+                style={{
+                  padding: '14px 24px', borderRadius: 10, border: '1px solid #6366f1',
+                  background: '#6366f111', color: '#818cf8', cursor: 'pointer',
+                  fontWeight: 700, fontSize: 13, transition: 'all 0.2s',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10
+                }}
+                onMouseOver={(e) => { e.currentTarget.style.background = '#6366f122'; }}
+                onMouseOut={(e) => { e.currentTarget.style.background = '#6366f111'; }}
+              >
+                {regLoading ? '⏳ Sincronizando...' : <>🔗 Sincronizar Automação com Nuvemshop</>}
+              </button>
+
+              <button onClick={save} disabled={saving || saved} style={{
+                padding: '14px 24px', borderRadius: 10, border: 'none',
+                background: saved ? '#10b981' : '#6366f1', color: '#fff', cursor: 'pointer',
+                fontWeight: 700, width: '100%',
+                boxShadow: saved ? 'none' : '0 4px 12px 0 rgba(99, 102, 241, 0.3)'
+              }}>
+                {saving ? '⏳ Salvando...' : saved ? '✅ Configurações Salvas!' : '💾 Salvar Configurações'}
+              </button>
+            </div>
           </div>
         </div>
       )}
