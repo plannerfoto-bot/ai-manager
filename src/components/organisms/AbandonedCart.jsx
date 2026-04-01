@@ -251,19 +251,23 @@ export default function AbandonedCart({ storeId }) {
     try {
       const res = await fetch(`${API}/api/abandoned-cart/register-webhook`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-store-id': finalStoreId 
+        }
       });
       const data = await res.json();
       if (data.success) {
         setMsg('✅ Automação sincronizada! Webhook registrado na Nuvemshop.');
       } else {
-        setMsg(`❌ Erro ao sincronizar: ${data.error || 'Erro desconhecido'}`);
+        const errorText = typeof data.error === 'object' ? (data.error.message || JSON.stringify(data.error)) : data.error;
+        setMsg(`❌ Erro ao sincronizar: ${errorText || 'Erro desconhecido'}`);
       }
     } catch (e) {
       setMsg(`❌ Erro de conexão: ${e.message}`);
     }
     setRegLoading(false);
-    setTimeout(() => setMsg(''), 5000);
+    setTimeout(() => setMsg(''), 8000);
   };
 
   if (loading || !config) return (

@@ -1716,13 +1716,15 @@ app.get('/api/abandoned-cart/history', async (req, res) => {
 app.post('/api/abandoned-cart/mark-sent', async (req, res) => {
   try {
     const { checkout_id, customer_name, customer_phone, total, products, status, error_message, store_id } = req.body;
-    const finalStoreId = store_id || req.headers['x-store-id'] || DEFAULT_STORE_ID;
+    const finalStoreId = String(store_id || req.headers['x-store-id'] || DEFAULT_STORE_ID);
     
     if (!checkout_id) return res.status(400).json({ success: false, error: 'checkout_id obrigatório' });
 
+    console.log(`[Carrinho] Marcando enviado: checkout ${checkout_id} | Store ${finalStoreId}`);
+
     const payload = {
       checkout_id: String(checkout_id),
-      store_id: String(finalStoreId),
+      store_id: finalStoreId,
       customer_name: customer_name || 'N/A',
       customer_phone: customer_phone || 'N/A',
       status: status || 'sent',
@@ -1733,7 +1735,11 @@ app.post('/api/abandoned-cart/mark-sent', async (req, res) => {
       .from('abandoned_cart_sent')
       .upsert(payload, { onConflict: 'checkout_id' });
 
-    if (error) throw error;
+    if (error) {
+      console.error('❌ Erro Supabase mark-sent:', error);
+      throw error;
+    }
+
     res.json({ success: true, record: payload });
   } catch (err) {
     console.error('Erro ao marcar como enviado:', err);
@@ -1763,16 +1769,23 @@ app.get('/api/abandoned-cart/check-sent/:checkoutId', async (req, res) => {
  */
 app.post('/api/abandoned-cart/register-webhook', async (req, res) => {
   try {
-    const STORE_ID = req.headers['x-store-id'] || process.env.TIENDANUBE_STORE_ID || '2767708';
-    const NUVEMSHOP_TOKEN = process.env.TIENDANUBE_ACCESS_TOKEN || '454761d47b7ce42c4d539deb3025366ac8dbe358';
+    const STORE_ID = req.headers['x-store-id'] || DEFAULT_STORE_ID;
     
+    // Buscar token dinamicamente do Supabase
+    const stores = await getStores();
+    const token = stores[STORE_ID]?.access_token || DEFAULT_ACCESS_TOKEN;
+    
+    if (!token || token.includes('YOUR_ACCESS_TOKEN')) {
+      return res.status(400).json({ success: false, error: 'Token de acesso Nuvemshop não configurado.' });
+    }
+
     const webhookUrl = `${PUBLIC_URL}/api/abandoned-cart/webhook`;
     console.log(`[Webhook Auto] Registrando abandono para loja ${STORE_ID} na URL: ${webhookUrl}`);
 
     // 1. Listar existentes para evitar duplicidade
     const listRes = await axios.get(
       `https://api.tiendanube.com/v1/${STORE_ID}/webhooks`,
-      { headers: { 'Authentication': `bearer ${NUVEMSHOP_TOKEN}`, 'User-Agent': 'AIManager/1.0' } }
+      { headers: { 'Authentication': `bearer ${token}`, 'User-Agent': 'AIManager/1.0' } }
     );
     
     const existing = listRes.data || [];
@@ -1780,7 +1793,7 @@ app.post('/api/abandoned-cart/register-webhook', async (req, res) => {
       if (wh.event === 'abandoned_checkout/created' || wh.url.includes('/api/abandoned-cart/webhook')) {
         console.log(`[Webhook Auto] Removendo antigo: ${wh.id}`);
         await axios.delete(`https://api.tiendanube.com/v1/${STORE_ID}/webhooks/${wh.id}`, {
-          headers: { 'Authentication': `bearer ${NUVEMSHOP_TOKEN}`, 'User-Agent': 'AIManager/1.0' }
+          headers: { 'Authentication': `bearer ${token}`, 'User-Agent': 'AIManager/1.0' }
         });
       }
     }
@@ -1790,7 +1803,7 @@ app.post('/api/abandoned-cart/register-webhook', async (req, res) => {
       `https://api.tiendanube.com/v1/${STORE_ID}/webhooks`,
       { event: 'abandoned_checkout/created', url: webhookUrl },
       { headers: { 
-          'Authentication': `bearer ${NUVEMSHOP_TOKEN}`, 
+          'Authentication': `bearer ${token}`, 
           'User-Agent': 'AIManager/1.0',
           'Content-Type': 'application/json' 
       }}
