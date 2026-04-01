@@ -1674,8 +1674,11 @@ app.post('/api/abandoned-cart/settings', async (req, res) => {
     const { data: current } = await supabase.from('abandoned_cart_config').select('id').maybeSingle();
     const safeBody = req.body;
     
+    // Limpar campos que não devem ir para o DB ou que podem causar erro
+    const { id, updated_at, ...cleanPayload } = safeBody;
+    
     const payload = {
-      ...safeBody,
+      ...cleanPayload,
       updated_at: new Date().toISOString()
     };
     
@@ -1782,7 +1785,7 @@ app.post('/api/abandoned-cart/register-webhook', async (req, res) => {
     const webhookUrl = `${PUBLIC_URL}/api/abandoned-cart/webhook`;
     console.log(`[Webhook Auto] Registrando abandono para loja ${STORE_ID} na URL: ${webhookUrl}`);
 
-    // 1. Listar existentes para evitar duplicidade
+    // 1. Listar TODOS os webhooks para garantir limpeza total
     const listRes = await axios.get(
       `https://api.tiendanube.com/v1/${STORE_ID}/webhooks`,
       { headers: { 'Authentication': `bearer ${token}`, 'User-Agent': 'AIManager/1.0' } }
@@ -1790,11 +1793,16 @@ app.post('/api/abandoned-cart/register-webhook', async (req, res) => {
     
     const existing = listRes.data || [];
     for (const wh of existing) {
-      if (wh.event === 'abandoned_checkout/created' || wh.url.includes('/api/abandoned-cart/webhook')) {
-        console.log(`[Webhook Auto] Removendo antigo: ${wh.id}`);
-        await axios.delete(`https://api.tiendanube.com/v1/${STORE_ID}/webhooks/${wh.id}`, {
-          headers: { 'Authentication': `bearer ${token}`, 'User-Agent': 'AIManager/1.0' }
-        });
+      // Remover se for o mesmo evento OU se a URL contiver nosso endpoint de abandono
+      if (wh.event === 'abandoned_checkout/created' || (wh.url && wh.url.includes('/api/abandoned-cart/webhook'))) {
+        console.log(`[Webhook Auto] Removendo conflito: ${wh.id} (${wh.event})`);
+        try {
+          await axios.delete(`https://api.tiendanube.com/v1/${STORE_ID}/webhooks/${wh.id}`, {
+            headers: { 'Authentication': `bearer ${token}`, 'User-Agent': 'AIManager/1.0' }
+          });
+        } catch (delErr) {
+          console.warn(`[Webhook Auto] Falha ao deletar webhook ${wh.id}:`, delErr.message);
+        }
       }
     }
 
@@ -1811,8 +1819,18 @@ app.post('/api/abandoned-cart/register-webhook', async (req, res) => {
 
     res.json({ success: true, data: regRes.data });
   } catch (err) {
-    console.error('❌ Erro ao registrar webhook de abandono:', err.response?.data || err.message);
-    res.status(500).json({ success: false, error: err.response?.data || err.message });
+    const errorDetail = err.response?.data || err.message;
+    console.error('❌ Erro ao registrar webhook de abandono:', errorDetail);
+    
+    // Se for erro de validação da Nuvemshop (422), extrair a mensagem amigável
+    let message = 'Erro desconhecido ao registrar webhook';
+    if (err.response?.status === 422) {
+       message = `Nuvemshop: ${JSON.stringify(errorDetail)}`;
+    } else {
+       message = err.message;
+    }
+    
+    res.status(500).json({ success: false, error: message });
   }
 });
 
