@@ -2144,27 +2144,46 @@ app.post('/api/abandoned-cart/coupons/bulk-delete', async (req, res) => {
   
   try {
     const client = await getApiClient(storeId);
-    console.log(`[Admin] Iniciando exclusão em massa de cupons para a loja ${storeId}`);
+    console.log(`[Admin] Iniciando exclusão EXAUSTIVA de cupons para a loja ${storeId}`);
     
-    // Buscar todos os cupons (usando o cliente autenticado que já sabe a URL base e token)
-    const listRes = await client.get('/coupons', { params: { per_page: 100 } });
-    
-    const coupons = listRes.data || [];
-    let deletedCount = 0;
-    
-    for (const coupon of coupons) {
+    let totalDeleted = 0;
+    let hasMore = true;
+    let batchNumber = 1;
+
+    while (hasMore) {
+      console.log(`[Admin] Buscando Lote #${batchNumber} de cupons...`);
+      const listRes = await client.get('/coupons', { params: { per_page: 100 } });
+      const coupons = listRes.data || [];
+      
+      if (coupons.length === 0) {
+        console.log(`[Admin] Nenhum cupom encontrado no Lote #${batchNumber}. Finalizando.`);
+        hasMore = false;
+        break;
+      }
+
+      console.log(`[Admin] Lote #${batchNumber}: ${coupons.length} cupons encontrados. Excluindo...`);
+      
+      for (const coupon of coupons) {
         try {
           await client.delete(`/coupons/${coupon.id}`);
-          deletedCount++;
-          // Delay de 150ms para evitar rate limits
-          await new Promise(r => setTimeout(r, 150));
+          totalDeleted++;
+          // Delay de 100ms para ser um pouco mais rápido mas ainda seguro
+          await new Promise(r => setTimeout(r, 100));
         } catch (delErr) {
           console.error(`[Admin] Falha ao deletar cupom ${coupon.id}:`, delErr.response?.data || delErr.message);
         }
+      }
+      
+      console.log(`[Admin] Lote #${batchNumber} concluído. Total até agora: ${totalDeleted}`);
+      batchNumber++;
+      
+      // Pequena pausa entre lotes para o servidor respirar
+      await new Promise(r => setTimeout(r, 500));
     }
     
-    console.log(`[Admin] Exclusão finalizada para loja ${storeId}. Total: ${deletedCount} cupons removidos.`);
-    res.json({ success: true, message: `${deletedCount} cupons excluídos com sucesso.` });
+    console.log(`[Admin] Sucesso total: ${totalDeleted} cupons removidos da loja ${storeId}.`);
+    res.json({ success: true, message: `Processo finalizado. ${totalDeleted} cupons excluídos com sucesso.` });
+
   } catch (err) {
     console.error('[Admin] Erro no bulk-delete:', err.response?.data || err.message);
     res.status(500).json({ success: false, error: 'Falha na autenticação ou conexão com a Nuvemshop' });
