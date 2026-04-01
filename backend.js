@@ -2372,15 +2372,21 @@ export async function runProfessionalAbandonedCartRecovery() {
                     couponCode = Math.floor(10000 + Math.random() * 90000).toString();
                     
                     const client = await getApiClient(storeId);
-                    const expiryDate = new Date();
-                    expiryDate.setDate(expiryDate.getDate() + 1);
+                    
+                    // Define a vigência para o final do dia atual do Brasil (23:59:59 UTC-3)
+                    const fmt = new Intl.DateTimeFormat('en-CA', { 
+                        timeZone: 'America/Sao_Paulo', 
+                        year: 'numeric', month: '2-digit', day: '2-digit' 
+                    });
+                    const brtDate = fmt.format(new Date()); // Formato: "YYYY-MM-DD" no Brasil
+                    const expiresAtString = `${brtDate}T23:59:59-03:00`; // Fim exato do dia
 
                     await client.post('/coupons', {
                       code: couponCode,
                       type: 'percentage',
                       value: String(numericDiscountValue),
                       max_uses: 1,
-                      expires_at: expiryDate.toISOString()
+                      expires_at: expiresAtString
                     });
                     
                     console.log(`[Vigilante] Novo cupom ${couponCode} (${validDiscount}) gerado para ${name}.`);
