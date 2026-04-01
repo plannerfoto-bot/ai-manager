@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { User, MapPin, Package, ExternalLink, ChevronLeft, Send, Phone, Mail } from 'lucide-react';
 
 const API = import.meta.env.VITE_API_URL || '';
 
@@ -52,6 +53,8 @@ export default function AbandonedCart({ storeId }) {
   const [msg, setMsg]           = useState('');
   const [testPhone, setTestPhone] = useState('');
   const [testSending, setTestSending] = useState(false);
+  const [selectedCart, setSelectedCart] = useState(null);
+  const [manualSending, setManualSending] = useState(false);
 
   const loadAll = useCallback(async () => {
     setLoading(true);
@@ -134,6 +137,56 @@ export default function AbandonedCart({ storeId }) {
     setTestSending(false);
   };
 
+  const sendManualWhatsApp = async (cart) => {
+    if (!cart.customer_phone) return alert('Cliente não possui telefone cadastrado.');
+    setManualSending(true);
+    setMsg('');
+    try {
+      // Formata lista de produtos para a mensagem
+      const productListStr = cart.line_items?.map(p => `• ${p.name} x${p.quantity} — R$ ${parseFloat(p.price * p.quantity).toFixed(2).replace('.', ',')}`).join('\n') || cart.products;
+      
+      const bodyText = (config?.message_template || DEFAULT_TEMPLATE)
+        .replace('{{nome}}', cart.customer_name.split(' ')[0])
+        .replace('{{produtos}}', productListStr)
+        .replace('{{total}}', parseFloat(cart.total).toFixed(2).replace('.', ','))
+        .replace('{{link}}', cart.checkout_url)
+        .replace('{{frete}}', parseFloat(cart.billing_address?.shipping_cost || 0).toFixed(2).replace('.', ','));
+
+      const res = await fetch(`${config.wuzapi_url}/chat/send/text`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'token': config.wuzapi_user_token || config.wuzapi_token,
+        },
+        body: JSON.stringify({ phone: cart.customer_phone.replace(/\D/g, ''), body: bodyText }),
+      });
+
+      if (res.ok) {
+        setMsg(`✅ Mensagem enviada manualmente para ${cart.customer_name}!`);
+        // Opcionalmente, marcar como enviado no banco
+        await fetch(`${API}/api/abandoned-cart/mark-sent`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-store-id': finalStoreId },
+          body: JSON.stringify({
+            checkout_id: cart.id,
+            customer_name: cart.customer_name,
+            customer_phone: cart.customer_phone,
+            total: cart.total,
+            products: cart.products,
+            status: 'sent'
+          })
+        });
+        loadAll(); // Recarrega histórico
+      } else {
+        const errData = await res.json();
+        setMsg('❌ Erro no envio manual: ' + (errData.message || JSON.stringify(errData)));
+      }
+    } catch (e) {
+      setMsg('❌ Erro de conexão com WuzAPI: ' + e.message);
+    }
+    setManualSending(false);
+  };
+
   if (loading || !config) return (
     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 200, color: '#9ca3af' }}>
       <div>⏳ Carregando...</div>
@@ -211,8 +264,9 @@ export default function AbandonedCart({ storeId }) {
           { id: 'config', label: '⚙️ Configurações' },
           { id: 'history', label: '📋 Histórico' },
           { id: 'carts', label: `🛒 Carrinhos Abertos (${carts.length})` },
+          tab === 'details' && { id: 'details', label: '👤 Ficha do Cliente' },
           { id: 'n8n', label: '🔗 Workflow n8n' },
-        ].map(t => (
+        ].filter(Boolean).map(t => (
           <button key={t.id} onClick={() => setTab(t.id)} style={{
             padding: '8px 18px', border: 'none', cursor: 'pointer',
             background: tab === t.id ? '#6366f1' : 'transparent',
@@ -475,9 +529,22 @@ export default function AbandonedCart({ storeId }) {
                   const minAgo = Math.round((Date.now() - new Date(c.created_at).getTime()) / 60000);
                   const willFire = minAgo >= config.delay_minutes;
                   return (
-                    <tr key={i} style={{ borderTop: '1px solid #334155', background: willFire ? '#10b98108' : 'transparent' }}>
+                    <tr key={i} 
+                      onClick={() => { setSelectedCart(c); setTab('details'); }}
+                      style={{ 
+                        borderTop: '1px solid #334155', 
+                        background: willFire ? '#10b98108' : 'transparent',
+                        cursor: 'pointer',
+                        transition: 'background 0.2s'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = '#33415555'}
+                      onMouseLeave={(e) => e.currentTarget.style.background = willFire ? '#10b98108' : 'transparent'}
+                    >
                       <td style={{ padding: '12px 16px', color: '#f1f5f9', fontSize: 13 }}>
-                        {c.customer_name || 'Sem nome'}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <User className="w-3 h-3 text-slate-500" />
+                          {c.customer_name || 'Sem nome'}
+                        </div>
                         {willFire && <span style={{ marginLeft: 6, fontSize: 10, background: '#f59e0b22', color: '#f59e0b', padding: '2px 6px', borderRadius: 6 }}>Pronto p/ envio</span>}
                       </td>
                       <td style={{ padding: '12px 16px', color: '#94a3b8', fontSize: 13 }}>{c.customer_phone || '—'}</td>
@@ -494,6 +561,151 @@ export default function AbandonedCart({ storeId }) {
               </tbody>
             </table>
           )}
+        </div>
+      )}
+
+      {/* ===== TAB: DETALHES DO CARRINHO ===== */}
+      {tab === 'details' && selectedCart && (
+        <div className="animate-in slide-in-from-right duration-300">
+           <button 
+            onClick={() => { setTab('carts'); setSelectedCart(null); }}
+            style={{ 
+              display: 'flex', alignItems: 'center', gap: 6, background: 'transparent', 
+              border: 'none', color: '#6366f1', cursor: 'pointer', marginBottom: 20, 
+              fontWeight: 600, fontSize: 14 
+            }}
+          >
+            <ChevronLeft className="w-4 h-4" /> Voltar para a lista
+          </button>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 24 }}>
+            {/* Info do Cliente */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+              
+              <div style={{ background: '#1e293b', borderRadius: 16, padding: 24, border: '1px solid #334155' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+                  <div style={{ width: 48, height: 48, borderRadius: 12, background: '#6366f122', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <User className="w-6 h-6 text-indigo-400" />
+                  </div>
+                  <div>
+                    <h3 style={{ margin: 0, color: '#f1f5f9', fontSize: 18 }}>{selectedCart.customer_name}</h3>
+                    <div style={{ display: 'flex', gap: 12, marginTop: 4 }}>
+                      <span style={{ fontSize: 13, color: '#94a3b8', display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <Mail className="w-3 h-3" /> {selectedCart.customer_email || 'Email não informado'}
+                      </span>
+                      <span style={{ fontSize: 13, color: '#94a3b8', display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <Phone className="w-3 h-3" /> {selectedCart.customer_phone || 'Telefone não informado'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, paddingTop: 20, borderTop: '1px solid #334155' }}>
+                  <div>
+                    <h4 style={{ margin: '0 0 10px 0', fontSize: 12, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5 }}>Endereço de Faturamento</h4>
+                    {selectedCart.billing_address ? (
+                      <div style={{ color: '#94a3b8', fontSize: 13, lineHeight: 1.6 }}>
+                        <p style={{ margin: 0 }}>{selectedCart.billing_address.address}, {selectedCart.billing_address.number}</p>
+                        <p style={{ margin: 0 }}>{selectedCart.billing_address.city} - {selectedCart.billing_address.province}</p>
+                        <p style={{ margin: 0 }}>CEP: {selectedCart.billing_address.zipcode}</p>
+                      </div>
+                    ) : <p style={{ color: '#475569', fontSize: 13 }}>Endereço não disponível</p>}
+                  </div>
+                  <div>
+                    <h4 style={{ margin: '0 0 10px 0', fontSize: 12, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5 }}>Informações Técnicas</h4>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <a href={selectedCart.checkout_url} target="_blank" rel="noreferrer" style={{ 
+                        color: '#6366f1', textDecoration: 'none', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 
+                      }}>
+                        <ExternalLink className="w-3 h-3" /> Link de Recuperação
+                      </a>
+                      <span style={{ color: '#64748b', fontSize: 12 }}>ID do Checkout: #{selectedCart.id}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ background: '#1e293b', borderRadius: 16, padding: 24, border: '1px solid #334155' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+                  <Package className="w-5 h-5 text-indigo-400" />
+                  <h3 style={{ margin: 0, color: '#f1f5f9', fontSize: 16 }}>Produtos no Carrinho</h3>
+                </div>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid #334155' }}>
+                      <th style={{ padding: '0 0 12px 0', textAlign: 'left', color: '#64748b', fontSize: 12 }}>Produto</th>
+                      <th style={{ padding: '0 0 12px 0', textAlign: 'center', color: '#64748b', fontSize: 12 }}>Qtd</th>
+                      <th style={{ padding: '0 0 12px 0', textAlign: 'right', color: '#64748b', fontSize: 12 }}>Preço</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(selectedCart.line_items || []).map((item, idx) => (
+                      <tr key={idx} style={{ borderBottom: idx < selectedCart.line_items.length - 1 ? '1px solid #1e293b' : 'none' }}>
+                        <td style={{ padding: '12px 0', color: '#f1f5f9', fontSize: 14 }}>{item.name}</td>
+                        <td style={{ padding: '12px 0', color: '#94a3b8', fontSize: 14, textAlign: 'center' }}>{item.quantity}x</td>
+                        <td style={{ padding: '12px 0', color: '#10b981', fontSize: 14, textAlign: 'right', fontWeight: 600 }}>R$ {parseFloat(item.price).toFixed(2).replace('.', ',')}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr>
+                      <td colSpan={2} style={{ paddingTop: 20, textAlign: 'right', color: '#94a3b8', fontSize: 14 }}>Total:</td>
+                      <td style={{ paddingTop: 20, textAlign: 'right', color: '#10b981', fontSize: 20, fontWeight: 800 }}>R$ {parseFloat(selectedCart.total).toFixed(2).replace('.', ',')}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+
+            {/* Ações (WhatsApp) */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+              <div style={{ background: '#1e293b', borderRadius: 16, padding: 24, border: '1px solid #22c55e33', position: 'sticky', top: 20 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+                  <Send className="w-5 h-5 text-green-500" />
+                  <h3 style={{ margin: 0, color: '#f1f5f9', fontSize: 16 }}>Recuperação Manual</h3>
+                </div>
+                <p style={{ fontSize: 13, color: '#94a3b8', lineHeight: 1.6, marginBottom: 20 }}>
+                  Abaixo está o preview da mensagem que será enviada. O sistema substituirá as variáveis automaticamente.
+                </p>
+                <div style={{ 
+                  background: '#0f172a', borderRadius: 12, padding: 12, 
+                  fontSize: 12, color: '#64748b', marginBottom: 20, fontStyle: 'italic',
+                  border: '1px dashed #334155'
+                }}>
+                  { (config?.message_template || DEFAULT_TEMPLATE)
+                    .replace('{{nome}}', selectedCart.customer_name.split(' ')[0])
+                    .replace('{{produtos}}', '• ' + selectedCart.products)
+                    .replace('{{total}}', selectedCart.total)
+                  }
+                </div>
+                <button 
+                  onClick={() => sendManualWhatsApp(selectedCart)}
+                  disabled={manualSending}
+                  style={{ 
+                    width: '100%', padding: '14px', borderRadius: 12, border: 'none',
+                    background: '#22c55e', color: '#fff', fontSize: 14, fontWeight: 700,
+                    cursor: manualSending ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                    boxShadow: '0 4px 14px 0 rgba(34, 197, 94, 0.3)'
+                  }}
+                >
+                  {manualSending ? '⏳ Enviando...' : <><Send className="w-4 h-4" /> Enviar Mensagem Agora</>}
+                </button>
+                <div style={{ textAlign: 'center', marginTop: 12 }}>
+                  <span style={{ fontSize: 11, color: '#64748b' }}>A mensagem será enviada via WuzAPI</span>
+                </div>
+              </div>
+
+              {msg && (
+                <div style={{ 
+                  background: msg.startsWith('✅') ? '#065f4622' : '#7f1d1d22',
+                  border: `1px solid ${msg.startsWith('✅') ? '#10b981' : '#ef4444'}`,
+                  borderRadius: 12, padding: '12px 16px',
+                  color: msg.startsWith('✅') ? '#10b981' : '#f87171',
+                  fontSize: 13
+                }}>{msg}</div>
+              )}
+            </div>
+          </div>
         </div>
       )}
 

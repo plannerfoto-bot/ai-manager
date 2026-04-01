@@ -1769,13 +1769,23 @@ app.get('/api/abandoned-cart/checkouts', async (req, res) => {
       .filter(c => !c.completed_at) 
       .map(c => ({
       id: c.id,
-      customer_name: c.customer?.name || 'Cliente Sem Nome',
-      customer_email: c.customer?.email,
-      customer_phone: c.customer?.phone,
+      // Fallbacks para nome: contact_name > billing_address > customer.name
+      customer_name: c.contact_name || 
+                     (c.billing_address ? `${c.billing_address.first_name || ''} ${c.billing_address.last_name || ''}`.trim() : '') || 
+                     c.customer?.name || 
+                     'Cliente Sem Nome',
+      customer_email: c.contact_email || c.customer?.email,
+      // Fallbacks para telefone: contact_phone > billing_address.phone > customer.phone
+      customer_phone: c.contact_phone || c.billing_address?.phone || c.customer?.phone || null,
       total: c.total,
       currency: c.currency,
       checkout_url: c.abandoned_checkout_url,
       created_at: c.created_at,
+      updated_at: c.updated_at,
+      // Dados detalhados para a aba de detalhes
+      billing_address: c.billing_address,
+      shipping_address: c.shipping_address,
+      line_items: c.line_items || [],
       products: c.line_items?.map(item => item.name).join(', ') || 'Sem produtos',
       items_count: c.line_items?.length || 0
     }));
