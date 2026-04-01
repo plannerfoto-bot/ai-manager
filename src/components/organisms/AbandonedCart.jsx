@@ -146,24 +146,29 @@ export default function AbandonedCart({ storeId }) {
       const productListStr = cart.line_items?.map(p => `• ${p.name} x${p.quantity} — R$ ${parseFloat(p.price * p.quantity).toFixed(2).replace('.', ',')}`).join('\n') || cart.products;
       
       const bodyText = (config?.message_template || DEFAULT_TEMPLATE)
-        .replace('{{nome}}', cart.customer_name.split(' ')[0])
-        .replace('{{produtos}}', productListStr)
-        .replace('{{total}}', parseFloat(cart.total).toFixed(2).replace('.', ','))
-        .replace('{{link}}', cart.checkout_url)
-        .replace('{{frete}}', parseFloat(cart.billing_address?.shipping_cost || 0).toFixed(2).replace('.', ','));
+        .replace(/{{(nome|name)}}/g, cart.customer_name.split(' ')[0])
+        .replace(/{{produtos}}/g, productListStr)
+        .replace(/{{total}}/g, parseFloat(cart.total).toFixed(2).replace('.', ','))
+        .replace(/{{link}}/g, cart.checkout_url)
+        .replace(/{{frete}}/g, parseFloat(cart.billing_address?.shipping_cost || 0).toFixed(2).replace('.', ','));
 
-      const baseUrl = config.wuzapi_url?.replace(/\/+$/, '');
-      const res = await fetch(`${baseUrl}/chat/send/text`, {
+      const n8nWebhook = 'https://n8n.adminfotoplanner.com.br/webhook/nuvemshop-manual-recovery';
+      const res = await fetch(n8nWebhook, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'token': config.wuzapi_user_token || config.wuzapi_token,
         },
-        body: JSON.stringify({ phone: cart.customer_phone.replace(/\D/g, ''), body: bodyText }),
+        body: JSON.stringify({ 
+          phone: cart.customer_phone.replace(/\D/g, ''), 
+          message: bodyText,
+          wuzapi_url: config.wuzapi_url,
+          wuzapi_token: config.wuzapi_token,
+          wuzapi_user_token: config.wuzapi_user_token
+        }),
       });
 
       if (res.ok) {
-        setMsg(`✅ Mensagem enviada manualmente para ${cart.customer_name}!`);
+        setMsg(`✅ Mensagem enviada manualmente via n8n para ${cart.customer_name}!`);
         // Registrar envio no histórico
         await fetch(`${API}/api/abandoned-cart/mark-sent`, {
           method: 'POST',
@@ -180,12 +185,7 @@ export default function AbandonedCart({ storeId }) {
         loadAll(); // Recarrega histórico para atualizar o painel
       } else {
         const errText = await res.text();
-        let errMsg = errText;
-        try { 
-          const errJson = JSON.parse(errText);
-          errMsg = errJson.message || errJson.error || errText;
-        } catch(e) {}
-        setMsg('❌ Erro na WuzAPI: ' + errMsg);
+        setMsg('❌ Erro no n8n: ' + errText);
       }
     } catch (e) {
       setMsg('❌ Erro de conexão com WuzAPI: ' + e.message);
@@ -679,7 +679,7 @@ export default function AbandonedCart({ storeId }) {
                   border: '1px dashed #334155'
                 }}>
                   { (config?.message_template || DEFAULT_TEMPLATE)
-                    .replace(/{{nome}}/g, selectedCart.customer_name.split(' ')[0])
+                    .replace(/{{(nome|name)}}/g, selectedCart.customer_name.split(' ')[0])
                     .replace(/{{produtos}}/g, selectedCart.products)
                     .replace(/{{total}}/g, parseFloat(selectedCart.total).toFixed(2).replace('.', ','))
                     .replace(/{{link}}/g, selectedCart.checkout_url)
