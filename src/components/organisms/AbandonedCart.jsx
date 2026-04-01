@@ -152,8 +152,7 @@ export default function AbandonedCart({ storeId }) {
         .replace(/{{produtos}}/g, productListStr)
         .replace(/{{total}}/g, parseFloat(cart.total).toFixed(2).replace('.', ','))
         .replace(/{{link}}/g, cart.checkout_url)
-        .replace(/{{frete}}/g, parseFloat(cart.billing_address?.shipping_cost || 0).toFixed(2).replace('.', ','))
-        .replace(/{{cupom}}/g, '12345');
+        .replace(/{{frete}}/g, parseFloat(cart.billing_address?.shipping_cost || 0).toFixed(2).replace('.', ','));
 
       const manualApi = `${API}/api/abandoned-cart/manual-send`;
       const res = await fetch(manualApi, {

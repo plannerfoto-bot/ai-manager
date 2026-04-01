@@ -91,13 +91,23 @@ async function repairSeo() {
 
         while (hasMore) {
             log(`📦 Buscando página ${page} (Novos primeiro)...`);
-            const response = await api.get('/products', { 
-                params: { 
-                    page, 
-                    per_page: 50,
-                    sort_by: 'created-at-descending'
-                } 
-            });
+            let response;
+            try {
+                response = await requestWithRetry('get', '/products', { 
+                    params: { 
+                        page, 
+                        per_page: 50,
+                        sort_by: 'created-at-descending'
+                    } 
+                });
+            } catch (error) {
+                if (error.response?.status === 404 && error.response?.data?.description?.includes('Last page')) {
+                    log(`ℹ️ Última página alcançada. Finalizando...`);
+                    hasMore = false;
+                    break;
+                }
+                throw error;
+            }
             const products = response.data;
 
             if (products.length === 0) {
@@ -164,7 +174,7 @@ async function repairSeo() {
             fs.unlinkSync(CHECKPOINT_FILE);
         }
     } catch (error) {
-        log(`❌ Erro durante o processo de SEO: ${error.response?.data || error.message}`);
+        log(`❌ Erro durante o processo de SEO: ${error.response?.data ? JSON.stringify(error.response.data) : error.message}`);
     }
 }
 

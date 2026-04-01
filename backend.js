@@ -1785,9 +1785,9 @@ app.get('/api/abandoned-cart/checkouts', async (req, res) => {
       // Dados detalhados para a aba de detalhes
       billing_address: c.billing_address,
       shipping_address: c.shipping_address,
-      line_items: c.line_items || [],
-      products: c.line_items?.map(item => item.name).join(', ') || 'Sem produtos',
-      items_count: c.line_items?.length || 0
+      line_items: c.products || [],
+      products: c.products?.map(item => item.name).join(', ') || 'Sem produtos',
+      items_count: c.products?.length || 0
     }));
 
     res.json({ 
