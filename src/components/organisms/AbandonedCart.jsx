@@ -68,7 +68,13 @@ export default function AbandonedCart({ storeId }) {
         fetch(`${API}/api/abandoned-cart/history`, fetchOptions).then(r => r.json()),
         fetch(`${API}/api/abandoned-cart/checkouts`, fetchOptions).then(r => r.json()),
       ]);
-      if (cfgRes.success) setConfig(cfgRes.data);
+      if (cfgRes.success) {
+        const localDiscount = localStorage.getItem('ai_coupon_discount');
+        setConfig({
+          ...cfgRes.data,
+          coupon_discount: localDiscount ? Number(localDiscount) : 5
+        });
+      }
       if (histRes.success) setHistory(histRes.data);
       if (cartsRes.success) setCarts(cartsRes.data);
     } catch (e) {
@@ -169,8 +175,8 @@ export default function AbandonedCart({ storeId }) {
           checkout_url: cart.checkout_url,
           // Passando credenciais via proxy
           wuzapi_url: config?.wuzapi_url,
-          wuzapi_token: config?.wuzapi_token,
-          wuzapi_user_token: config?.wuzapi_user_token
+          wuzapi_token: config?.wuzapi_user_token || config?.wuzapi_token,
+          coupon_discount: config?.coupon_discount || 5
         }),
       });
 
@@ -374,6 +380,31 @@ export default function AbandonedCart({ storeId }) {
                       color: '#f1f5f9', fontSize: 14, marginTop: 4
                     }}
                   />
+                </div>
+                <div>
+                  <span style={{ fontSize: 11, color: '#64748b' }}>Taxa do Cupom (%) — Variável {'{{cupom}}'}</span>
+                  <input
+                    type="number"
+                    min="5"
+                    max="15"
+                    placeholder="Ex: 5"
+                    value={config.coupon_discount || 5}
+                    onChange={e => {
+                      let val = parseInt(e.target.value);
+                      if (val > 15) val = 15;
+                      if (val < 5) val = 5;
+                      setConfig(c => ({ ...c, coupon_discount: val || 5 }));
+                      localStorage.setItem('ai_coupon_discount', val || 5);
+                    }}
+                    style={{
+                      width: '100%', padding: '10px 14px', borderRadius: 8,
+                      background: '#0f172a', border: '1px solid #334155',
+                      color: '#f1f5f9', fontSize: 14, marginTop: 4
+                    }}
+                  />
+                  <div style={{ color: '#64748b', fontSize: 11, marginTop: 4 }}>
+                    Define o percentual criado quando a variável {'{{cupom}}'} for usada. Min: 5%, Max: 15%.
+                  </div>
                 </div>
               </div>
             </div>
