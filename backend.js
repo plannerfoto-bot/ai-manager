@@ -1862,7 +1862,8 @@ app.post('/api/abandoned-cart/manual-send', async (req, res) => {
         });
 
         // Substituir tag
-        message = message.replace('{{cupom}}', couponCode);
+        message = message.replace(/{{cupom}}/g, couponCode);
+        message = message.replace(/{{desconto}}/g, validDiscount);
         console.log(`✅ Cupom ${couponCode} criado e embutido na mensagem com sucesso!`);
       } catch (couponErr) {
         console.error('❌ Falha ao tentar criar cupom Nuvemshop:', couponErr.response?.data || couponErr.message);
