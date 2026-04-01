@@ -38,7 +38,10 @@ function StatusBadge({ status }) {
   );
 }
 
-export default function AbandonedCart() {
+export default function AbandonedCart({ storeId }) {
+  // Se storeId não vier por prop, tenta pegar do localStorage como fallback
+  const finalStoreId = storeId || localStorage.getItem('last_store_id');
+
   const [config, setConfig]     = useState(null);
   const [history, setHistory]   = useState([]);
   const [carts, setCarts]       = useState([]);
@@ -53,10 +56,13 @@ export default function AbandonedCart() {
   const loadAll = useCallback(async () => {
     setLoading(true);
     try {
+      const fetchOptions = {
+        headers: { 'x-store-id': finalStoreId }
+      };
       const [cfgRes, histRes, cartsRes] = await Promise.all([
-        fetch(`${API}/api/abandoned-cart/settings`).then(r => r.json()),
-        fetch(`${API}/api/abandoned-cart/history`).then(r => r.json()),
-        fetch(`${API}/api/abandoned-cart/checkouts`).then(r => r.json()),
+        fetch(`${API}/api/abandoned-cart/settings`, fetchOptions).then(r => r.json()),
+        fetch(`${API}/api/abandoned-cart/history`, fetchOptions).then(r => r.json()),
+        fetch(`${API}/api/abandoned-cart/checkouts`, fetchOptions).then(r => r.json()),
       ]);
       if (cfgRes.success) setConfig(cfgRes.data);
       if (histRes.success) setHistory(histRes.data);
@@ -75,7 +81,10 @@ export default function AbandonedCart() {
     try {
       const res = await fetch(`${API}/api/abandoned-cart/settings`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-store-id': finalStoreId 
+        },
         body: JSON.stringify(config),
       });
       const data = await res.json();

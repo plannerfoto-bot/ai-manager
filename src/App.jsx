@@ -202,7 +202,7 @@ const App = () => {
       case 'marketing':
         return <Marketing />;
       case 'abandoned-cart':
-        return <AbandonedCart />;
+        return <AbandonedCart storeId={storeId} />;
       default:
         return <Dashboard stats={stats} />;
     }

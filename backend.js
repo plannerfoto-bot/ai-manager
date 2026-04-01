@@ -1752,7 +1752,7 @@ app.get('/api/abandoned-cart/check-sent/:checkoutId', async (req, res) => {
 /** GET /api/abandoned-cart/checkouts — busca carrinhos abandonados da Nuvemshop (para o painel) */
 app.get('/api/abandoned-cart/checkouts', async (req, res) => {
   try {
-    const storeId = req.query.store_id || DEFAULT_STORE_ID;
+    const storeId = req.headers['x-store-id'] || req.query.store_id || DEFAULT_STORE_ID;
     const api = await getApiClient(storeId);
     
     // Na Nuvemshop V1, os carrinhos abandonados são acessados via /checkouts com o filtro completed_at null
