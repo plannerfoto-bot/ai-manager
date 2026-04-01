@@ -1752,20 +1752,41 @@ app.get('/api/abandoned-cart/check-sent/:checkoutId', async (req, res) => {
 /** GET /api/abandoned-cart/checkouts — busca carrinhos abandonados da Nuvemshop (para o painel) */
 app.get('/api/abandoned-cart/checkouts', async (req, res) => {
   try {
-    const ACCESS_TOKEN = process.env.NUVEMSHOP_ACCESS_TOKEN;
-    const STORE_ID     = process.env.TIENDANUBE_STORE_ID;
-    const response = await axios.get(`https://api.nuvemshop.com.br/v1/${STORE_ID}/checkouts`, {
-      headers: {
-        'Authentication': `bearer ${ACCESS_TOKEN}`,
-        'User-Agent': 'AI-Manager-PlannerfotoBot (admin@biags.com.br)',
-        'Content-Type': 'application/json'
-      },
-      params: { per_page: 20 }
+    const storeId = req.query.store_id || DEFAULT_STORE_ID;
+    const api = await getApiClient(storeId);
+    
+    // Na Nuvemshop, abandoned_checkouts é o endpoint correto para o que o painel administrativo mostra
+    const response = await api.get('/abandoned_checkouts', {
+      params: { 
+        per_page: 50,
+        status: 'open' // Apenas os que ainda não foram finalizados
+      }
     });
-    const checkouts = response.data.filter(c => !c.completed_at);
-    res.json({ success: true, data: checkouts, total: checkouts.length });
+
+    const checkouts = response.data.map(c => ({
+      id: c.id,
+      customer_name: c.customer?.name || 'Cliente Sem Nome',
+      customer_email: c.customer?.email,
+      customer_phone: c.customer?.phone,
+      total: c.total,
+      currency: c.currency,
+      checkout_url: c.abandoned_checkout_url,
+      created_at: c.created_at,
+      products: c.line_items?.map(item => item.name).join(', ') || 'Sem produtos',
+      items_count: c.line_items?.length || 0
+    }));
+
+    res.json({ 
+      success: true, 
+      data: checkouts, 
+      total: checkouts.length 
+    });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.response?.data || err.message });
+    console.error('❌ Erro ao buscar checkouts da Nuvemshop:', err.message);
+    res.status(500).json({ 
+      success: false, 
+      error: err.response?.data || err.message 
+    });
   }
 });
 

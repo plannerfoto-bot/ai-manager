@@ -468,13 +468,13 @@ export default function AbandonedCart() {
                   return (
                     <tr key={i} style={{ borderTop: '1px solid #334155', background: willFire ? '#10b98108' : 'transparent' }}>
                       <td style={{ padding: '12px 16px', color: '#f1f5f9', fontSize: 13 }}>
-                        {c.contact_name || 'Sem nome'}
+                        {c.customer_name || 'Sem nome'}
                         {willFire && <span style={{ marginLeft: 6, fontSize: 10, background: '#f59e0b22', color: '#f59e0b', padding: '2px 6px', borderRadius: 6 }}>Pronto p/ envio</span>}
                       </td>
-                      <td style={{ padding: '12px 16px', color: '#94a3b8', fontSize: 13 }}>{c.contact_phone || '—'}</td>
+                      <td style={{ padding: '12px 16px', color: '#94a3b8', fontSize: 13 }}>{c.customer_phone || '—'}</td>
                       <td style={{ padding: '12px 16px', color: '#10b981', fontSize: 13 }}>R$ {c.total}</td>
                       <td style={{ padding: '12px 16px', color: '#94a3b8', fontSize: 12 }}>
-                        {(c.products || []).map(p => `${p.name} x${p.quantity}`).join(', ')}
+                        {c.products}
                       </td>
                       <td style={{ padding: '12px 16px', color: '#64748b', fontSize: 12 }}>
                         {new Date(c.created_at).toLocaleString('pt-BR')} ({minAgo}min atrás)
