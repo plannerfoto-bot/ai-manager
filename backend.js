@@ -2129,45 +2129,37 @@ app.post('/api/abandoned-cart/manual-send', async (req, res) => {
 
 /** POST /api/abandoned-cart/coupons/bulk-delete — Remove todos os cupons da Nuvemshop */
 app.post('/api/abandoned-cart/coupons/bulk-delete', async (req, res) => {
-  const STORE_ID = process.env.TIENDANUBE_STORE_ID || '2767708';
-  const NUVEMSHOP_TOKEN = process.env.TIENDANUBE_ACCESS_TOKEN || '454761d47b7ce42c4d539deb3025366ac8dbe358';
+  const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
   
   try {
-    console.log(`[Admin] Iniciando exclusão em massa de cupons para a loja ${STORE_ID}`);
+    const client = await getApiClient(storeId);
+    console.log(`[Admin] Iniciando exclusão em massa de cupons para a loja ${storeId}`);
     
-    // Buscar todos os cupons
-    const listRes = await axios.get(`https://api.tiendanube.com/v1/${STORE_ID}/coupons?per_page=100`, {
-      headers: { 
-        'Authentication': `bearer ${NUVEMSHOP_TOKEN}`, 
-        'User-Agent': 'AI-Manager Admin-Tool' 
-      }
-    });
+    // Buscar todos os cupons (usando o cliente autenticado que já sabe a URL base e token)
+    const listRes = await client.get('/coupons', { params: { per_page: 100 } });
     
     const coupons = listRes.data || [];
     let deletedCount = 0;
     
     for (const coupon of coupons) {
         try {
-          await axios.delete(`https://api.tiendanube.com/v1/${STORE_ID}/coupons/${coupon.id}`, {
-              headers: { 
-                'Authentication': `bearer ${NUVEMSHOP_TOKEN}`, 
-                'User-Agent': 'AI-Manager Admin-Tool' 
-              }
-          });
+          await client.delete(`/coupons/${coupon.id}`);
           deletedCount++;
           // Delay de 150ms para evitar rate limits
           await new Promise(r => setTimeout(r, 150));
         } catch (delErr) {
-          console.error(`[Admin] Falha ao deletar cupom ${coupon.id}:`, delErr.message);
+          console.error(`[Admin] Falha ao deletar cupom ${coupon.id}:`, delErr.response?.data || delErr.message);
         }
     }
     
+    console.log(`[Admin] Exclusão finalizada para loja ${storeId}. Total: ${deletedCount} cupons removidos.`);
     res.json({ success: true, message: `${deletedCount} cupons excluídos com sucesso.` });
   } catch (err) {
     console.error('[Admin] Erro no bulk-delete:', err.response?.data || err.message);
-    res.status(500).json({ success: false, error: 'Erro ao processar exclusão em massa' });
+    res.status(500).json({ success: false, error: 'Falha na autenticação ou conexão com a Nuvemshop' });
   }
 });
+
 
 /** POST /api/abandoned-cart/sync-manually — Dispara o vigilante manualmente */
 app.post('/api/abandoned-cart/sync-manually', async (req, res) => {
