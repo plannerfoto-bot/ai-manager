@@ -1,3 +1,4 @@
+console.log('🚀 [BOOT] Iniciando backend.js...');
 import express from 'express';
 import axios from 'axios';
 import path from 'path';
@@ -1753,14 +1754,9 @@ app.post('/api/abandoned-cart/mark-sent', async (req, res) => {
 /** GET /api/abandoned-cart/check-sent/:checkoutId — verifica se carrinho já foi contatado */
 app.get('/api/abandoned-cart/check-sent/:checkoutId', async (req, res) => {
   try {
-    const { data, error } = await supabase
-      .from('abandoned_cart_sent')
-      .select('*')
-      .eq('checkout_id', String(req.params.checkoutId))
-      .maybeSingle();
-
-    if (error) throw error;
-    res.json({ success: true, already_sent: !!data, record: data || null });
+    // Este endpoint foi desativado pois a Nuvemshop V1 não suporta webhooks de abandono.
+    // O sistema agora utiliza o 'Vigilante (Polling)' automático no servidor.
+    res.json({ success: true, message: 'O sistema agora é 100% automático via Vigilante (Polling). Nenhuma sincronização manual necessária.' });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -2131,6 +2127,319 @@ app.post('/api/abandoned-cart/manual-send', async (req, res) => {
   }
 });
 
+/** POST /api/abandoned-cart/coupons/bulk-delete — Remove todos os cupons da Nuvemshop */
+app.post('/api/abandoned-cart/coupons/bulk-delete', async (req, res) => {
+  const STORE_ID = process.env.TIENDANUBE_STORE_ID || '2767708';
+  const NUVEMSHOP_TOKEN = process.env.TIENDANUBE_ACCESS_TOKEN || '454761d47b7ce42c4d539deb3025366ac8dbe358';
+  
+  try {
+    console.log(`[Admin] Iniciando exclusão em massa de cupons para a loja ${STORE_ID}`);
+    
+    // Buscar todos os cupons
+    const listRes = await axios.get(`https://api.tiendanube.com/v1/${STORE_ID}/coupons?per_page=100`, {
+      headers: { 
+        'Authentication': `bearer ${NUVEMSHOP_TOKEN}`, 
+        'User-Agent': 'AI-Manager Admin-Tool' 
+      }
+    });
+    
+    const coupons = listRes.data || [];
+    let deletedCount = 0;
+    
+    for (const coupon of coupons) {
+        try {
+          await axios.delete(`https://api.tiendanube.com/v1/${STORE_ID}/coupons/${coupon.id}`, {
+              headers: { 
+                'Authentication': `bearer ${NUVEMSHOP_TOKEN}`, 
+                'User-Agent': 'AI-Manager Admin-Tool' 
+              }
+          });
+          deletedCount++;
+          // Delay de 150ms para evitar rate limits
+          await new Promise(r => setTimeout(r, 150));
+        } catch (delErr) {
+          console.error(`[Admin] Falha ao deletar cupom ${coupon.id}:`, delErr.message);
+        }
+    }
+    
+    res.json({ success: true, message: `${deletedCount} cupons excluídos com sucesso.` });
+  } catch (err) {
+    console.error('[Admin] Erro no bulk-delete:', err.response?.data || err.message);
+    res.status(500).json({ success: false, error: 'Erro ao processar exclusão em massa' });
+  }
+});
+
+/** POST /api/abandoned-cart/sync-manually — Dispara o vigilante manualmente */
+app.post('/api/abandoned-cart/sync-manually', async (req, res) => {
+  try {
+    console.log('[Admin] Sincronização manual solicitada.');
+    // Rodamos async para responder rápido
+    runProfessionalAbandonedCartRecovery().catch(e => console.error('[Vigilante-Manual] Erro:', e));
+    res.json({ success: true, message: 'Sincronização iniciada com sucesso!' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+
+// ============================================================
+// VIGILANTE DE CARRINHOS ABANDONADOS (AUTO-POLLING) 🤖
+// ============================================================
+
+export async function runProfessionalAbandonedCartRecovery() {
+  const logMsg = `[Vigilante] Iniciando verificação de rotina: ${new Date().toLocaleString()}\n`;
+  console.log(logMsg);
+  const logFile = path.join(process.cwd(), 'sync_debug.log');
+  fs.appendFileSync(logFile, logMsg);
+  try {
+    // 2. Buscar configurações ativas (Coluna real: enabled)
+    const { data: activeConfigs, error: configErr } = await supabase
+      .from('abandoned_cart_config')
+      .select('*')
+      .eq('enabled', true);
+
+    if (configErr) {
+      console.error('[Vigilante] Erro ao buscar configurações:', configErr.message);
+      return;
+    }
+
+    const stores = await getStores();
+    const storeIds = Object.keys(stores);
+
+    for (const storeId of storeIds) {
+      const storeData = stores[storeId];
+      const token = storeData.access_token;
+      
+      // 1. Buscar Configuração da Loja no Supabase
+      const { data: config, error: cfgErr } = await supabase
+        .from('abandoned_cart_config')
+        .select('*')
+        .eq('store_id', storeId)
+        .maybeSingle();
+
+      if (cfgErr || !config || !config.enabled) {
+        // console.log(`[Vigilante] Loja ${storeId} ignorada (desativada ou sem config).`);
+        continue;
+      }
+
+      console.log(`[Vigilante] Processando loja ${storeId}...`);
+
+      const apiRes = await axios.get(`https://api.tiendanube.com/v1/${storeId}/checkouts`, {
+        params: { status: 'abandoned', per_page: 50 },
+        headers: { 'Authentication': `bearer ${token}`, 'User-Agent': 'AI-Manager Vigilante' }
+      });
+
+      const checkouts = apiRes.data || [];
+      console.log(`[Vigilante] API Nuvemshop respondeu com ${checkouts.length} checkouts.`);
+      
+      if (checkouts.length > 0) {
+          console.log(`[Vigilante] Exemplo de ID recebido: ${checkouts[0].id}`);
+      }
+      
+      const stats = `[Vigilante] Loja ${storeId}: Encontrados ${checkouts.length} checkouts abandonados.\n`;
+      fs.appendFileSync('sync_debug.log', stats);
+      
+
+
+      for (const cart of checkouts) {
+        try {
+          // --- EXTRAÇÃO REFINADA DE DADOS (FALLBACKS AVANÇADOS) ---
+          
+          // 1. Extração de Nome (Prioridade para campos planos e depois o objeto customer)
+          let name = 'Cliente';
+          const possibleNames = [
+            cart.contact_name,
+            cart.billing_name,
+            cart.shipping_name,
+            cart.billing_address?.name,
+            cart.shipping_address?.name,
+            cart.customer?.name,
+            cart.customer?.first_name ? `${cart.customer.first_name} ${cart.customer.last_name || ''}`.trim() : null
+          ];
+
+          for (const n of possibleNames) {
+            if (n && typeof n === 'string' && n.toLowerCase() !== 'cliente' && n.length > 2) {
+              name = n;
+              break;
+            }
+          }
+
+          // 2. Extração de Email
+          const email = cart.contact_email || cart.email || cart.customer?.email || '';
+
+          // 3. Extração de Telefone (Normalização 55DDD9XXXXXXXX)
+          let phoneRaw = cart.contact_phone || 
+                         cart.billing_phone || 
+                         cart.shipping_phone || 
+                         cart.billing_address?.phone || 
+                         cart.shipping_address?.phone || 
+                         cart.customer?.phone || 
+                         '';
+          
+          let phone = phoneRaw.toString().replace(/\D/g, '');
+          // Se tiver 11 dígitos (DDD + 9 + Número) e não começar com 55, adiciona 55
+          if (phone && phone.length === 11 && !phone.startsWith('55')) {
+            phone = '55' + phone;
+          } else if (phone && phone.length === 10 && !phone.startsWith('55')) {
+            phone = '55' + phone;
+          }
+
+          const firstName = name.split(' ')[0] || 'Cliente';
+          const total = parseFloat(cart.total) || 0;
+          const totalFormatted = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(total);
+          const checkoutUrl = cart.abandoned_checkout_url || cart.checkout_url || '';
+
+          // 4. Detalhes dos Itens
+          // ⚠️ A API da Nuvemshop retorna produtos em `products`, não em `line_items`
+          const itemsRaw = cart.products || cart.line_items || [];
+          const items = itemsRaw.map(item => ({
+            name: item.name || 'Produto',
+            quantity: item.quantity || 1,
+            price: item.price,
+            product_id: item.id || item.product_id,
+            total_item: parseFloat(item.price || 0) * (item.quantity || 1)
+          }));
+
+          // 4.1 Coluna `items_text`: um produto por linha dentro da mesma célula
+          // Formato: • Nome do Produto | Qtd: 2 | R$ 94,00
+          const itemsText = items.length > 0
+            ? items.map(p =>
+                `• ${p.name} | Qtd: ${p.quantity} | R$ ${parseFloat(p.price || 0).toFixed(2).replace('.', ',')}`
+              ).join('\n')
+            : 'Produtos não informados';
+
+          // 4.2 Versão curta para o placeholder {{produtos}} na mensagem de WhatsApp
+          const productList = items.length > 0
+            ? items.map(p => `• ${p.name} (x${p.quantity})`).join('\n')
+            : 'Produtos selecionados';
+
+          // 5. MOTOR DE CUPOES INTELIGENTE 🎟️
+          let messageTemplate = config.message_template || "Olá {{nome}}, vimos que você deixou estes itens no carrinho:\n{{produtos}}\nFinalize aqui: {{link}}";
+          let couponCode = '';
+          let validDiscount = '0%';
+          let numericDiscountValue = 0; // Novo: o "dígito" solicitado solicitado
+          
+          // Regex flexível: aceita {{cupom}}, {{ cupom }}, {{CUPOM}}, {{coupon}}, etc.
+          const hasCouponTag = /{{\s*(cupom|coupon)\s*}}/gi.test(messageTemplate);
+          
+          if (hasCouponTag || (config.coupon_rules && config.coupon_rules.length > 0)) {
+            try {
+              // Regras de Desconto baseadas no valor total (Fiel às chaves do banco: min, max, discount)
+              const rules = Array.isArray(config.coupon_rules) ? config.coupon_rules : [];
+              const applicableRule = rules
+                .filter(r => total >= (parseFloat(r.min) || 0) && total <= (parseFloat(r.max) || 999999))
+                .sort((a,b) => (parseFloat(b.min) || 0) - (parseFloat(a.min) || 0))[0];
+
+              if (applicableRule) {
+                numericDiscountValue = parseInt(applicableRule.discount) || 0;
+                validDiscount = `${numericDiscountValue}%`;
+                
+                // Geração de Cupom de 5 Dígitos Numéricos (Fiel ao solicitado)
+                couponCode = Math.floor(10000 + Math.random() * 90000).toString();
+                
+                // Registrar na Nuvemshop (Validade de 1 dia para urgência máxima)
+                const expiryDate = new Date();
+                expiryDate.setDate(expiryDate.getDate() + 1);
+
+                await axios.post(`https://api.tiendanube.com/v1/${storeId}/coupons`, {
+                  code: couponCode,
+                  type: 'percentage',
+                  value: String(numericDiscountValue),
+                  max_uses: 1,
+                  expires_at: expiryDate.toISOString()
+                }, {
+                  headers: { 'Authentication': `bearer ${token}`, 'User-Agent': 'AI-Manager Vigilante' }
+                });
+                
+                const logMsg = `[Vigilante] Cupom ${couponCode} (${validDiscount}) gerado para ${name}.\n`;
+                fs.appendFileSync('sync_debug.log', logMsg);
+              }
+            } catch (couponErr) {
+              console.error(`[Vigilante] Erro ao gerar cupom:`, couponErr.response?.data || couponErr.message);
+            }
+          }
+
+          // 6. Montagem da Mensagem com Placeholders Precisos 🧠
+          let recoveryMessage = messageTemplate
+            .replace(/{{\s*?(nome|name|first_name)\s*?}}/gi, firstName || name)
+            .replace(/{{\s*?(produtos|products|items)\s*?}}/gi, itemsText)
+            .replace(/{{\s*?(total)\s*?}}/gi, totalFormatted)
+            .replace(/{{\s*?(link|url|checkout_url)\s*?}}/gi, checkoutUrl)
+            .replace(/{{\s*?(cupom|coupon)\s*?}}/gi, couponCode || "")
+            .replace(/{{\s*?(desconto|discount)\s*?}}/gi, validDiscount || "");
+
+          // Se não houver cupom, limpamos as frases de incentivo que ficaram vazias
+          if (!couponCode) {
+            // Remove sentenças que mencionam cupom ou desconto caso eles não existam
+            recoveryMessage = recoveryMessage
+              .replace(/Use o cupom.*?!/gi, "")
+              .replace(/Ganhe.*\% de desconto/gi, "")
+              .replace(/\n\s*\n/g, "\n\n"); // Limpa quebras de linha duplas
+          }
+
+          // Limpeza final de qualquer tag {{...}} residual
+          recoveryMessage = recoveryMessage.replace(/{{.*?}}/g, '').trim();
+
+          if (!couponCode) {
+            recoveryMessage = recoveryMessage.replace(/cupom:[^ ]*/gi, '').replace(/{{cupom}}/gi, '');
+          }
+
+          const { data: existingStatus } = await supabase
+            .from('nuvemshop_checkouts')
+            .select('recovery_status')
+            .eq('id', String(cart.id))
+            .maybeSingle();
+
+          const statusToSet = existingStatus?.recovery_status || 'pending';
+
+          const { error: syncErr } = await supabase
+            .from('nuvemshop_checkouts')
+            .upsert({
+              id: String(cart.id),
+              store_id: String(storeId),
+              customer_name: name,
+              customer_first_name: firstName,
+              customer_email: email,
+              customer_phone: phone,
+              total: total,
+              total_formatted: totalFormatted,
+              currency: cart.currency || 'BRL',
+              checkout_url: checkoutUrl,
+              items_json: itemsRaw,
+              items_text: itemsText,            // ← NOVA COLUNA: produtos formatados (um por linha)
+              recovery_message: recoveryMessage,
+              message_body: messageTemplate,
+              coupon_code: couponCode,
+              coupon_value: numericDiscountValue,
+              recovery_status: statusToSet,
+              wuzapi_token_used: config.wuzapi_user_token || '',
+              nuvemshop_created_at: cart.created_at,
+              nuvemshop_updated_at: cart.updated_at,
+              last_sync_at: new Date().toISOString()
+            });
+
+          if (syncErr) {
+            console.error(`[Vigilante] ❌ Erro no UPSERT do carrinho ${cart.id}:`, syncErr.message);
+          } else {
+            console.log(`[Vigilante] ✅ SUCESSO: ${firstName} (${cart.id}) | Cupom: ${couponCode || 'SEM CUPOM'} | Desc: ${numericDiscountValue || 0}%`);
+          }
+        } catch (cartErr) {
+          console.error(`[Vigilante] Erro no loop do carrinho:`, cartErr.message);
+        }
+      }
+      console.log(`[Vigilante] Sincronização de checkouts concluída para a loja ${storeId}.`);
+    }
+  } catch (err) {
+    console.error('[Vigilante] ❌ Erro Crítico:', err.message);
+  }
+}
+
+// Iniciar o Vigilante a cada 1 minuto
+setInterval(runProfessionalAbandonedCartRecovery, 1 * 60 * 1000);
+// Executar uma vez no start (com delay de 30s para o servidor estabilizar)
+setTimeout(runProfessionalAbandonedCartRecovery, 30 * 1000);
+
+// ============================================================
 // ============================================================
 // Redireciona todas as outras rotas para o index.html do React (SPA)
 app.get('/*any', (req, res) => {

@@ -1,0 +1,233 @@
+{
+  "id": 1924114051,
+  "token": "c4b1faa52b89939ed7106bcc6f73b5b560ba9432",
+  "store_id": 2767708,
+  "abandoned_checkout_url": "https://www.fundofotograficocloth.com.br/checkout/v3/proxy/1924114051/c4b1faa52b89939ed7106bcc6f73b5b560ba9432",
+  "contact_email": "kelly.alinemiranda@gmail.com",
+  "contact_name": "Aline Kelly MIRANDA",
+  "contact_phone": "+5521999078464",
+  "contact_identification": "11322825785",
+  "shipping_name": "Aline Kelly",
+  "shipping_phone": "+5521999078464",
+  "shipping_address": "Rua Luís Augusto Pinho",
+  "shipping_number": "119",
+  "shipping_floor": null,
+  "shipping_locality": "Chacrinha",
+  "shipping_zipcode": "26285651",
+  "shipping_city": "Nova Iguaçu",
+  "shipping_province": "Rio de Janeiro",
+  "shipping_country": "BR",
+  "shipping_min_days": 6,
+  "shipping_max_days": 6,
+  "billing_name": "Aline Kelly",
+  "billing_phone": "+5521999078464",
+  "billing_address": "Rua Luís Augusto Pinho",
+  "billing_number": "119",
+  "billing_floor": null,
+  "billing_locality": "Chacrinha",
+  "billing_zipcode": "26285651",
+  "billing_city": "Nova Iguaçu",
+  "billing_province": "Rio de Janeiro",
+  "billing_country": "BR",
+  "billing_customer_type": null,
+  "billing_business_name": null,
+  "billing_trade_name": null,
+  "billing_state_registration": null,
+  "billing_fiscal_regime": null,
+  "billing_business_activity": null,
+  "billing_invoice_use": null,
+  "billing_document_type": null,
+  "shipping_cost_owner": "0.00",
+  "shipping_cost_customer": "0.00",
+  "coupon": [],
+  "promotional_discount": {
+    "id": null,
+    "store_id": 2767708,
+    "order_id": 1924114051,
+    "created_at": "2026-04-01T14:13:49+00:00",
+    "total_discount_amount": "0.00",
+    "contents": [],
+    "promotions_applied": []
+  },
+  "subtotal": "109.70",
+  "subtotal_without_taxes": null,
+  "discount": "0.00",
+  "discount_coupon": "0.00",
+  "discount_gateway": "0.00",
+  "total": "109.70",
+  "total_usd": "74.12",
+  "checkout_enabled": true,
+  "checkout_enabled_validation_messages": [],
+  "checkout_bot_suspect": false,
+  "weight": "0.400",
+  "currency": "BRL",
+  "language": "pt",
+  "gateway": "nuvem-pago",
+  "gateway_id": null,
+  "gateway_name": "Nuvem Pago",
+  "shipping": "pickup-point",
+  "shipping_option": "Retirada por Uber Flash (Combinar Dia e Horário através do Whatsapp).",
+  "shipping_option_code": "01JNPD55K2QMA2N8161N86YVEA",
+  "shipping_option_reference": "01GYAC3Y3P4YVMJ80XVBWXYC3X",
+  "shipping_pickup_details": {
+    "name": "Retirada por Uber Flash (Combinar Dia e Horário através do Whatsapp).",
+    "address": {
+      "address": "Rua José dos Anjos",
+      "number": "160",
+      "floor": "Condomínio Completo",
+      "locality": "Vila Avelina",
+      "city": "Nova Iguaçu",
+      "province": "Rio de Janeiro",
+      "zipcode": "26261130",
+      "country": "BR",
+      "latitude": null,
+      "longitude": null,
+      "phone": null
+    },
+    "hours": [
+      {
+        "day": 1,
+        "start": "0900",
+        "end": "1800"
+      },
+      {
+        "day": 4,
+        "start": "0900",
+        "end": "1800"
+      },
+      {
+        "day": 2,
+        "start": "0900",
+        "end": "1800"
+      },
+      {
+        "day": 3,
+        "start": "0900",
+        "end": "1800"
+      },
+      {
+        "day": 5,
+        "start": "0900",
+        "end": "1800"
+      }
+    ]
+  },
+  "shipping_tracking_number": null,
+  "shipping_tracking_url": null,
+  "shipping_store_branch_name": null,
+  "shipping_store_branch_extra": null,
+  "shipping_pickup_type": "pickup",
+  "shipping_suboption": [],
+  "extra": {},
+  "storefront": "mobile",
+  "note": null,
+  "owner_note": null,
+  "created_at": "2026-03-18T14:01:08+0000",
+  "updated_at": "2026-03-18T14:01:22+0000",
+  "completed_at": null,
+  "next_action": "noop",
+  "payment_details": {
+    "method": "credit_card",
+    "credit_card_company": null,
+    "installments": 1
+  },
+  "attributes": [],
+  "free_shipping_config": null,
+  "payment_count": null,
+  "payment_status": "pending",
+  "order_origin": null,
+  "same_billing_and_shipping_address": true,
+  "total_paid": "0.00",
+  "customer": null,
+  "contact_accepts_marketing": false,
+  "contact_accepts_marketing_updated_at": "2026-04-01T14:13:49+0000",
+  "products": [
+    {
+      "id": 3085503183,
+      "depth": "10.00",
+      "height": "8.00",
+      "name": "Fundo Fotográfico - Envie sua Arte (2,40 L x 2,45 A, 160gr)",
+      "name_without_variants": "Fundo Fotográfico - Envie sua Arte",
+      "price": "282.00",
+      "compare_at_price": "54.20",
+      "product_id": 287800761,
+      "image": {
+        "id": 953367471,
+        "product_id": 287800761,
+        "src": "https://acdn-us.mitiendanube.com/stores/002/767/708/products/arte-desejada1-d3afa4c73d783d847117550238861485-1024-1024-329bf88ef05f36de9a17552734789998-1024-1024.jpg",
+        "position": 2,
+        "alt": [],
+        "height": 1024,
+        "width": 1024,
+        "thumbnails_generated": 2,
+        "created_at": "2025-08-15T15:57:59+0000",
+        "updated_at": "2025-08-15T15:58:07+0000"
+      },
+      "quantity": 1,
+      "free_shipping": false,
+      "weight": "0.200",
+      "width": "20.00",
+      "variant_id": 1473907977,
+      "variant_values": [
+        "0,70x0,70",
+        "160gr"
+      ],
+      "properties": [],
+      "sku": "Fundo Fotográfico - Envie sua Arte",
+      "barcode": null,
+      "has_promotional_price": false,
+      "promotions": {
+        "percentage_off": 0
+      }
+    },
+    {
+      "id": 3085502487,
+      "depth": "10.00",
+      "height": "8.00",
+      "name": "Fundo Fotográfico - Envie sua Arte (1,45x2,45, 120gr)",
+      "name_without_variants": "Fundo Fotográfico - Envie sua Arte",
+      "price": "103.00",
+      "compare_at_price": "55.50",
+      "product_id": 287800761,
+      "image": {
+        "id": 953367471,
+        "product_id": 287800761,
+        "src": "https://acdn-us.mitiendanube.com/stores/002/767/708/products/arte-desejada1-d3afa4c73d783d847117550238861485-1024-1024-329bf88ef05f36de9a17552734789998-1024-1024.jpg",
+        "position": 2,
+        "alt": [],
+        "height": 1024,
+        "width": 1024,
+        "thumbnails_generated": 2,
+        "created_at": "2025-08-15T15:57:59+0000",
+        "updated_at": "2025-08-15T15:58:07+0000"
+      },
+      "quantity": 1,
+      "free_shipping": false,
+      "weight": "0.200",
+      "width": "20.00",
+      "variant_id": 1473907979,
+      "variant_values": [
+        "1,00x1,00",
+        "120gr"
+      ],
+      "properties": [],
+      "sku": "Fundo Fotográfico - Envie sua Arte",
+      "barcode": null,
+      "has_promotional_price": false,
+      "promotions": {
+        "percentage_off": 0
+      }
+    }
+  ],
+  "customer_visit": {
+    "created_at": "2026-03-18T13:57:22+0000",
+    "landing_page": "https://www.fundofotograficocloth.com.br/produtos/fundo-fotografico-envie-sua-arte/",
+    "utm_parameters": {
+      "utm_campaign": null,
+      "utm_content": null,
+      "utm_medium": null,
+      "utm_source": null,
+      "utm_term": null
+    }
+  }
+}

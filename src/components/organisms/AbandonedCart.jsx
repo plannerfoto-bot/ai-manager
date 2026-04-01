@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { User, MapPin, Package, ExternalLink, ChevronLeft, Send, Phone, Mail } from 'lucide-react';
+import { User, MapPin, Package, ExternalLink, ChevronLeft, Send, Phone, Mail, Trash2, RefreshCcw, ShieldCheck } from 'lucide-react';
 
 const API = import.meta.env.VITE_API_URL || '';
 
@@ -59,6 +59,8 @@ export default function AbandonedCart({ storeId }) {
   const [manualSending, setManualSending] = useState(false);
   const [autoSending, setAutoSending] = useState(false);
   const [regLoading, setRegLoading] = useState(false);
+  const [syncLoading, setSyncLoading] = useState(false);
+  const [cleanLoading, setCleanLoading] = useState(false);
 
   const loadAll = useCallback(async () => {
     setLoading(true);
@@ -72,15 +74,7 @@ export default function AbandonedCart({ storeId }) {
         fetch(`${API}/api/abandoned-cart/checkouts`, fetchOptions).then(r => r.json()),
       ]);
       if (cfgRes.success) {
-        let rulesStr = localStorage.getItem('ai_coupon_rules');
-        let parsedRules = [{ min: 0, max: 999999, discount: 5 }];
-        if (rulesStr) {
-          try { parsedRules = JSON.parse(rulesStr); } catch (e) {}
-        }
-        setConfig({
-          ...cfgRes.data,
-          coupon_rules: parsedRules
-        });
+        setConfig(cfgRes.data);
       }
       if (histRes.success) setHistory(histRes.data);
       if (cartsRes.success) setCarts(cartsRes.data);
@@ -270,6 +264,49 @@ export default function AbandonedCart({ storeId }) {
     setTimeout(() => setMsg(''), 8000);
   };
 
+  const manualSync = async () => {
+    setSyncLoading(true);
+    setMsg('');
+    try {
+      const res = await fetch(`${API}/api/abandoned-cart/sync-manually`, {
+        method: 'POST',
+        headers: { 'x-store-id': finalStoreId }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setMsg('🚀 ' + data.message);
+        setTimeout(() => loadAll(), 2000);
+      } else {
+        setMsg('❌ Erro: ' + data.error);
+      }
+    } catch (e) {
+      setMsg('❌ Erro de conexão');
+    }
+    setSyncLoading(false);
+  };
+
+  const bulkDeleteCoupons = async () => {
+    if (!window.confirm('⚠️ ATENÇÃO: Isso excluirá TODOS os cupons da sua loja na Nuvemshop. Tem certeza?')) return;
+    
+    setCleanLoading(true);
+    setMsg('');
+    try {
+      const res = await fetch(`${API}/api/abandoned-cart/coupons/bulk-delete`, {
+        method: 'POST',
+        headers: { 'x-store-id': finalStoreId }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setMsg('🗑️ ' + data.message);
+      } else {
+        setMsg('❌ Erro: ' + data.error);
+      }
+    } catch (e) {
+      setMsg('❌ Erro de conexão');
+    }
+    setCleanLoading(false);
+  };
+
   if (loading || !config) return (
     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 200, color: '#9ca3af' }}>
       <div>⏳ Carregando...</div>
@@ -322,6 +359,47 @@ export default function AbandonedCart({ storeId }) {
           }}>
             {config.enabled ? 'ATIVO' : 'INATIVO'}
           </span>
+        </div>
+      </div>
+
+      {/* Admin Tools Bar */}
+      <div style={{ 
+        display: 'flex', gap: 12, marginBottom: 24, padding: '12px 16px', 
+        background: '#1e293b', borderRadius: 12, border: '1px solid #334155',
+        alignItems: 'center', justifyContent: 'space-between'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#94a3b8' }}>
+          <ShieldCheck size={18} />
+          <span style={{ fontSize: 13, fontWeight: 600 }}>Ferramentas Admin</span>
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button 
+            onClick={manualSync}
+            disabled={syncLoading}
+            style={{
+              padding: '8px 16px', borderRadius: 8, border: 'none', cursor: 'pointer',
+              background: '#334155', color: '#f1f5f9', fontSize: 13, fontWeight: 600,
+              display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.2s',
+              opacity: syncLoading ? 0.6 : 1
+            }}
+          >
+            <RefreshCcw size={14} className={syncLoading ? 'animate-spin' : ''} />
+            {syncLoading ? 'Sincronizando...' : 'Sincronizar Carrinhos'}
+          </button>
+          
+          <button 
+            onClick={bulkDeleteCoupons}
+            disabled={cleanLoading}
+            style={{
+              padding: '8px 16px', borderRadius: 8, border: 'none', cursor: 'pointer',
+              background: '#450a0a', color: '#fecaca', fontSize: 13, fontWeight: 600,
+              display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.2s',
+              opacity: cleanLoading ? 0.6 : 1
+            }}
+          >
+            <Trash2 size={14} />
+            {cleanLoading ? 'Limpando...' : 'Limpar Cupons Nuvemshop'}
+          </button>
         </div>
       </div>
 
@@ -612,6 +690,21 @@ export default function AbandonedCart({ storeId }) {
               </div>
             </div>
 
+            {/* Vigilante Status Banner */}
+            <div style={{ 
+              background: '#0ea5e911', border: '1px solid #0ea5e944', 
+              borderRadius: 12, padding: '16px 20px', display: 'flex', gap: 12, alignItems: 'center' 
+            }}>
+              <div style={{ fontSize: 24 }}>🤖</div>
+              <div>
+                <div style={{ color: '#0ea5e9', fontWeight: 600, fontSize: 14 }}>Vigilante Ativo</div>
+                <div style={{ color: '#94a3b8', fontSize: 12, lineHeight: 1.4 }}>
+                  O sistema monitora sua loja automaticamente a cada 20 minutos. 
+                  Não é necessário configurar webhooks manualmente.
+                </div>
+              </div>
+            </div>
+
             {msg && (
               <div style={{
                 background: msg.startsWith('✅') ? '#065f4622' : '#7f1d1d22',
@@ -623,20 +716,7 @@ export default function AbandonedCart({ storeId }) {
             )}
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <button 
-                onClick={registerWebhook} 
-                disabled={regLoading} 
-                style={{
-                  padding: '14px 24px', borderRadius: 10, border: '1px solid #6366f1',
-                  background: '#6366f111', color: '#818cf8', cursor: 'pointer',
-                  fontWeight: 700, fontSize: 13, transition: 'all 0.2s',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10
-                }}
-                onMouseOver={(e) => { e.currentTarget.style.background = '#6366f122'; }}
-                onMouseOut={(e) => { e.currentTarget.style.background = '#6366f111'; }}
-              >
-                {regLoading ? '⏳ Sincronizando...' : <>🔗 Sincronizar Automação com Nuvemshop</>}
-              </button>
+              {/* Botão de Sincronização Removido (Não compatível com V1) */}
 
               <button onClick={save} disabled={saving || saved} style={{
                 padding: '14px 24px', borderRadius: 10, border: 'none',
