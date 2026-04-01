@@ -1804,6 +1804,30 @@ app.get('/api/abandoned-cart/checkouts', async (req, res) => {
   }
 });
 
+/** POST /api/abandoned-cart/manual-send — Proxy para o n8n para disparo manual (evita CORS) */
+app.post('/api/abandoned-cart/manual-send', async (req, res) => {
+  try {
+    const { phone, message, wuzapi_url, wuzapi_token, wuzapi_user_token } = req.body;
+    const n8nWebhook = 'https://n8n.adminfotoplanner.com.br/webhook/nuvemshop-manual-recovery';
+    
+    const response = await axios.post(n8nWebhook, {
+      phone,
+      message,
+      wuzapi_url,
+      wuzapi_token,
+      wuzapi_user_token
+    });
+
+    res.json({ success: true, data: response.data });
+  } catch (err) {
+    console.error('❌ Erro no Proxy Manual n8n:', err.message);
+    res.status(500).json({ 
+      success: false, 
+      error: err.response?.data || err.message 
+    });
+  }
+});
+
 // ============================================================
 // Redireciona todas as outras rotas para o index.html do React (SPA)
 app.get('/*any', (req, res) => {

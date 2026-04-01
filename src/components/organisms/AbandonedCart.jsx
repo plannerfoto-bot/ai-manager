@@ -152,8 +152,8 @@ export default function AbandonedCart({ storeId }) {
         .replace(/{{link}}/g, cart.checkout_url)
         .replace(/{{frete}}/g, parseFloat(cart.billing_address?.shipping_cost || 0).toFixed(2).replace('.', ','));
 
-      const n8nWebhook = 'https://n8n.adminfotoplanner.com.br/webhook/nuvemshop-manual-recovery';
-      const res = await fetch(n8nWebhook, {
+      const manualApi = `${API}/api/abandoned-cart/manual-send`;
+      const res = await fetch(manualApi, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
