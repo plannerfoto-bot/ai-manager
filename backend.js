@@ -1699,22 +1699,33 @@ app.post('/api/abandoned-cart/settings', async (req, res) => {
 });
 
 /** GET /api/abandoned-cart/history — lista carrinhos já contatados */
+/** GET /api/abandoned-cart/history — lista carrinhos já contatados */
 app.get('/api/abandoned-cart/history', async (req, res) => {
   try {
     const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
+    console.log(`[Admin] Buscando histórico para loja ${storeId}...`);
+    
+    // Usamos a tabela nuvemshop_checkouts que é a fonte de verdade do Vigilante
     const { data, error } = await supabase
-      .from('abandoned_cart_sent')
+      .from('nuvemshop_checkouts')
       .select('*')
       .eq('store_id', String(storeId))
-      .order('sent_at', { ascending: false })
-      .limit(50);
+      .eq('recovery_status', 'sent')
+      .order('nuvemshop_updated_at', { ascending: false })
+      .limit(100);
 
-    if (error) throw error;
-    res.json({ success: true, data: data });
+    if (error) {
+        console.error('[Admin] Erro Supabase no histórico:', error);
+        throw error;
+    }
+    
+    res.json({ success: true, data: data || [] });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    console.error('[Admin] Falha crítica no histórico:', err.message);
+    res.status(500).json({ success: false, error: 'Falha ao recuperar histórico: ' + err.message });
   }
 });
+
 
 /** POST /api/abandoned-cart/mark-sent — registra que um carrinho foi contatado (chamado pelo n8n) */
 app.post('/api/abandoned-cart/mark-sent', async (req, res) => {
@@ -2305,18 +2316,29 @@ export async function runProfessionalAbandonedCartRecovery() {
             ? items.map(p => `• ${p.name} (x${p.quantity})`).join('\n')
             : 'Produtos selecionados';
 
+          // --- VERIFICAÇÃO DE DUPLICIDADE (MEMÓRIA) ---
+          const { data: dbCart } = await supabase
+            .from('nuvemshop_checkouts')
+            .select('recovery_status, coupon_code')
+            .eq('id', String(cart.id))
+            .maybeSingle();
+
+          // Se já foi enviado, ignoramos para não gerar spam nem cupons extras
+          if (dbCart?.recovery_status === 'sent') {
+            // console.log(`[Vigilante] Carrinho ${cart.id} já enviado. Pulando.`);
+            continue;
+          }
+
           // 5. MOTOR DE CUPOES INTELIGENTE 🎟️
           let messageTemplate = config.message_template || "Olá {{nome}}, vimos que você deixou estes itens no carrinho:\n{{produtos}}\nFinalize aqui: {{link}}";
-          let couponCode = '';
+          let couponCode = dbCart?.coupon_code || ''; // REUTILIZA cupom se já existir no banco
           let validDiscount = '0%';
-          let numericDiscountValue = 0; // Novo: o "dígito" solicitado solicitado
+          let numericDiscountValue = 0;
           
-          // Regex flexível: aceita {{cupom}}, {{ cupom }}, {{CUPOM}}, {{coupon}}, etc.
           const hasCouponTag = /{{\s*(cupom|coupon)\s*}}/gi.test(messageTemplate);
           
           if (hasCouponTag || (config.coupon_rules && config.coupon_rules.length > 0)) {
             try {
-              // Regras de Desconto baseadas no valor total (Fiel às chaves do banco: min, max, discount)
               const rules = Array.isArray(config.coupon_rules) ? config.coupon_rules : [];
               const applicableRule = rules
                 .filter(r => total >= (parseFloat(r.min) || 0) && total <= (parseFloat(r.max) || 999999))
@@ -2326,28 +2348,30 @@ export async function runProfessionalAbandonedCartRecovery() {
                 numericDiscountValue = parseInt(applicableRule.discount) || 0;
                 validDiscount = `${numericDiscountValue}%`;
                 
-                // Geração de Cupom de 5 Dígitos Numéricos (Fiel ao solicitado)
-                couponCode = Math.floor(10000 + Math.random() * 90000).toString();
-                
-                // Registrar na Nuvemshop (Validade de 1 dia para urgência máxima)
-                const expiryDate = new Date();
-                expiryDate.setDate(expiryDate.getDate() + 1);
+                // SÓ criamos na Nuvemshop se NÃO tivermos um cupom já registrado para este checkout
+                if (!couponCode) {
+                    couponCode = Math.floor(10000 + Math.random() * 90000).toString();
+                    
+                    const client = await getApiClient(storeId);
+                    const expiryDate = new Date();
+                    expiryDate.setDate(expiryDate.getDate() + 1);
 
-                await axios.post(`https://api.tiendanube.com/v1/${storeId}/coupons`, {
-                  code: couponCode,
-                  type: 'percentage',
-                  value: String(numericDiscountValue),
-                  max_uses: 1,
-                  expires_at: expiryDate.toISOString()
-                }, {
-                  headers: { 'Authentication': `bearer ${token}`, 'User-Agent': 'AI-Manager Vigilante' }
-                });
-                
-                const logMsg = `[Vigilante] Cupom ${couponCode} (${validDiscount}) gerado para ${name}.\n`;
-                fs.appendFileSync('sync_debug.log', logMsg);
+                    await client.post('/coupons', {
+                      code: couponCode,
+                      type: 'percentage',
+                      value: String(numericDiscountValue),
+                      max_uses: 1,
+                      expires_at: expiryDate.toISOString()
+                    });
+                    
+                    console.log(`[Vigilante] Novo cupom ${couponCode} (${validDiscount}) gerado para ${name}.`);
+                    fs.appendFileSync('sync_debug.log', `[Vigilante] Novo cupom ${couponCode} para ${name}\n`);
+                } else {
+                    console.log(`[Vigilante] Reutilizando cupom ${couponCode} existente no banco para ${name}.`);
+                }
               }
             } catch (couponErr) {
-              console.error(`[Vigilante] Erro ao gerar cupom:`, couponErr.response?.data || couponErr.message);
+              console.error(`[Vigilante] Erro ao gerenciar cupom:`, couponErr.response?.data || couponErr.message);
             }
           }
 
