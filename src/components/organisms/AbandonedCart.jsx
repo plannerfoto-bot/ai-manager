@@ -161,9 +161,10 @@ export default function AbandonedCart({ storeId }) {
         body: JSON.stringify({ 
           phone: cart.customer_phone.replace(/\D/g, ''), 
           message: bodyText,
-          wuzapi_url: config.wuzapi_url,
-          wuzapi_token: config.wuzapi_token,
-          wuzapi_user_token: config.wuzapi_user_token
+          customer_name: cart.customer_name,
+          products: productListStr,
+          total: cart.total,
+          checkout_url: cart.checkout_url
         }),
       });
 

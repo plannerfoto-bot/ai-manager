@@ -1804,48 +1804,34 @@ app.get('/api/abandoned-cart/checkouts', async (req, res) => {
   }
 });
 
-/** POST /api/abandoned-cart/manual-send — Envia WhatsApp diretamente via WuzAPI (sem n8n) */
+/** POST /api/abandoned-cart/manual-send — Proxy simples para webhook do n8n */
 app.post('/api/abandoned-cart/manual-send', async (req, res) => {
   try {
-    const { phone, message, wuzapi_url, wuzapi_token, wuzapi_user_token } = req.body;
-
-    if (!phone || !message || !wuzapi_url || !wuzapi_token) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Campos obrigatorios ausentes: phone, message, wuzapi_url, wuzapi_token' 
-      });
-    }
-
-    const formattedPhone = phone.replace(/\D/g, '');
-    const wuzapiBase = wuzapi_url.replace(/\/$/, '');
-    const wuzapiEndpoint = `${wuzapiBase}/chat/send/text`;
+    const { phone, message, customer_name, products, total, checkout_url } = req.body;
     
-    console.log(`Enviando WhatsApp manual para ${formattedPhone} via WuzAPI: ${wuzapiEndpoint}`);
+    const N8N_WEBHOOK = 'https://n8n-webhook.adminfotoplanner.com.br/webhook/nuvemshop-manual-recovery';
+    
+    console.log('Enviando para n8n webhook:', N8N_WEBHOOK);
+    console.log('Dados:', { phone, customer_name, message: message?.substring(0,50) + '...' });
 
-    const wuzHeaders = {
-      'Content-Type': 'application/json',
-      'Token': wuzapi_token,
-    };
+    const response = await axios.post(N8N_WEBHOOK, {
+      phone,
+      message,
+      customer_name,
+      products,
+      total,
+      checkout_url
+    }, {
+      headers: { 'Content-Type': 'application/json' },
+      timeout: 15000
+    });
 
-    if (wuzapi_user_token) {
-      wuzHeaders['Usertoken'] = wuzapi_user_token;
-    }
-
-    const wuzResponse = await axios.post(
-      wuzapiEndpoint,
-      {
-        Phone: `${formattedPhone}@s.whatsapp.net`,
-        Body: message,
-      },
-      { headers: wuzHeaders, timeout: 15000 }
-    );
-
-    console.log(`WhatsApp enviado com sucesso para ${formattedPhone}:`, wuzResponse.data);
-    res.json({ success: true, data: wuzResponse.data });
+    console.log('Resposta do n8n:', response.data);
+    res.json({ success: true, data: response.data });
 
   } catch (err) {
     const errDetail = err.response?.data || err.message;
-    console.error('Erro ao enviar WhatsApp manual via WuzAPI:', errDetail);
+    console.error('Erro no proxy para n8n:', errDetail);
     res.status(500).json({ 
       success: false, 
       error: errDetail
