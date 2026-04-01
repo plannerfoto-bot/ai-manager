@@ -1672,7 +1672,7 @@ app.get('/api/abandoned-cart/settings', async (req, res) => {
 app.post('/api/abandoned-cart/settings', async (req, res) => {
   try {
     const { data: current } = await supabase.from('abandoned_cart_config').select('id').maybeSingle();
-    const { coupon_discount, ...safeBody } = req.body;
+    const { coupon_rules, ...safeBody } = req.body;
     
     const payload = {
       ...safeBody,
@@ -1812,7 +1812,7 @@ app.post('/api/abandoned-cart/manual-send', async (req, res) => {
     const { 
       phone, customer_name, products, total, checkout_url,
       wuzapi_url, wuzapi_token, wuzapi_user_token,
-      coupon_discount
+      coupon_rules
     } = req.body;
     
     let message = req.body.message;
@@ -1831,7 +1831,21 @@ app.post('/api/abandoned-cart/manual-send', async (req, res) => {
         const NUVEMSHOP_TOKEN = process.env.TIENDANUBE_ACCESS_TOKEN || process.env.NUVEMSHOP_ACCESS_TOKEN || '454761d47b7ce42c4d539deb3025366ac8dbe358';
         const STORE_ID = process.env.TIENDANUBE_STORE_ID || process.env.NUVEMSHOP_STORE_ID || '2767708';
 
-        const validDiscount = Math.max(5, Math.min(15, parseInt(coupon_discount) || 5));
+        // Determina desconto baseado nas faixas de regras (array)
+        let chosenDiscount = 5;
+        if (coupon_rules && Array.isArray(coupon_rules)) {
+          const cartTotal = parseFloat(total) || 0;
+          for (const rule of coupon_rules) {
+            const minV = parseFloat(rule.min) || 0;
+            const maxV = parseFloat(rule.max) || Infinity;
+            if (cartTotal >= minV && cartTotal <= maxV) {
+              chosenDiscount = parseInt(rule.discount) || 5;
+              break;
+            }
+          }
+        }
+
+        const validDiscount = Math.max(5, Math.min(15, chosenDiscount));
 
         await axios.post(`https://api.tiendanube.com/v1/${STORE_ID}/coupons`, {
           code: couponCode,

@@ -69,10 +69,14 @@ export default function AbandonedCart({ storeId }) {
         fetch(`${API}/api/abandoned-cart/checkouts`, fetchOptions).then(r => r.json()),
       ]);
       if (cfgRes.success) {
-        const localDiscount = localStorage.getItem('ai_coupon_discount');
+        let rulesStr = localStorage.getItem('ai_coupon_rules');
+        let parsedRules = [{ min: 0, max: 999999, discount: 5 }];
+        if (rulesStr) {
+          try { parsedRules = JSON.parse(rulesStr); } catch (e) {}
+        }
         setConfig({
           ...cfgRes.data,
-          coupon_discount: localDiscount ? Number(localDiscount) : 5
+          coupon_rules: parsedRules
         });
       }
       if (histRes.success) setHistory(histRes.data);
@@ -176,7 +180,7 @@ export default function AbandonedCart({ storeId }) {
           // Passando credenciais via proxy
           wuzapi_url: config?.wuzapi_url,
           wuzapi_token: config?.wuzapi_user_token || config?.wuzapi_token,
-          coupon_discount: config?.coupon_discount || 5
+          coupon_rules: config?.coupon_rules || []
         }),
       });
 
@@ -381,30 +385,83 @@ export default function AbandonedCart({ storeId }) {
                     }}
                   />
                 </div>
-                <div>
-                  <span style={{ fontSize: 11, color: '#64748b' }}>Taxa do Cupom (%) — Variável {'{{cupom}}'}</span>
-                  <input
-                    type="number"
-                    min="5"
-                    max="15"
-                    placeholder="Ex: 5"
-                    value={config.coupon_discount || 5}
-                    onChange={e => {
-                      let val = parseInt(e.target.value);
-                      if (val > 15) val = 15;
-                      if (val < 5) val = 5;
-                      setConfig(c => ({ ...c, coupon_discount: val || 5 }));
-                      localStorage.setItem('ai_coupon_discount', val || 5);
-                    }}
-                    style={{
-                      width: '100%', padding: '10px 14px', borderRadius: 8,
-                      background: '#0f172a', border: '1px solid #334155',
-                      color: '#f1f5f9', fontSize: 14, marginTop: 4
-                    }}
-                  />
-                  <div style={{ color: '#64748b', fontSize: 11, marginTop: 4 }}>
-                    Define o percentual criado quando a variável {'{{cupom}}'} for usada. Min: 5%, Max: 15%.
+                <div style={{ marginTop: 12 }}>
+                  <span style={{ fontSize: 13, color: '#f1f5f9', fontWeight: 600 }}>Caminhos de Desconto — Variável {'{{cupom}}'}</span>
+                  <div style={{ color: '#64748b', fontSize: 11, marginBottom: 8 }}>
+                    Crie faixas de valores para o carrinho. O sistema buscará a primeira faixa onde o valor do carrinho se encaixa.
                   </div>
+                  {(config.coupon_rules || []).map((rule, idx) => (
+                    <div key={idx} style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 8, background: '#0f172a', padding: '10px 12px', borderRadius: 8, border: '1px solid #1e293b' }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 10, color: '#94a3b8', marginBottom: 4 }}>Mínimo (R$)</div>
+                        <input
+                          type="number"
+                          value={rule.min !== undefined ? rule.min : ''}
+                          onChange={e => {
+                            const newRules = [...(config.coupon_rules || [])];
+                            newRules[idx].min = parseFloat(e.target.value) || 0;
+                            setConfig(c => ({...c, coupon_rules: newRules}));
+                            localStorage.setItem('ai_coupon_rules', JSON.stringify(newRules));
+                          }}
+                          style={{ width: '100%', padding: '6px 8px', borderRadius: 4, background: '#1e293b', border: 'none', color: '#fff', fontSize: 12 }}
+                        />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 10, color: '#94a3b8', marginBottom: 4 }}>Máximo (R$)</div>
+                        <input
+                          type="number"
+                          value={rule.max !== undefined ? rule.max : ''}
+                          onChange={e => {
+                            const newRules = [...(config.coupon_rules || [])];
+                            newRules[idx].max = parseFloat(e.target.value) || 0;
+                            setConfig(c => ({...c, coupon_rules: newRules}));
+                            localStorage.setItem('ai_coupon_rules', JSON.stringify(newRules));
+                          }}
+                          style={{ width: '100%', padding: '6px 8px', borderRadius: 4, background: '#1e293b', border: 'none', color: '#fff', fontSize: 12 }}
+                        />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 10, color: '#94a3b8', marginBottom: 4 }}>Cupom (%)</div>
+                        <input
+                          type="number"
+                          min="5" max="15"
+                          value={rule.discount !== undefined ? rule.discount : ''}
+                          onChange={e => {
+                            let val = parseInt(e.target.value) || 5;
+                            if (val < 5) val = 5;
+                            if (val > 15) val = 15;
+                            const newRules = [...(config.coupon_rules || [])];
+                            newRules[idx].discount = val;
+                            setConfig(c => ({...c, coupon_rules: newRules}));
+                            localStorage.setItem('ai_coupon_rules', JSON.stringify(newRules));
+                          }}
+                          style={{ width: '100%', padding: '6px 8px', borderRadius: 4, background: '#1e293b', border: 'none', color: '#fff', fontSize: 12 }}
+                        />
+                      </div>
+                      <button
+                        onClick={() => {
+                          const newRules = [...(config.coupon_rules || [])];
+                          newRules.splice(idx, 1);
+                          setConfig(c => ({...c, coupon_rules: newRules}));
+                          localStorage.setItem('ai_coupon_rules', JSON.stringify(newRules));
+                        }}
+                        style={{ background: '#ef4444', color: '#fff', border: 'none', borderRadius: 6, width: 28, height: 28, cursor: 'pointer', marginTop: 16 }}
+                        title="Remover Regra"
+                      >
+                        X
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    onClick={() => {
+                       const newRules = [...(config.coupon_rules || []), { min: 0, max: 999999, discount: 5 }];
+                       setConfig(c => ({...c, coupon_rules: newRules}));
+                       localStorage.setItem('ai_coupon_rules', JSON.stringify(newRules));
+                    }}
+                    style={{ background: '#3b82f6', color: '#fff', border: 'none', borderRadius: 6, padding: '8px 12px', fontSize: 12, cursor: 'pointer', fontWeight: 600, width: '100%' }}
+                  >
+                    + Adicionar Faixa de Valor
+                  </button>
                 </div>
               </div>
             </div>
