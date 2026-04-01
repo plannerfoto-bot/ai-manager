@@ -152,7 +152,8 @@ export default function AbandonedCart({ storeId }) {
         .replace('{{link}}', cart.checkout_url)
         .replace('{{frete}}', parseFloat(cart.billing_address?.shipping_cost || 0).toFixed(2).replace('.', ','));
 
-      const res = await fetch(`${config.wuzapi_url}/chat/send/text`, {
+      const baseUrl = config.wuzapi_url?.replace(/\/+$/, '');
+      const res = await fetch(`${baseUrl}/chat/send/text`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -163,7 +164,7 @@ export default function AbandonedCart({ storeId }) {
 
       if (res.ok) {
         setMsg(`✅ Mensagem enviada manualmente para ${cart.customer_name}!`);
-        // Opcionalmente, marcar como enviado no banco
+        // Registrar envio no histórico
         await fetch(`${API}/api/abandoned-cart/mark-sent`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'x-store-id': finalStoreId },
@@ -176,10 +177,15 @@ export default function AbandonedCart({ storeId }) {
             status: 'sent'
           })
         });
-        loadAll(); // Recarrega histórico
+        loadAll(); // Recarrega histórico para atualizar o painel
       } else {
-        const errData = await res.json();
-        setMsg('❌ Erro no envio manual: ' + (errData.message || JSON.stringify(errData)));
+        const errText = await res.text();
+        let errMsg = errText;
+        try { 
+          const errJson = JSON.parse(errText);
+          errMsg = errJson.message || errJson.error || errText;
+        } catch(e) {}
+        setMsg('❌ Erro na WuzAPI: ' + errMsg);
       }
     } catch (e) {
       setMsg('❌ Erro de conexão com WuzAPI: ' + e.message);
@@ -673,9 +679,11 @@ export default function AbandonedCart({ storeId }) {
                   border: '1px dashed #334155'
                 }}>
                   { (config?.message_template || DEFAULT_TEMPLATE)
-                    .replace('{{nome}}', selectedCart.customer_name.split(' ')[0])
-                    .replace('{{produtos}}', '• ' + selectedCart.products)
-                    .replace('{{total}}', selectedCart.total)
+                    .replace(/{{nome}}/g, selectedCart.customer_name.split(' ')[0])
+                    .replace(/{{produtos}}/g, selectedCart.products)
+                    .replace(/{{total}}/g, parseFloat(selectedCart.total).toFixed(2).replace('.', ','))
+                    .replace(/{{link}}/g, selectedCart.checkout_url)
+                    .replace(/{{frete}}/g, parseFloat(selectedCart.billing_address?.shipping_cost || 0).toFixed(2).replace('.', ','))
                   }
                 </div>
                 <button 
