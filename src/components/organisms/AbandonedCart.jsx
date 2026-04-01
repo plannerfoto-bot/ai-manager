@@ -22,6 +22,7 @@ const VARIABLES = [
   { tag: '{{total}}',    desc: 'Valor total' },
   { tag: '{{link}}',     desc: 'Link do carrinho' },
   { tag: '{{frete}}',    desc: 'Custo do frete' },
+  { tag: '{{cupom}}',    desc: 'Gera cupom 5% (cód único)' }
 ];
 
 function StatusBadge({ status }) {
@@ -115,7 +116,8 @@ export default function AbandonedCart({ storeId }) {
         .replace('{{produtos}}', '• Fundo Fotográfico Azul x1 — R$ 94,00')
         .replace('{{total}}', '94,00')
         .replace('{{link}}', 'https://www.fundofotograficocloth.com.br/checkout/...')
-        .replace('{{frete}}', '0,00');
+        .replace('{{frete}}', '0,00')
+        .replace(/{{cupom}}/g, '12345');
 
       const res = await fetch(`${config.wuzapi_url}/chat/send/text`, {
         method: 'POST',
@@ -150,7 +152,8 @@ export default function AbandonedCart({ storeId }) {
         .replace(/{{produtos}}/g, productListStr)
         .replace(/{{total}}/g, parseFloat(cart.total).toFixed(2).replace('.', ','))
         .replace(/{{link}}/g, cart.checkout_url)
-        .replace(/{{frete}}/g, parseFloat(cart.billing_address?.shipping_cost || 0).toFixed(2).replace('.', ','));
+        .replace(/{{frete}}/g, parseFloat(cart.billing_address?.shipping_cost || 0).toFixed(2).replace('.', ','))
+        .replace(/{{cupom}}/g, '12345');
 
       const manualApi = `${API}/api/abandoned-cart/manual-send`;
       const res = await fetch(manualApi, {
@@ -209,7 +212,8 @@ export default function AbandonedCart({ storeId }) {
     .replace('{{produtos}}', '• Fundo Fotográfico Azul Céu x2 — R$ 188,00')
     .replace('{{total}}', '188,00')
     .replace('{{link}}', 'https://www.fundofotograficocloth.com.br/checkout/...')
-    .replace('{{frete}}', '0,00');
+    .replace('{{frete}}', '0,00')
+    .replace(/{{cupom}}/g, '12345');
 
   return (
     <div style={{ padding: '24px', maxWidth: 900, margin: '0 auto', fontFamily: 'Inter, sans-serif' }}>
@@ -689,6 +693,7 @@ export default function AbandonedCart({ storeId }) {
                     .replace(/{{total}}/g, parseFloat(selectedCart.total).toFixed(2).replace('.', ','))
                     .replace(/{{link}}/g, selectedCart.checkout_url)
                     .replace(/{{frete}}/g, parseFloat(selectedCart.billing_address?.shipping_cost || 0).toFixed(2).replace('.', ','))
+                    .replace(/{{cupom}}/g, '12345')
                   }
                 </div>
                 <button 
@@ -906,7 +911,8 @@ let message = settings.message_template
   .replace('{{produtos}}', produtos)
   .replace('{{total}}', parseFloat(checkout.total).toFixed(2).replace('.', ','))
   .replace('{{link}}', checkout.abandoned_checkout_url || '')
-  .replace('{{frete}}', parseFloat(checkout.shipping_cost_customer || 0).toFixed(2).replace('.', ','));
+  .replace('{{frete}}', parseFloat(checkout.shipping_cost_customer || 0).toFixed(2).replace('.', ','))
+  .replace(/{{cupom}}/g, '12345');
 
 return [{ json: {
   skip: false,

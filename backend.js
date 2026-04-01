@@ -1808,10 +1808,50 @@ app.get('/api/abandoned-cart/checkouts', async (req, res) => {
 app.post('/api/abandoned-cart/manual-send', async (req, res) => {
   try {
     const { 
-      phone, message, customer_name, products, total, checkout_url,
+      phone, customer_name, products, total, checkout_url,
       wuzapi_url, wuzapi_token, wuzapi_user_token 
     } = req.body;
     
+    let message = req.body.message;
+
+    // Lógica para Cupom Dinâmico Nuvemshop
+    if (message && message.includes('{{cupom}}')) {
+      try {
+        const couponCode = Math.floor(10000 + Math.random() * 90000).toString();
+        
+        // Define data de validade para o final do dia atual (limitação da Nuvemshop API de não aceitar horas precisas)
+        const tzOffset = (new Date()).getTimezoneOffset() * 60000;
+        const localISOTime = (new Date(Date.now() - tzOffset)).toISOString().split('T')[0];
+
+        console.log(`💡 Gerando novo cupom [${couponCode}] ativo até o final do dia atual (${localISOTime}).`);
+
+        const NUVEMSHOP_TOKEN = process.env.TIENDANUBE_ACCESS_TOKEN || process.env.NUVEMSHOP_ACCESS_TOKEN || '454761d47b7ce42c4d539deb3025366ac8dbe358';
+        const STORE_ID = process.env.TIENDANUBE_STORE_ID || process.env.NUVEMSHOP_STORE_ID || '2767708';
+
+        await axios.post(`https://api.tiendanube.com/v1/${STORE_ID}/coupons`, {
+          code: couponCode,
+          type: 'percentage',
+          value: '5.00',
+          max_uses: 1,
+          end_date: localISOTime // Cupom encerra virada no próximo dia
+        }, {
+          headers: {
+            'Authentication': `bearer ${NUVEMSHOP_TOKEN}`,
+            'User-Agent': 'AI-Manager (lucasxntos@gmail.com)',
+            'Content-Type': 'application/json'
+          }
+        });
+
+        // Substituir tag
+        message = message.replace('{{cupom}}', couponCode);
+        console.log(`✅ Cupom ${couponCode} criado e embutido na mensagem com sucesso!`);
+      } catch (couponErr) {
+        console.error('❌ Falha ao tentar criar cupom Nuvemshop:', couponErr.response?.data || couponErr.message);
+        // Fallback: se a criação falhar por algum motivo bizarro, ainda envia a msg, porém removendo a tag ou substituindo por texto limpo
+        message = message.replace('{{cupom}}', '(Cupom especial temporariamente indisponível)');
+      }
+    }
+
     const N8N_WEBHOOK = 'https://n8n-webhook.adminfotoplanner.com.br/webhook/recuperar';
     
     console.log('Enviando para n8n webhook:', N8N_WEBHOOK);
