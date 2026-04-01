@@ -1812,7 +1812,7 @@ app.post('/api/abandoned-cart/manual-send', async (req, res) => {
       wuzapi_url, wuzapi_token, wuzapi_user_token 
     } = req.body;
     
-    const N8N_WEBHOOK = 'https://n8n-webhook.adminfotoplanner.com.br/webhook/nuvemshop-manual-recovery';
+    const N8N_WEBHOOK = 'https://n8n-webhook.adminfotoplanner.com.br/webhook/recuperar';
     
     console.log('Enviando para n8n webhook:', N8N_WEBHOOK);
     console.log('Dados:', { phone, customer_name, message: message?.substring(0,50) + '...' });
