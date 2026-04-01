@@ -1807,7 +1807,10 @@ app.get('/api/abandoned-cart/checkouts', async (req, res) => {
 /** POST /api/abandoned-cart/manual-send — Proxy simples para webhook do n8n */
 app.post('/api/abandoned-cart/manual-send', async (req, res) => {
   try {
-    const { phone, message, customer_name, products, total, checkout_url } = req.body;
+    const { 
+      phone, message, customer_name, products, total, checkout_url,
+      wuzapi_url, wuzapi_token, wuzapi_user_token 
+    } = req.body;
     
     const N8N_WEBHOOK = 'https://n8n-webhook.adminfotoplanner.com.br/webhook/nuvemshop-manual-recovery';
     
@@ -1820,7 +1823,10 @@ app.post('/api/abandoned-cart/manual-send', async (req, res) => {
       customer_name,
       products,
       total,
-      checkout_url
+      checkout_url,
+      wuzapi_url,
+      wuzapi_token,
+      wuzapi_user_token
     }, {
       headers: { 'Content-Type': 'application/json' },
       timeout: 15000

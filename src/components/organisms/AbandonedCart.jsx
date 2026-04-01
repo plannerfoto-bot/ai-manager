@@ -152,7 +152,7 @@ export default function AbandonedCart({ storeId }) {
         .replace(/{{link}}/g, cart.checkout_url)
         .replace(/{{frete}}/g, parseFloat(cart.billing_address?.shipping_cost || 0).toFixed(2).replace('.', ','));
 
-      const manualApi = `https://n8n-webhook.adminfotoplanner.com.br/webhook/nuvemshop-manual-recovery`;
+      const manualApi = `${API}/api/abandoned-cart/manual-send`;
       const res = await fetch(manualApi, {
         method: 'POST',
         headers: {
@@ -165,7 +165,7 @@ export default function AbandonedCart({ storeId }) {
           products: productListStr,
           total: cart.total,
           checkout_url: cart.checkout_url,
-          // Enviando dados do WuzAPI para o n8n
+          // Passando credenciais via proxy
           wuzapi_url: config?.wuzapi_url,
           wuzapi_token: config?.wuzapi_token,
           wuzapi_user_token: config?.wuzapi_user_token
