@@ -1755,15 +1755,19 @@ app.get('/api/abandoned-cart/checkouts', async (req, res) => {
     const storeId = req.query.store_id || DEFAULT_STORE_ID;
     const api = await getApiClient(storeId);
     
-    // Na Nuvemshop, abandoned_checkouts é o endpoint correto para o que o painel administrativo mostra
-    const response = await api.get('/abandoned_checkouts', {
+    // Na Nuvemshop V1, os carrinhos abandonados são acessados via /checkouts com o filtro completed_at null
+    const response = await api.get('/checkouts', {
       params: { 
         per_page: 50,
-        status: 'open' // Apenas os que ainda não foram finalizados
+        // O status "open" no checkout costuma refletir carrinhos não finalizados
+        status: 'open' 
       }
     });
 
-    const checkouts = response.data.map(c => ({
+    // Filtro adicional de segurança: apenas checkouts que não foram concluídos
+    const checkouts = response.data
+      .filter(c => !c.completed_at) 
+      .map(c => ({
       id: c.id,
       customer_name: c.customer?.name || 'Cliente Sem Nome',
       customer_email: c.customer?.email,
