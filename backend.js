@@ -1672,7 +1672,7 @@ app.get('/api/abandoned-cart/settings', async (req, res) => {
 app.post('/api/abandoned-cart/settings', async (req, res) => {
   try {
     const { data: current } = await supabase.from('abandoned_cart_config').select('id').maybeSingle();
-    const { coupon_rules, ...safeBody } = req.body;
+    const safeBody = req.body;
     
     const payload = {
       ...safeBody,
@@ -1720,6 +1720,7 @@ app.post('/api/abandoned-cart/mark-sent', async (req, res) => {
       checkout_id: String(checkout_id),
       customer_name: customer_name || 'N/A',
       customer_phone: customer_phone || 'N/A',
+      status: status || 'sent',
       sent_at: new Date().toISOString()
     };
 
@@ -1803,6 +1804,149 @@ app.get('/api/abandoned-cart/checkouts', async (req, res) => {
       success: false, 
       error: err.response?.data || err.message 
     });
+  }
+});
+
+/** 
+ * POST /api/abandoned-cart/webhook — Webhook oficial para Automação Total 
+ * Recebe notificações de abandono de carrinho da Nuvemshop
+ */
+app.post('/api/abandoned-cart/webhook', async (req, res) => {
+  try {
+    const checkout = req.body; // Payload da Nuvemshop (abandoned_checkout/created)
+    if (!checkout || !checkout.id) return res.status(400).send('Webhook payload inválido');
+
+    console.log(`[Automação] Novo carrinho abandonado detectado: ${checkout.id} (Cliente: ${checkout.customer?.first_name})`);
+
+    // 1. Buscar Configurações no Supabase
+    const { data: config, error: cfgErr } = await supabase
+      .from('abandoned_cart_config')
+      .select('*')
+      .maybeSingle();
+
+    if (cfgErr || !config) {
+      console.error('[Automação] Erro ao buscar config:', cfgErr);
+      return res.status(500).send('Erro ao buscar configuração');
+    }
+
+    // 2. Verificar se automação está ATIVA
+    if (!config.enabled) {
+      console.log('[Automação] Abortado: Automação desativada nas configurações.');
+      return res.json({ success: false, message: 'Automação desativada' });
+    }
+
+    // 3. Verificar se já enviamos para este checkout (evitar duplicidade)
+    const { data: sentBefore } = await supabase
+      .from('abandoned_cart_sent')
+      .select('id')
+      .eq('checkout_id', String(checkout.id))
+      .maybeSingle();
+
+    if (sentBefore) {
+      console.log(`[Automação] Abortado: Carrinho ${checkout.id} já recebeu mensagem anteriormente.`);
+      return res.json({ success: false, message: 'Já processado' });
+    }
+
+    // 4. Preparar Dados
+    const customer = checkout.customer || {};
+    const phone = (customer.phone || checkout.billing_address?.phone || '').replace(/\D/g, '');
+    const name = customer.first_name || customer.name || 'Cliente';
+    const total = parseFloat(checkout.total) || 0;
+    const checkoutUrl = checkout.abandoned_checkout_url || checkout.checkout_url || '';
+    
+    if (!phone || phone.length < 8) {
+      console.log('[Automação] Abortado: Cliente sem telefone válido.');
+      return res.json({ success: false, message: 'Sem telefone' });
+    }
+
+    // 5. Aplicar Regras Dinâmicas de Cupom
+    let chosenDiscount = 5;
+    const rules = config.coupon_rules || [];
+    if (Array.isArray(rules)) {
+      for (const rule of rules) {
+        const minV = parseFloat(rule.min) || 0;
+        const maxV = parseFloat(rule.max) || Infinity;
+        if (total >= minV && total <= maxV) {
+          chosenDiscount = parseInt(rule.discount) || 5;
+          break;
+        }
+      }
+    }
+    const validDiscount = Math.max(5, Math.min(15, chosenDiscount));
+
+    // 6. Gerar Cupom na Nuvemshop
+    const couponCode = Math.floor(10000 + Math.random() * 90000).toString();
+    const tzOffset = (new Date()).getTimezoneOffset() * 60000;
+    const localISOTime = (new Date(Date.now() - tzOffset)).toISOString().split('T')[0];
+    
+    const STORE_ID = process.env.TIENDANUBE_STORE_ID || '2767708';
+    const NUVEMSHOP_TOKEN = process.env.TIENDANUBE_ACCESS_TOKEN || '454761d47b7ce42c4d539deb3025366ac8dbe358';
+
+    try {
+      await axios.post(`https://api.tiendanube.com/v1/${STORE_ID}/coupons`, {
+        code: couponCode,
+        type: 'percentage',
+        value: validDiscount.toFixed(2),
+        max_uses: 1,
+        end_date: localISOTime
+      }, {
+        headers: {
+          'Authentication': `bearer ${NUVEMSHOP_TOKEN}`,
+          'User-Agent': 'AI-Manager Automation',
+          'Content-Type': 'application/json'
+        }
+      });
+      console.log(`[Automação] Cupom ${couponCode} (${validDiscount}%) gerado para ${name}.`);
+    } catch (cErr) {
+      console.error('[Automação] Erro ao criar cupom Nuvemshop:', cErr.response?.data || cErr.message);
+      // Prossegue sem cupom ou aborta? Vamos prosseguir com cupom fake 12345 se falhar para não perder a venda?
+      // Melhor abortar para não enviar mensagem errada.
+      return res.status(500).json({ success: false, error: 'Erro Nuvemshop Cupom' });
+    }
+
+    // 7. Formatar Mensagem
+    const productList = checkout.line_items?.map(p => `• ${p.name} x${p.quantity}`).join('\n') || 'Produtos no carrinho';
+    let messageBody = (config.message_template || 'Olá {{nome}}, vimos seu carrinho...')
+      .replace(/{{(nome|name)}}/g, name)
+      .replace(/{{produtos}}/g, productList)
+      .replace(/{{total}}/g, total.toFixed(2).replace('.', ','))
+      .replace(/{{link}}/g, checkoutUrl)
+      .replace(/{{cupom}}/g, couponCode)
+      .replace(/{{desconto}}/g, validDiscount);
+
+    // 8. Enviar via WuzAPI (Chamando o n8n ou direto)
+    // Usaremos o padrão de enviar para o WuzAPI configurado
+    const wuzapiUrl = config.wuzapi_url;
+    const wuzapiToken = config.wuzapi_user_token || config.wuzapi_token;
+
+    if (wuzapiUrl && wuzapiToken) {
+      try {
+        await axios.post(`${wuzapiUrl}/chat/send/text`, {
+          phone: phone,
+          message: messageBody
+        }, {
+          headers: { 'Authorization': `Bearer ${wuzapiToken}` }
+        });
+        console.log(`[Automação] Mensagem enviada com sucesso para ${phone}.`);
+      } catch (wErr) {
+        console.error('[Automação] Erro ao enviar WuzAPI:', wErr.response?.data || wErr.message);
+      }
+    }
+
+    // 9. Registrar no Histórico
+    await supabase.from('abandoned_cart_sent').upsert({
+      checkout_id: String(checkout.id),
+      customer_name: name,
+      customer_phone: phone,
+      status: 'sent',
+      sent_at: new Date().toISOString()
+    }, { onConflict: 'checkout_id' });
+
+    res.json({ success: true, message: 'Processado automaticamente' });
+
+  } catch (err) {
+    console.error('[Automação] Erro fatal no webhook:', err.message);
+    res.status(500).send('Internal Error');
   }
 });
 

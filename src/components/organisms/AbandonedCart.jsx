@@ -57,6 +57,7 @@ export default function AbandonedCart({ storeId }) {
   const [testSending, setTestSending] = useState(false);
   const [selectedCart, setSelectedCart] = useState(null);
   const [manualSending, setManualSending] = useState(false);
+  const [autoSending, setAutoSending] = useState(false);
 
   const loadAll = useCallback(async () => {
     setLoading(true);
@@ -210,6 +211,37 @@ export default function AbandonedCart({ storeId }) {
       setMsg('❌ Erro de conexão com WuzAPI: ' + e.message);
     }
     setManualSending(false);
+  };
+
+  const simulateAutoFlow = async (cart) => {
+    setAutoSending(true);
+    setMsg('');
+    try {
+      const res = await fetch(`${API}/api/abandoned-cart/webhook`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: cart.id,
+          customer: {
+            first_name: cart.customer_name.split(' ')[0],
+            phone: cart.customer_phone
+          },
+          total: cart.total,
+          abandoned_checkout_url: cart.checkout_url,
+          line_items: cart.line_items || []
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setMsg(`✅ Simulação concluída! Webhook processado para ${cart.customer_name}.`);
+        loadAll();
+      } else {
+        setMsg(`⚠️ Alerta: ${data.message}`);
+      }
+    } catch (e) {
+      setMsg(`❌ Erro na simulação: ${e.message}`);
+    }
+    setAutoSending(false);
   };
 
   if (loading || !config) return (
@@ -789,16 +821,33 @@ export default function AbandonedCart({ storeId }) {
                 </div>
                 <button 
                   onClick={() => sendManualWhatsApp(selectedCart)}
-                  disabled={manualSending}
+                  disabled={manualSending || autoSending}
                   style={{ 
                     width: '100%', padding: '14px', borderRadius: 12, border: 'none',
                     background: '#22c55e', color: '#fff', fontSize: 14, fontWeight: 700,
-                    cursor: manualSending ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-                    boxShadow: '0 4px 14px 0 rgba(34, 197, 94, 0.3)'
+                    cursor: (manualSending || autoSending) ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                    boxShadow: '0 4px 14px 0 rgba(34, 197, 94, 0.3)',
+                    marginBottom: 12
                   }}
                 >
                   {manualSending ? '⏳ Enviando...' : <><Send className="w-4 h-4" /> Enviar Mensagem Agora</>}
                 </button>
+
+                <button 
+                  onClick={() => simulateAutoFlow(selectedCart)}
+                  disabled={manualSending || autoSending}
+                  style={{ 
+                    width: '100%', padding: '10px', borderRadius: 12, border: '1px solid #334155',
+                    background: 'transparent', color: '#94a3b8', fontSize: 12, fontWeight: 600,
+                    cursor: (manualSending || autoSending) ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseOver={(e) => { e.currentTarget.style.borderColor = '#6366f1'; e.currentTarget.style.color = '#f1f5f9'; }}
+                  onMouseOut={(e) => { e.currentTarget.style.borderColor = '#334155'; e.currentTarget.style.color = '#94a3b8'; }}
+                >
+                  {autoSending ? '⏳ Processando...' : '🤖 Testar Fluxo Automático (Instantâneo)'}
+                </button>
+
                 <div style={{ textAlign: 'center', marginTop: 12 }}>
                   <span style={{ fontSize: 11, color: '#64748b' }}>A mensagem será enviada via WuzAPI</span>
                 </div>
