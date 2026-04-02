@@ -2373,20 +2373,24 @@ export async function runProfessionalAbandonedCartRecovery() {
                     
                     const client = await getApiClient(storeId);
                     
-                    // Define a vigência para hoje (Nuvemshop entende a string YYYY-MM-DD e o cupom expira no final do dia)
+                    // Define a vigência para hoje. Como a Nuvemshop pode interpretar "YYYY-MM-DD" como UTC e atrasar o dia para fuso Brasileiro (-3),
+                    // enviaremos a string ISO completa com o timezone explícito (-03:00) para garantir que a data seja recebida corretamente.
                     const fmt = new Intl.DateTimeFormat('en-CA', { 
                         timeZone: 'America/Sao_Paulo', 
                         year: 'numeric', month: '2-digit', day: '2-digit' 
                     });
-                    const brtDate = fmt.format(new Date()); // Formato: "YYYY-MM-DD" no Brasil
+                    const brtDate = fmt.format(new Date()); // Formato: "YYYY-MM-DD" no fuso do Brasil
+
+                    const startISO = `${brtDate}T00:00:00-03:00`;
+                    const endISO = `${brtDate}T23:59:59-03:00`;
 
                     await client.post('/coupons', {
                       code: couponCode,
                       type: 'percentage',
                       value: String(numericDiscountValue),
                       max_uses: 1,
-                      start_date: brtDate,
-                      end_date: brtDate
+                      start_date: startISO,
+                      end_date: endISO
                     });
                     
                     console.log(`[Vigilante] Novo cupom ${couponCode} (${validDiscount}) gerado para ${name}.`);
