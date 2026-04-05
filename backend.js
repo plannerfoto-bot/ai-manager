@@ -1139,7 +1139,7 @@ app.get('/api/stats', async (req, res) => {
   try {
     const [prodRes, ordersRes, storeRes, automationsCountRes, queueCountRes, automationLogsRes] = await Promise.all([
       client.get('/products', { params: { per_page: 1 } }),
-      client.get('/orders', { params: { per_page: 50, status: 'any' } }),
+      client.get('/orders', { params: { per_page: 50, payment_status: 'paid' } }),
       client.get('/store'),
       supabase.from('automation_history').select('*', { count: 'exact', head: true }).eq('store_id', storeId),
       supabase.from('post_queue').select('*', { count: 'exact', head: true }).eq('store_id', storeId).eq('status', 'pending'),
@@ -1355,7 +1355,7 @@ app.get('/api/profit-stats', async (req, res) => {
     const ordersRes = await client.get('/orders', {
       params: {
         per_page: 200,
-        status: 'paid',
+        payment_status: 'paid',
         created_at_min: `${startDate}T00:00:00-03:00`,
         created_at_max: `${endDate}T23:59:59-03:00`,
       }
