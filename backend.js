@@ -1146,7 +1146,11 @@ app.get('/api/stats', async (req, res) => {
       supabase.from('automation_history').select('*').eq('store_id', storeId).order('created_at', { ascending: false }).limit(5)
     ]);
     
-    const totalSales = ordersRes.data.reduce((acc, order) => acc + parseFloat(order.total || 0), 0);
+    const totalSales = ordersRes.data.reduce((acc, order) => {
+      const total = parseFloat(order.total || 0);
+      const shipping = parseFloat(order.shipping_cost_customer || 0);
+      return acc + (total - shipping);
+    }, 0);
     const productsCount = prodRes.headers['x-total-count'] || prodRes.data.length;
 
     res.json({
@@ -1167,6 +1171,229 @@ app.get('/api/stats', async (req, res) => {
   } catch (error) {
     console.error('Erro ao processar estatísticas:', error.response?.data || error.message);
     res.status(500).json({ error: 'Erro ao conectar com a Nuvemshop. Verifique o Token.' });
+  }
+});
+
+// ============================================================
+// KPI DE LUCRO E CUSTO DE COSTUREIRA
+// ============================================================
+
+/**
+ * Tabela de lucros para produtos PADRÃO.
+ * Chave: "gramatura_l_a" (arredondados em 2 casas, normalizados para menor x maior)
+ */
+const PROFIT_TABLE = {
+  // 120g
+  '120g_1.50_2.00': { profit: 46.00, sewingCost: 3.00 },
+  '120g_1.50_2.20': { profit: 46.50, sewingCost: 3.00 },
+  '120g_2.00_2.50': { profit: 110.00, sewingCost: 15.00 },
+  '120g_2.00_3.00': { profit: 148.00, sewingCost: 15.00 },
+  '120g_2.50_3.00': { profit: 147.50, sewingCost: 15.00 },
+  // 160g
+  '160g_1.50_2.00': { profit: 53.60, sewingCost: 3.00 },
+  '160g_1.50_2.20': { profit: 55.66, sewingCost: 3.00 },
+  '160g_2.00_2.50': { profit: 123.20, sewingCost: 15.00 },
+  '160g_2.00_3.00': { profit: 193.20, sewingCost: 15.00 },
+  '160g_2.50_3.00': { profit: 180.50, sewingCost: 15.00 },
+};
+
+// Margens médias para produtos PERSONALIZADOS (quando não bate na tabela padrão)
+const CUSTOM_MARGIN_120G = 0.490; // ~49%
+const CUSTOM_MARGIN_160G = 0.570; // ~57%
+
+/**
+ * Detecta a gramatura a partir do nome da variante.
+ * Ex: "1,50m x 2,00m / 120g" → "120g"
+ */
+function detectGramatura(variantName) {
+  if (!variantName) return null;
+  const name = variantName.toLowerCase();
+  if (name.includes('160g') || name.includes('160gr')) return '160g';
+  if (name.includes('120g') || name.includes('120gr')) return '120g';
+  return null;
+}
+
+/**
+ * Detecta as dimensões a partir do nome da variante.
+ * Suporta formatos como "1,50m x 2,00m", "1.50 x 2.00", "1,50x2,00"
+ * Retorna [dim1, dim2] em metros (float), ou null se não detectar.
+ */
+function detectDimensions(variantName) {
+  if (!variantName) return null;
+  // Limpeza: substitui vírgula por ponto e converte para minúsculo
+  const cleanName = variantName.toLowerCase().replace(/,/g, '.');
+  
+  // Regex robusto: números seguidos opcionalmente por m/cm, separados por x/X/*
+  const regex = /(\d+(?:\.\d+)?)\s*(?:m|cm|mt)?\s*[xX*]\s*(\d+(?:\.\d+)?)\s*(?:m|cm|mt)?/i;
+  const match = cleanName.match(regex);
+  
+  if (!match) return null;
+  
+  let d1 = parseFloat(match[1]);
+  let d2 = parseFloat(match[2]);
+
+  // Conversão inteligente: se > 10, assume que está em cm e converte para metros
+  // Ex: 150 -> 1.50 | 1.50 -> 1.50
+  if (d1 > 10) d1 /= 100;
+  if (d2 > 10) d2 /= 100;
+
+  if (isNaN(d1) || isNaN(d2)) return null;
+  return [d1, d2];
+}
+
+/**
+ * Gera a chave da tabela de lucros normalizando as dimensões (menor_maior).
+ */
+function getProfitKey(gram, d1, d2) {
+  const lo = Math.min(d1, d2).toFixed(2);
+  const hi = Math.max(d1, d2).toFixed(2);
+  return `${gram}_${lo}_${hi}`;
+}
+
+/**
+ * Calcula custo de costureira para uma medida (personalizada).
+ * Medidas pequenas (min ≤ 1.56): overloque R$3
+ * Medidas grandes (min > 1.56): emenda R$15
+ */
+function calcSewingCost(d1, d2) {
+  const minDim = Math.min(d1, d2);
+  return minDim <= 1.56 ? 3.00 : 15.00;
+}
+
+/**
+ * Calcula lucro estimado para um item personalizado usando a função de preço.
+ * Retorna { profit, sewingCost }
+ */
+function calcCustomItemProfit(price, gram, d1, d2) {
+  const margin = gram === '160g' ? CUSTOM_MARGIN_160G : CUSTOM_MARGIN_120G;
+  const profit = parseFloat(price) * margin;
+  const sewingCost = calcSewingCost(d1, d2);
+  return { profit, sewingCost };
+}
+
+/**
+ * Analisa um line_item de pedido e retorna { profit, sewingCost } ou null se não reconhecido.
+ */
+function analyzeLineItem(item) {
+  const price = parseFloat(item.price || 0);
+  const qty = parseInt(item.quantity || 1);
+  if (price <= 0) return null;
+
+  // Tenta a variante do item (nome da variante inclui medidas)
+  const variantName = item.variant_values
+    ? (Array.isArray(item.variant_values) ? item.variant_values.join(' / ') : item.variant_values)
+    : (item.name || '');
+
+  const gram = detectGramatura(variantName) || detectGramatura(item.name || '');
+  const dims = detectDimensions(variantName) || detectDimensions(item.name || '');
+
+  if (!gram || !dims) {
+    // Produto sem informação de medida suficiente — ignora
+    return null;
+  }
+
+  const [d1, d2] = dims;
+  const key = getProfitKey(gram, d1, d2);
+  const standard = PROFIT_TABLE[key];
+
+  if (standard) {
+    // Produto padrão — usa lucro fixo da tabela
+    return {
+      profit: standard.profit * qty,
+      sewingCost: standard.sewingCost * qty,
+    };
+  }
+
+  // Produto personalizado — usa margem estimada
+  const custom = calcCustomItemProfit(price, gram, d1, d2);
+  return {
+    profit: custom.profit * qty,
+    sewingCost: custom.sewingCost * qty,
+  };
+}
+
+/**
+ * GET /api/profit-stats
+ * Query params:
+ *   period: "current_month" | "last_month" | "custom"
+ *   start: "YYYY-MM-DD" (para period=custom)
+ *   end:   "YYYY-MM-DD" (para period=custom)
+ *
+ * Retorna:
+ *   { totalProfit, sewingCost, ordersCount, period, startDate, endDate }
+ */
+app.get('/api/profit-stats', async (req, res) => {
+  const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
+  const client = await getApiClient(storeId);
+
+  try {
+    const { period = 'current_month', start, end } = req.query;
+
+    // Calcular datas do período no fuso de São Paulo
+    const now = new Date();
+    const brtNow = new Date(now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+
+    let startDate, endDate;
+
+    if (period === 'last_month') {
+      const firstDayLastMonth = new Date(brtNow.getFullYear(), brtNow.getMonth() - 1, 1);
+      const lastDayLastMonth = new Date(brtNow.getFullYear(), brtNow.getMonth(), 0);
+      startDate = firstDayLastMonth.toISOString().split('T')[0];
+      endDate = lastDayLastMonth.toISOString().split('T')[0];
+    } else if (period === 'custom' && start && end) {
+      startDate = start;
+      endDate = end;
+    } else {
+      // current_month (padrão)
+      const firstDay = new Date(brtNow.getFullYear(), brtNow.getMonth(), 1);
+      startDate = firstDay.toISOString().split('T')[0];
+      endDate = brtNow.toISOString().split('T')[0];
+    }
+
+    // Buscar pedidos PAGOS no período
+    // A Nuvemshop aceita created_at_min e created_at_max
+    const ordersRes = await client.get('/orders', {
+      params: {
+        per_page: 200,
+        status: 'paid',
+        created_at_min: `${startDate}T00:00:00-03:00`,
+        created_at_max: `${endDate}T23:59:59-03:00`,
+      }
+    });
+
+    const orders = ordersRes.data || [];
+
+    let totalProfit = 0;
+    let totalSewingCost = 0;
+    let analyzedItems = 0;
+
+    for (const order of orders) {
+      // Line items do pedido (Nuvemshop usa "products" dentro do order)
+      const lineItems = order.products || order.line_items || [];
+
+      for (const item of lineItems) {
+        const result = analyzeLineItem(item);
+        if (result) {
+          totalProfit += result.profit;
+          totalSewingCost += result.sewingCost;
+          analyzedItems++;
+        }
+      }
+    }
+
+    res.json({
+      totalProfit: parseFloat(totalProfit.toFixed(2)),
+      sewingCost: parseFloat(totalSewingCost.toFixed(2)),
+      ordersCount: orders.length,
+      analyzedItems,
+      period,
+      startDate,
+      endDate,
+    });
+
+  } catch (error) {
+    console.error('[profit-stats] Erro:', error.response?.data || error.message);
+    res.status(500).json({ error: 'Erro ao calcular lucro: ' + error.message });
   }
 });
 
