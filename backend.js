@@ -1179,27 +1179,11 @@ app.get('/api/stats', async (req, res) => {
 // ============================================================
 
 /**
- * Tabela de lucros para produtos PADRÃO.
- * Chave: "gramatura_l_a" (arredondados em 2 casas, normalizados para menor x maior)
+ * Configurações de Custos Reais (Produção e Fornecedor)
  */
-const PROFIT_TABLE = {
-  // 120g
-  '120g_1.50_2.00': { profit: 46.00, sewingCost: 3.00 },
-  '120g_1.50_2.20': { profit: 46.50, sewingCost: 3.00 },
-  '120g_2.00_2.50': { profit: 110.00, sewingCost: 15.00 },
-  '120g_2.00_3.00': { profit: 148.00, sewingCost: 15.00 },
-  '120g_2.50_3.00': { profit: 147.50, sewingCost: 15.00 },
-  // 160g
-  '160g_1.50_2.00': { profit: 53.60, sewingCost: 3.00 },
-  '160g_1.50_2.20': { profit: 55.66, sewingCost: 3.00 },
-  '160g_2.00_2.50': { profit: 123.20, sewingCost: 15.00 },
-  '160g_2.00_3.00': { profit: 193.20, sewingCost: 15.00 },
-  '160g_2.50_3.00': { profit: 180.50, sewingCost: 15.00 },
-};
-
-// Margens médias para produtos PERSONALIZADOS (quando não bate na tabela padrão)
-const CUSTOM_MARGIN_120G = 0.490; // ~49%
-const CUSTOM_MARGIN_160G = 0.570; // ~57%
+const COST_METRO_120G = 22.50;
+const COST_METRO_160G = 24.70;
+const BOBINA_LARGURA = 1.50;
 
 /**
  * Detecta a gramatura a partir do nome da variante.
@@ -1242,33 +1226,30 @@ function detectDimensions(variantName) {
 }
 
 /**
- * Gera a chave da tabela de lucros normalizando as dimensões (menor_maior).
+ * Calcula o custo de produção para o fornecedor baseado em "Metro Corrido".
+ * A bobina tem largura fixa (1.50m). O fornecedor dispõe o painel de forma a 
+ * economizar metros lineares.
  */
-function getProfitKey(gram, d1, d2) {
-  const lo = Math.min(d1, d2).toFixed(2);
-  const hi = Math.max(d1, d2).toFixed(2);
-  return `${gram}_${lo}_${hi}`;
+function calcProductionCost(gram, d1, d2) {
+  const precoMetro = gram === '160g' ? COST_METRO_160G : COST_METRO_120G;
+  
+  // Opção A: Bobina alinhada ao lado d1. Metros lineares necessários = ceil(d1 / 1.5) * d2
+  const optionA = Math.ceil(d1 / BOBINA_LARGURA) * d2;
+  // Opção B: Bobina alinhada ao lado d2. Metros lineares necessários = ceil(d2 / 1.5) * d1
+  const optionB = Math.ceil(d2 / BOBINA_LARGURA) * d1;
+  
+  const metrosLineares = Math.min(optionA, optionB);
+  return metrosLineares * precoMetro;
 }
 
 /**
- * Calcula custo de costureira para uma medida (personalizada).
- * Medidas pequenas (min ≤ 1.56): overloque R$3
- * Medidas grandes (min > 1.56): emenda R$15
+ * Calcula custo de costureira baseado nas regras de dimensão (1.70m).
+ * Se pelo menos uma dimensão for menor que 1.70m: R$ 3,00 (Pequeno)
+ * Se ambas forem maiores ou iguais a 1.70m: R$ 15,00 (Grande/Emenda)
  */
 function calcSewingCost(d1, d2) {
-  const minDim = Math.min(d1, d2);
-  return minDim <= 1.56 ? 3.00 : 15.00;
-}
-
-/**
- * Calcula lucro estimado para um item personalizado usando a função de preço.
- * Retorna { profit, sewingCost }
- */
-function calcCustomItemProfit(price, gram, d1, d2) {
-  const margin = gram === '160g' ? CUSTOM_MARGIN_160G : CUSTOM_MARGIN_120G;
-  const profit = parseFloat(price) * margin;
-  const sewingCost = calcSewingCost(d1, d2);
-  return { profit, sewingCost };
+  if (d1 < 1.70 || d2 < 1.70) return 3.00;
+  return 15.00;
 }
 
 /**
@@ -1293,22 +1274,17 @@ function analyzeLineItem(item) {
   }
 
   const [d1, d2] = dims;
-  const key = getProfitKey(gram, d1, d2);
-  const standard = PROFIT_TABLE[key];
 
-  if (standard) {
-    // Produto padrão — usa lucro fixo da tabela
-    return {
-      profit: standard.profit * qty,
-      sewingCost: standard.sewingCost * qty,
-    };
-  }
+  // CÁLCULO DINÂMICO DE PRECISAO
+  const prodCostUnit = calcProductionCost(gram, d1, d2);
+  const sewingCostUnit = calcSewingCost(d1, d2);
+  
+  // Lucro por unidade = Preço - Custo Fornecedor - Custo Costureira
+  const profitUnit = price - prodCostUnit - sewingCostUnit;
 
-  // Produto personalizado — usa margem estimada
-  const custom = calcCustomItemProfit(price, gram, d1, d2);
   return {
-    profit: custom.profit * qty,
-    sewingCost: custom.sewingCost * qty,
+    profit: profitUnit * qty,
+    sewingCost: sewingCostUnit * qty,
   };
 }
 
@@ -1365,15 +1341,32 @@ app.get('/api/profit-stats', async (req, res) => {
 
     let totalProfit = 0;
     let totalSewingCost = 0;
+    let totalProductionCost = 0;
     let analyzedItems = 0;
 
     for (const order of orders) {
-      // Line items do pedido (Nuvemshop usa "products" dentro do order)
       const lineItems = order.products || order.line_items || [];
 
       for (const item of lineItems) {
         const result = analyzeLineItem(item);
         if (result) {
+          // O lucro retornado por analyzeLineItem já é (Price - ProdCost - SewingCost)
+          // Mas precisamos dos custos brutos para os outros KPIs
+          const price = parseFloat(item.price || 0);
+          const qty = parseInt(item.quantity || 1);
+          
+          // Recalcula custos brutos para estatísticas (analyzeLineItem já validou gram/dims)
+          const variantName = item.variant_values
+            ? (Array.isArray(item.variant_values) ? item.variant_values.join(' / ') : item.variant_values)
+            : (item.name || '');
+          const gram = detectGramatura(variantName) || detectGramatura(item.name || '');
+          const dims = detectDimensions(variantName) || detectDimensions(item.name || '');
+          
+          if (gram && dims) {
+            const [d1, d2] = dims;
+            totalProductionCost += calcProductionCost(gram, d1, d2) * qty;
+          }
+
           totalProfit += result.profit;
           totalSewingCost += result.sewingCost;
           analyzedItems++;
@@ -1384,6 +1377,7 @@ app.get('/api/profit-stats', async (req, res) => {
     res.json({
       totalProfit: parseFloat(totalProfit.toFixed(2)),
       sewingCost: parseFloat(totalSewingCost.toFixed(2)),
+      productionCost: parseFloat(totalProductionCost.toFixed(2)),
       ordersCount: orders.length,
       analyzedItems,
       period,

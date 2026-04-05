@@ -319,8 +319,8 @@ const Dashboard = ({ stats }) => {
           </button>
         </div>
 
-        {/* Os dois cards de KPI lado a lado */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Os três cards de KPI lado a lado */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* LUCRO LÍQUIDO */}
           <ProfitKpiCard
             title="Lucro Líquido do Período"
@@ -333,11 +333,23 @@ const Dashboard = ({ stats }) => {
             error={profitError}
           />
 
+          {/* CUSTO PRODUÇÃO (SUBIDOR) */}
+          <ProfitKpiCard
+            title="Custo de Produção"
+            value={fmtBRL(profitData?.productionCost)}
+            subtitle="Metro Corrido (Fornecedor)"
+            icon={TrendingUp}
+            color="text-amber-400"
+            gradient="bg-gradient-to-br from-amber-950/60 via-slate-900/80 to-slate-950 border-amber-800/30"
+            loading={profitLoading}
+            error={profitError}
+          />
+
           {/* CUSTO COSTUREIRA */}
           <ProfitKpiCard
             title="Custo com Costureira"
             value={fmtBRL(profitData?.sewingCost)}
-            subtitle={`${profitData?.analyzedItems ?? 0} items analisados`}
+            subtitle={`${profitData?.analyzedItems ?? 0} itens costurados`}
             icon={Scissors}
             color="text-violet-400"
             gradient="bg-gradient-to-br from-violet-950/60 via-slate-900/80 to-slate-950 border-violet-800/30"
@@ -351,11 +363,15 @@ const Dashboard = ({ stats }) => {
           <div className="flex flex-wrap gap-4 pt-2 border-t border-slate-800">
             <div className="flex items-center gap-2 text-xs text-slate-500">
               <div className="w-2 h-2 rounded-full bg-emerald-500" />
-              <span>Lucro calculado sem frete do cliente</span>
+              <span>Lucro Líquido = Receita - Produção - Costura</span>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-slate-500">
+              <div className="w-2 h-2 rounded-full bg-amber-500" />
+              <span>Custo de Produção baseado em Metro Corrido (Bobina 1.50m)</span>
             </div>
             <div className="flex items-center gap-2 text-xs text-slate-500">
               <div className="w-2 h-2 rounded-full bg-violet-500" />
-              <span>Produtos padrão: tabela fixa · Personalizados: margem estimada</span>
+              <span>Regra de Costura: R$ 3 ({'<'} 1.70m) ou R$ 15 (Emenda)</span>
             </div>
             {profitData.analyzedItems < (profitData.ordersCount * 1) && (
               <div className="flex items-center gap-2 text-xs text-amber-500/80">
