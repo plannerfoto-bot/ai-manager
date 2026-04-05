@@ -1265,13 +1265,15 @@ function analyzeLineItem(item) {
     ? (Array.isArray(item.variant_values) ? item.variant_values.join(' / ') : item.variant_values)
     : (item.name || '');
 
-  const gram = detectGramatura(variantName) || detectGramatura(item.name || '');
   const dims = detectDimensions(variantName) || detectDimensions(item.name || '');
 
-  if (!gram || !dims) {
-    // Produto sem informação de medida suficiente — ignora
+  if (!dims) {
+    // Medidas são obrigatórias para o cálculo de metro corrido
     return null;
   }
+
+  // Se a gramatura não for detectada, assume-se 160g por padrão (regra de segurança de custo)
+  const gram = detectGramatura(variantName) || detectGramatura(item.name || '') || '160g';
 
   const [d1, d2] = dims;
 
@@ -1359,10 +1361,11 @@ app.get('/api/profit-stats', async (req, res) => {
           const variantName = item.variant_values
             ? (Array.isArray(item.variant_values) ? item.variant_values.join(' / ') : item.variant_values)
             : (item.name || '');
-          const gram = detectGramatura(variantName) || detectGramatura(item.name || '');
           const dims = detectDimensions(variantName) || detectDimensions(item.name || '');
           
-          if (gram && dims) {
+          if (dims) {
+            // Segue a mesma regra de fallback: se não detectar gramatura, usa 160g
+            const gram = detectGramatura(variantName) || detectGramatura(item.name || '') || '160g';
             const [d1, d2] = dims;
             totalProductionCost += calcProductionCost(gram, d1, d2) * qty;
           }
