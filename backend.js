@@ -11,6 +11,9 @@ import os from 'os';
 import { createClient } from '@supabase/supabase-js';
 import igService from './src/instagramService.js';
 import { Jimp } from 'jimp';
+import multer from 'multer';
+
+const upload = multer({ limits: { fileSize: 50 * 1024 * 1024 } }); // 50MB
 
 
 
@@ -1645,6 +1648,101 @@ app.post('/api/products/bulk-create-manual', async (req, res) => {
         details: error.message 
     });
   }
+});
+
+/**
+ * REGISTRO UNITÁRIO COM MARCA D'ÁGUA E REPLICAÇÃO
+ * 
+ * Este endpoint clona as configurações de um produto base e aplica uma marca d'água
+ * em grade (tiled) em uma nova imagem antes de cadastrar o produto na Nuvemshop.
+ * O SKU é gerado automaticamente a partir do nome do arquivo original.
+ */
+app.post('/api/products/register-unitary', async (req, res) => {
+    try {
+        const { baseProductId, fileName, imageData } = req.body;
+        const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
+        const client = await getApiClient(storeId);
+
+        if (!baseProductId || !imageData || !fileName) {
+            return res.status(400).json({ error: 'Dados insuficientes: baseProductId, fileName e imageData são obrigatórios.' });
+        }
+
+        console.log(`🚀 [Unitary] Iniciando cadastro unitário. Base: ${baseProductId}, Arquivo: ${fileName}`);
+
+        // 1. Buscar produto base para clonar configurações
+        const baseRes = await client.get(`/products/${baseProductId}`);
+        const baseProduct = baseRes.data;
+
+        // 2. Processar Imagem com Marca d'Água (Tiled)
+        const watermarkPath = path.join(__dirname, 'public', 'watermark_cloth.png');
+        let finalWmPath = watermarkPath;
+        if (!fs.existsSync(watermarkPath)) {
+            finalWmPath = path.join(__dirname, 'public', 'watermark.png');
+            if (!fs.existsSync(finalWmPath)) {
+                return res.status(500).json({ error: 'Marca d\'água não encontrada em public/watermark_cloth.png' });
+            }
+        }
+
+        const buffer = Buffer.from(imageData.split(',')[1], 'base64');
+        const mainImage = await Jimp.read(buffer);
+        const watermark = await Jimp.read(finalWmPath);
+
+        // Preenchimento total (Tiled) - Mantendo proporção
+        const targetWMWidth = mainImage.bitmap.width * 0.25;
+        const wmScale = targetWMWidth / watermark.bitmap.width;
+        watermark.scale(wmScale);
+
+        // Cobrir toda a imagem com a marca d'água
+        for (let x = 0; x < mainImage.bitmap.width; x += watermark.bitmap.width) {
+            for (let y = 0; y < mainImage.bitmap.height; y += watermark.bitmap.height) {
+                mainImage.composite(watermark, x, y);
+            }
+        }
+
+        const processedImageBase64 = await mainImage.getBase64('image/jpeg');
+
+        // 3. Gerar SKU limpo a partir do nome do arquivo
+        const cleanSku = fileName.replace(/\.[^/.]+$/, "").replace(/[^a-zA-Z0-9-]/g, "");
+        
+        // 4. Montar Payload do Produto (Clonando do base)
+        const productData = {
+            name: { pt: cleanSku },
+            description: baseProduct.description,
+            categories: (baseProduct.categories || []).map(c => c.id || c),
+            seo_title: baseProduct.seo_title || cleanSku,
+            seo_description: baseProduct.seo_description,
+            attributes: baseProduct.attributes,
+            tags: baseProduct.tags,
+            variants: (baseProduct.variants || []).map(v => ({
+                price: v.price,
+                stock: null, // Sem limite de estoque
+                weight: v.weight,
+                width: v.width,
+                height: v.height,
+                depth: v.depth,
+                sku: cleanSku,
+                values: v.values
+            }))
+        };
+
+        // 5. Enviar para API Nuvemshop
+        const createRes = await client.post('/products', productData);
+        const newProduct = createRes.data;
+
+        // 6. Upload da imagem com marca d'água
+        await client.post(`/products/${newProduct.id}/images`, {
+            attachment: processedImageBase64.split(',')[1],
+            filename: `${cleanSku}.jpg`
+        });
+
+        console.log(`✅ [Unitary] Produto ${newProduct.id} criado com sucesso! SKU: ${cleanSku}`);
+        res.json({ success: true, product: newProduct });
+
+    } catch (error) {
+        const errorDetail = error.response?.data || error.message;
+        console.error('❌ [Unitary] Erro:', errorDetail);
+        res.status(500).json({ error: 'Erro no cadastro unitário', details: errorDetail });
+    }
 });
 
 // ─── ENDPOINTS CLOUD: SERVINDO E GERENCIANDO O SCRIPT DINÂMICO ───

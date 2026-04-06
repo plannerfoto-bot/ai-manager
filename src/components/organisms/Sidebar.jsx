@@ -10,7 +10,8 @@ import {
   Layers,
   Code2,
   Share2,
-  ShoppingCart
+  ShoppingCart,
+  PackagePlus
 } from 'lucide-react';
 
 const Sidebar = ({ activeTab, setActiveTab }) => {
@@ -18,6 +19,7 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'orders', label: 'Vendas', icon: ShoppingBag },
     { id: 'inventory', label: 'Produtos', icon: Package },
+    { id: 'unitary-registration', label: 'Cadastro Unitário', icon: PackagePlus },
     { id: 'bulk-upload', label: 'Upload Massivo', icon: Layers },
     { id: 'ai-creator', label: 'IA Creator', icon: Sparkles },
     { id: 'abandoned-cart', label: '🛒 Carrinhos', icon: ShoppingBag },
