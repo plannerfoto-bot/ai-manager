@@ -71,6 +71,40 @@ async function addWebhookLog({ storeId, productId, productName, event, status, d
     }
 }
 
+/**
+ * Aplica marca d'água centralizada e redimensionada uma única vez
+ */
+async function applyWatermark(imageBuffer, watermarkPath) {
+    try {
+        const image = await Jimp.read(imageBuffer);
+        // O watermarkPath pode ser um buffer ou URL local/remota
+        let watermark;
+        if (typeof watermarkPath === 'string' && (watermarkPath.startsWith('http') || watermarkPath.startsWith('https'))) {
+            const { data } = await axios.get(watermarkPath, { responseType: 'arraybuffer' });
+            watermark = await Jimp.read(data);
+        } else {
+            watermark = await Jimp.read(watermarkPath);
+        }
+
+        // Redimensionar marca d'água para a largura da imagem
+        watermark.resize(image.bitmap.width, Jimp.AUTO);
+        
+        // Centralizar verticalmente
+        const x = 0;
+        const y = (image.bitmap.height - watermark.bitmap.height) / 2;
+
+        image.composite(watermark, x, y, {
+            mode: Jimp.BLEND_SOURCE_OVER,
+            opacitySource: 1.0
+        });
+
+        return await image.getBufferAsync(Jimp.MIME_JPEG);
+    } catch (err) {
+        console.error('Erro ao aplicar marca d\'água:', err);
+        return imageBuffer;
+    }
+}
+
 // --- CONFIGURAÇÕES DE APLICATIVO PARCEIRO (OAUTH) ---
 const APP_ID = process.env.NUVEMSHOP_APP_ID;
 const APP_SECRET = process.env.NUVEMSHOP_APP_SECRET;
@@ -1537,10 +1571,30 @@ app.post('/api/products/bulk-create-manual', async (req, res) => {
         
         if (imgStr.startsWith('data:image')) {
             const base64Data = imgStr.split(',')[1];
-            imagePayload = {
-                attachment: base64Data,
-                filename: `product-${Date.now()}-${i}.jpg`
-            };
+            
+            // LÓGICA DE MARCA D'ÁGUA NO LOTE
+            try {
+                const watermarkPath = path.join(__dirname, 'public', 'watermark_cloth.png');
+                if (fs.existsSync(watermarkPath)) {
+                    const mainImage = await Jimp.read(Buffer.from(base64Data, 'base64'));
+                    const watermark = await Jimp.read(watermarkPath);
+                    
+                    await applyWatermark(mainImage, watermark);
+                    
+                    const processedBase64 = await mainImage.getBase64('image/jpeg');
+                    imagePayload = {
+                        attachment: processedBase64.split(',')[1],
+                        filename: `product-${Date.now()}-${i}.jpg`
+                    };
+                    console.log(`📸 [Bulk] Marca d'água aplicada no item ${i+1}`);
+                } else {
+                    imagePayload = { attachment: base64Data, filename: `product-${Date.now()}-${i}.jpg` };
+                }
+            } catch (pErr) {
+                console.error(`⚠️ [Bulk] Falha ao processar imagem do item ${i+1}:`, pErr.message);
+                imagePayload = { attachment: base64Data, filename: `product-${Date.now()}-${i}.jpg` };
+            }
+
         } else {
             imagePayload = { src: imgStr };
         }
@@ -1687,17 +1741,8 @@ app.post('/api/products/register-unitary', async (req, res) => {
         const mainImage = await Jimp.read(buffer);
         const watermark = await Jimp.read(finalWmPath);
 
-        // Preenchimento total (Tiled) - Mantendo proporção
-        const targetWMWidth = mainImage.bitmap.width * 0.25;
-        const wmScale = targetWMWidth / watermark.bitmap.width;
-        watermark.scale(wmScale);
-
-        // Cobrir toda a imagem com a marca d'água
-        for (let x = 0; x < mainImage.bitmap.width; x += watermark.bitmap.width) {
-            for (let y = 0; y < mainImage.bitmap.height; y += watermark.bitmap.height) {
-                mainImage.composite(watermark, x, y);
-            }
-        }
+        // APLICAÇÃO DA NOVA LÓGICA (Centralizada e Redimensionada uma única vez)
+        await applyWatermark(mainImage, watermark);
 
         const processedImageBase64 = await mainImage.getBase64('image/jpeg');
 
