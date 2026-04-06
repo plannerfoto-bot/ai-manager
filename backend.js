@@ -1740,7 +1740,7 @@ app.post('/api/products/register-unitary', async (req, res) => {
         // 3. Gerar SKU limpo a partir do nome do arquivo
         const cleanSku = fileName.replace(/\.[^/.]+$/, "").replace(/[^a-zA-Z0-9-]/g, "");
         
-        // 4. Montar Payload do Produto (Clonando do base)
+        // 4. Montar Payload do Produto (Clonando do base já com a imagem aplicada)
         const productData = {
             name: { pt: cleanSku },
             description: baseProduct.description,
@@ -1758,18 +1758,18 @@ app.post('/api/products/register-unitary', async (req, res) => {
                 depth: v.depth,
                 sku: cleanSku,
                 values: v.values
-            }))
+            })),
+            images: [
+                {
+                    attachment: processedImageBase64.split(',')[1],
+                    filename: `${cleanSku}.jpg`
+                }
+            ]
         };
 
-        // 5. Enviar para API Nuvemshop
+        // 5. Enviar para API Nuvemshop (Produto + Imagem de uma vez)
         const createRes = await client.post('/products', productData);
         const newProduct = createRes.data;
-
-        // 6. Upload da imagem com marca d'água
-        await client.post(`/products/${newProduct.id}/images`, {
-            attachment: processedImageBase64.split(',')[1],
-            filename: `${cleanSku}.jpg`
-        });
 
         console.log(`✅ [Unitary] Produto ${newProduct.id} criado com sucesso! SKU: ${cleanSku}`);
         res.json({ success: true, product: newProduct });
