@@ -83,10 +83,7 @@ async function applyWatermark(mainImage, watermark) {
         const x = (mainImage.bitmap.width - watermark.bitmap.width) / 2;
         const y = (mainImage.bitmap.height - watermark.bitmap.height) / 2;
 
-        mainImage.composite(watermark, x, y, {
-            mode: Jimp.BLEND_SOURCE_OVER,
-            opacitySource: 1.0
-        });
+        mainImage.composite(watermark, Math.floor(x), Math.floor(y));
 
         // Retorna a própria imagem (mutada), compatível com a chamada await
         return mainImage;
