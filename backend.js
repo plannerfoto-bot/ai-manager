@@ -74,34 +74,25 @@ async function addWebhookLog({ storeId, productId, productName, event, status, d
 /**
  * Aplica marca d'água centralizada e redimensionada uma única vez
  */
-async function applyWatermark(imageBuffer, watermarkPath) {
+async function applyWatermark(mainImage, watermark) {
     try {
-        const image = await Jimp.read(imageBuffer);
-        // O watermarkPath pode ser um buffer ou URL local/remota
-        let watermark;
-        if (typeof watermarkPath === 'string' && (watermarkPath.startsWith('http') || watermarkPath.startsWith('https'))) {
-            const { data } = await axios.get(watermarkPath, { responseType: 'arraybuffer' });
-            watermark = await Jimp.read(data);
-        } else {
-            watermark = await Jimp.read(watermarkPath);
-        }
-
-        // Redimensionar marca d'água para a largura da imagem
-        watermark.resize(image.bitmap.width, Jimp.AUTO);
+        // Redimensionar marca d'água para a largura da imagem base
+        watermark.resize(mainImage.bitmap.width, Jimp.AUTO);
         
-        // Centralizar verticalmente
-        const x = 0;
-        const y = (image.bitmap.height - watermark.bitmap.height) / 2;
+        // Centralizar verticalmente (e verificar horizontal)
+        const x = (mainImage.bitmap.width - watermark.bitmap.width) / 2;
+        const y = (mainImage.bitmap.height - watermark.bitmap.height) / 2;
 
-        image.composite(watermark, x, y, {
+        mainImage.composite(watermark, x, y, {
             mode: Jimp.BLEND_SOURCE_OVER,
             opacitySource: 1.0
         });
 
-        return await image.getBufferAsync(Jimp.MIME_JPEG);
+        // Retorna a própria imagem (mutada), compatível com a chamada await
+        return mainImage;
     } catch (err) {
-        console.error('Erro ao aplicar marca d\'água:', err);
-        return imageBuffer;
+        console.error("Erro ao aplicar marca d'água:", err);
+        return mainImage;
     }
 }
 
