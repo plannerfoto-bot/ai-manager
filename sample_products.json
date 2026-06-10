@@ -1,0 +1,1522 @@
+[
+  {
+    "id": 156937867,
+    "name": {
+      "pt": "Fundo Fotográfico - Emocionart - Pequeno Príncipe"
+    },
+    "description": {
+      "pt": "<!DOCTYPE html>\n<html lang=\"pt-br\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <style>\n        body {\n            color: black;\n            background-color: white;\n            font-family: Arial, sans-serif;\n            font-weight: bold;\n        }\n\n        .red {\n            color: red;\n        }\n    </style>\n    <title>Fundos Fotográficos</title>\n</head>\n<body>\n    <p><span class=\"red\">Fundos Fotográficos</span> Produzido em Tecido Elastano 160gr / Fundos de 1,70 sem emenda produzido em Tecido Elastano 120gr</p>\n    <p>Prazo para fabricação: até 5 dias úteis.</p>\n    <p>Envio: O prazo do correios não contabiliza os feriados, então fique atento aos feriados regionais e lembre que haverá o acréscimo de 1 dia.</p>\n\n    <p>Este fundo foi gerado por inteligência artificial e pode conter pequenas variações de nitidez e realidade em pequenos detalhes. Esteja de acordo ao adquirir o fundo fotográfico, e em caso de dúvidas, antes de efetuar a compra entre em contato através do nosso WhatsApp para saber mais sobre as imagens geradas por IA (inteligência artificial).</p>\n\n    <p><span class=\"red\">ATENÇÃO:</span> Os fundos na medida 2,00x2,00 serão ajustados de forma proporcional podendo sofrer cortes laterais na imagem. Entre em contato pelo whatsapp e solicite uma simulação da imagem nesta medida ANTES DE EFETUAR A COMPRA. Caso não solicite uma simulação, o fundo será produzido com enquadramento proporcional.</p>\n\n    <p><span class=\"red\">Variação de cor:</span> A imagem visualizada pelo monitor sofrerá alteração em comparação ao produto físico (tecido), pois ocorre uma variação de monitor para monitor em função da calibragem de cada um. A tonalidade da imagem poderá sofrer uma variação de até 15% na transferência para o tecido. Esteja de acordo ao adquirir o fundo fotográfico.</p>\n\n    <p><span class=\"red\">Emenda:</span> todos os fundos com as duas dimensões maiores que 1,50 terão uma emenda discreta na posição que melhor se adequar a imagem escolhida. Caso queira escolher o local adequado da emenda entre em contato pelo whatsapp antes de efetuar a compra para realizar uma simulação, caso contrário, a emenda será feita no local adequado de acordo com a produção. Caso não haja observação sobre a emenda antes de confecção do fundo, a empresa não irá arcar com trocas motivadas pela posição da emenda.</p>\n\n    <p><span class=\"red\">Brinde:</span> Todos os fundos acompanham uma bolsa personalizada com a imagem e medida do fundo para o melhor estoque do produto.</p>\n    <p><span class=\"red\">Atenção:</span> imagens demonstradas no site no formato horizontal serão produzidas na horizontal, e imagens domonstradas no formato vertical serão produzidas na vertical.</p>\n\n    <p>Trocas ou devoluções apenas serão realizadas em caso de defeito de fabricação, como: <span class=\"red\">manchas de tinta que não correspondem a imagem ou defeitos no tecido.</span></p>\n\n    <p><span class=\"red\">OBS:</span> caso seja confirmado motivo aparente para troca, <span class=\"red\">é necessário que o material seja devolvido nas condições em que foi recebido</span>, por isso aconselhamos que verifique o material sem utilizar cola quente e fitas inapropriadas para tecido.</p>\n</body>\n</html>"
+    },
+    "handle": {
+      "pt": "fundo-fotografico-emocionart-pequeno-principe"
+    },
+    "attributes": [
+      {
+        "pt": "Tamanho"
+      }
+    ],
+    "published": false,
+    "free_shipping": false,
+    "requires_shipping": true,
+    "canonical_url": "https://www.fundofotograficocloth.com.br/produtos/fundo-fotografico-emocionart-pequeno-principe/",
+    "video_url": null,
+    "seo_title": {
+      "pt": "Fundo Fotográfico Emocionart - Pequeno Príncipe | Cloth Sublimação"
+    },
+    "seo_description": {
+      "pt": "Compre Fundo Fotográfico Emocionart - Pequeno Príncipe... Alta qualidade, não amassa e não reflete luz. Confira!"
+    },
+    "brand": "Cloth Sublimação",
+    "has_stock": true,
+    "created_at": "2023-02-11T19:13:47+0000",
+    "updated_at": "2025-02-10T17:02:50+0000",
+    "variants": [
+      {
+        "id": 594615317,
+        "image_id": 436539714,
+        "product_id": 156937867,
+        "position": 1,
+        "price": "147.00",
+        "price_without_taxes": null,
+        "compare_at_price": "147.00",
+        "promotional_price": null,
+        "stock_management": false,
+        "stock": null,
+        "weight": "0.200",
+        "width": "10.00",
+        "height": "5.00",
+        "depth": "20.00",
+        "sku": "Pequeno Príncipe",
+        "values": [
+          {
+            "pt": "1,50x2,00"
+          }
+        ],
+        "barcode": null,
+        "mpn": null,
+        "age_group": null,
+        "gender": null,
+        "created_at": "2023-02-11T19:13:47+0000",
+        "updated_at": "2026-01-03T17:23:18+0000",
+        "cost": null,
+        "visible": true,
+        "inventory_levels": [
+          {
+            "id": 461780236,
+            "variant_id": 594615317,
+            "location_id": "01GYAC3Y3P4YVMJ80XVBWXYC3X",
+            "stock": null
+          }
+        ]
+      },
+      {
+        "id": 594615321,
+        "image_id": 436539714,
+        "product_id": 156937867,
+        "position": 2,
+        "price": "159.00",
+        "price_without_taxes": null,
+        "compare_at_price": "159.00",
+        "promotional_price": null,
+        "stock_management": false,
+        "stock": null,
+        "weight": "0.200",
+        "width": "10.00",
+        "height": "5.00",
+        "depth": "20.00",
+        "sku": "Pequeno Príncipe",
+        "values": [
+          {
+            "pt": "1,50x2,20"
+          }
+        ],
+        "barcode": null,
+        "mpn": null,
+        "age_group": null,
+        "gender": null,
+        "created_at": "2023-02-11T19:13:47+0000",
+        "updated_at": "2026-01-03T17:23:18+0000",
+        "cost": null,
+        "visible": true,
+        "inventory_levels": [
+          {
+            "id": 461780237,
+            "variant_id": 594615321,
+            "location_id": "01GYAC3Y3P4YVMJ80XVBWXYC3X",
+            "stock": null
+          }
+        ]
+      },
+      {
+        "id": 594615325,
+        "image_id": 436539714,
+        "product_id": 156937867,
+        "position": 3,
+        "price": "242.00",
+        "price_without_taxes": null,
+        "compare_at_price": "242.00",
+        "promotional_price": null,
+        "stock_management": false,
+        "stock": null,
+        "weight": "0.200",
+        "width": "10.00",
+        "height": "5.00",
+        "depth": "20.00",
+        "sku": "Pequeno Príncipe",
+        "values": [
+          {
+            "pt": "2,00x2,00"
+          }
+        ],
+        "barcode": null,
+        "mpn": null,
+        "age_group": null,
+        "gender": null,
+        "created_at": "2023-02-11T19:13:48+0000",
+        "updated_at": "2026-01-03T17:23:18+0000",
+        "cost": null,
+        "visible": true,
+        "inventory_levels": [
+          {
+            "id": 461780238,
+            "variant_id": 594615325,
+            "location_id": "01GYAC3Y3P4YVMJ80XVBWXYC3X",
+            "stock": null
+          }
+        ]
+      },
+      {
+        "id": 594615327,
+        "image_id": 436539714,
+        "product_id": 156937867,
+        "position": 4,
+        "price": "283.00",
+        "price_without_taxes": null,
+        "compare_at_price": "283.00",
+        "promotional_price": null,
+        "stock_management": false,
+        "stock": null,
+        "weight": "0.200",
+        "width": "10.00",
+        "height": "5.00",
+        "depth": "20.00",
+        "sku": "Pequeno Príncipe",
+        "values": [
+          {
+            "pt": "2,50x2,00"
+          }
+        ],
+        "barcode": null,
+        "mpn": null,
+        "age_group": null,
+        "gender": null,
+        "created_at": "2023-02-11T19:13:48+0000",
+        "updated_at": "2026-01-03T17:23:18+0000",
+        "cost": null,
+        "visible": true,
+        "inventory_levels": [
+          {
+            "id": 461780239,
+            "variant_id": 594615327,
+            "location_id": "01GYAC3Y3P4YVMJ80XVBWXYC3X",
+            "stock": null
+          }
+        ]
+      },
+      {
+        "id": 594615331,
+        "image_id": 436539714,
+        "product_id": 156937867,
+        "position": 5,
+        "price": "338.00",
+        "price_without_taxes": null,
+        "compare_at_price": "338.00",
+        "promotional_price": null,
+        "stock_management": false,
+        "stock": null,
+        "weight": "0.200",
+        "width": "10.00",
+        "height": "5.00",
+        "depth": "20.00",
+        "sku": "Pequeno Príncipe",
+        "values": [
+          {
+            "pt": "3,00x2,00"
+          }
+        ],
+        "barcode": null,
+        "mpn": null,
+        "age_group": null,
+        "gender": null,
+        "created_at": "2023-02-11T19:13:48+0000",
+        "updated_at": "2026-01-03T17:23:18+0000",
+        "cost": null,
+        "visible": true,
+        "inventory_levels": [
+          {
+            "id": 461780240,
+            "variant_id": 594615331,
+            "location_id": "01GYAC3Y3P4YVMJ80XVBWXYC3X",
+            "stock": null
+          }
+        ]
+      }
+    ],
+    "tags": ">, backdrop, cenario fotografico, cenarios, decoracao estudio fotografico, emocionart, exclusivos, fotografia, fotografias, fundo fotografico, fundos, montados, para fotografos, pequeno, principe, sublimado, tecido para fundo fotografico, tecido sublimado, tematicos",
+    "images": [
+      {
+        "id": 436539714,
+        "product_id": 156937867,
+        "src": "https://acdn-us.mitiendanube.com/stores/002/767/708/products/pequeno-principe1-a6959a7b93ead9b29616761428521067-1024-1024.jpg",
+        "position": 1,
+        "alt": [],
+        "height": 1280,
+        "width": 1920,
+        "thumbnails_generated": 2,
+        "created_at": "2023-02-11T19:13:56+0000",
+        "updated_at": "2023-02-11T19:14:18+0000"
+      }
+    ],
+    "categories": [
+      {
+        "id": 16747777,
+        "name": {
+          "pt": "FUNDOS TEMÁTICOS"
+        },
+        "description": {
+          "pt": ""
+        },
+        "handle": {
+          "pt": "fundos-tematicos"
+        },
+        "parent": null,
+        "subcategories": [
+          16757536,
+          19056037,
+          18001512,
+          17294221,
+          16752411,
+          17413281,
+          16752577,
+          16757712,
+          17828239,
+          16752501,
+          16748293,
+          17557536,
+          18002173,
+          18003259,
+          16757829,
+          17209597,
+          17209679,
+          16962021,
+          17578695,
+          17067066,
+          16757956,
+          16752439,
+          16891497,
+          16752504,
+          16836026,
+          17188031,
+          17191607,
+          16752407,
+          17072715,
+          16752503,
+          17047298,
+          17407018,
+          16748695,
+          16752312,
+          17413292,
+          16752522,
+          16752435,
+          17318669,
+          17411457,
+          16748743,
+          16836081,
+          17525281,
+          16752582,
+          17525417,
+          16748862,
+          17504175,
+          17856783,
+          16748944,
+          17047172,
+          17295997,
+          16752256,
+          16758466,
+          16752415,
+          16752456,
+          16758573,
+          16758545,
+          17634849,
+          17828474,
+          16758775,
+          16748725,
+          17055371,
+          16891522,
+          16836114,
+          16758826,
+          17184306,
+          16771820,
+          16836051,
+          17318471,
+          17418751,
+          17318427,
+          16752419,
+          16752401,
+          17295475,
+          16752323,
+          17527359,
+          16752427,
+          17997095,
+          17573470,
+          17023801,
+          16748591,
+          17138667,
+          16748733,
+          16749218,
+          16894280,
+          17055413,
+          17578375,
+          17564033,
+          16770973,
+          16752269,
+          16748496,
+          17338326,
+          17733223,
+          17524372,
+          16771300,
+          16836088,
+          16749166,
+          16752307,
+          17423310,
+          16771824,
+          17183409,
+          17183636,
+          16894263,
+          16748808,
+          16748474,
+          16752331,
+          16894156,
+          16748823,
+          16771796,
+          18012978,
+          18121915,
+          18203987,
+          18204379,
+          18205501,
+          18206425,
+          18267780,
+          16836042,
+          18498809,
+          18746623,
+          18747653,
+          18862805,
+          18954109,
+          18993753,
+          19041893,
+          19042998,
+          19073508,
+          19079221,
+          19118538,
+          19149026,
+          19162984,
+          19310176,
+          19310437,
+          19368809,
+          19368822,
+          19388053,
+          19388106,
+          19463736,
+          19463814,
+          19463925,
+          19466481,
+          19693680,
+          19708258,
+          19888862,
+          20141192,
+          20255989,
+          20269081,
+          20312672,
+          20328284,
+          20345039,
+          20366089,
+          20366449,
+          20412705,
+          20459479,
+          20513674,
+          20513796,
+          20621244,
+          20621492,
+          20685463,
+          20693269,
+          20694083,
+          20738393,
+          20739487,
+          20739884,
+          20826655,
+          20894362,
+          20988825,
+          20996096,
+          20996623,
+          21018185,
+          21025207,
+          21037491,
+          21037496,
+          21188572,
+          21192751,
+          21192907,
+          21193300,
+          21353033,
+          21574340,
+          21821921,
+          22230304,
+          22268501,
+          22580847,
+          22582189,
+          22686110,
+          22686127,
+          22707897,
+          22707921,
+          22707934,
+          22708073,
+          22708075,
+          22821483,
+          22821486,
+          22837393,
+          22848739,
+          22848742,
+          18184724,
+          18188794,
+          18188829,
+          17501733,
+          23058051,
+          23149556,
+          23154057,
+          23442878,
+          23489177,
+          23497090,
+          23700309,
+          23700415,
+          23776092,
+          23781588,
+          23892651,
+          23892717,
+          24109665,
+          24109683,
+          24116684,
+          24139881,
+          24151405,
+          24190827,
+          24195278,
+          24196306,
+          24196762,
+          24196768,
+          24500532,
+          24501709,
+          24629975,
+          24847688,
+          24859319,
+          24859371,
+          24924594,
+          24924604,
+          24924606,
+          24924612,
+          24924620,
+          24974670,
+          25018982,
+          25254333,
+          25254379,
+          25262475,
+          25262564,
+          25691981,
+          25692685,
+          26171336,
+          26180603,
+          26251264,
+          26270610,
+          26386758,
+          26530609,
+          26530618,
+          26687957,
+          26859610,
+          26860141,
+          26871127,
+          26952570,
+          26953586,
+          27171293,
+          27179305,
+          27179317,
+          27179701,
+          27189027,
+          28731874,
+          28731949,
+          28760708,
+          28760741,
+          28826401,
+          28896288,
+          28955854,
+          28956405,
+          28958918,
+          28969263,
+          29190473,
+          29190495,
+          29190804,
+          29243694,
+          29245912,
+          29301176,
+          29463219,
+          30073466,
+          30073478,
+          30300329,
+          30366022,
+          30366038,
+          30384695,
+          30384785,
+          31106664,
+          31364628,
+          31366489,
+          31367238,
+          31524172,
+          31524191,
+          31524232,
+          31526208,
+          31527446,
+          31531380,
+          32060309,
+          32175071,
+          32175078,
+          32176937,
+          32176953,
+          32185473,
+          32190910,
+          32201410,
+          32201519,
+          32230317,
+          32230906,
+          32248604,
+          32248646,
+          32315938,
+          32417398,
+          33382413,
+          33605959,
+          33662492,
+          34068568,
+          35975028,
+          37104913,
+          37105151,
+          37105155
+        ],
+        "seo_title": {
+          "pt": ""
+        },
+        "seo_description": {
+          "pt": ""
+        },
+        "google_shopping_category": "",
+        "created_at": "2023-01-19T22:33:05+0000",
+        "updated_at": "2026-03-30T23:35:19+0000"
+      },
+      {
+        "id": 16748591,
+        "name": {
+          "pt": "Pequeno Príncipe"
+        },
+        "description": {
+          "pt": ""
+        },
+        "handle": {
+          "pt": "pequeno-principe"
+        },
+        "parent": 16747777,
+        "subcategories": [],
+        "seo_title": {
+          "pt": ""
+        },
+        "seo_description": {
+          "pt": ""
+        },
+        "google_shopping_category": "",
+        "created_at": "2023-01-19T23:28:55+0000",
+        "updated_at": "2026-04-02T23:45:40+0000"
+      },
+      {
+        "id": 16891194,
+        "name": {
+          "pt": "EXCLUSIVOS"
+        },
+        "description": {
+          "pt": ""
+        },
+        "handle": {
+          "pt": "exclusivos"
+        },
+        "parent": null,
+        "subcategories": [
+          16891731,
+          16894085,
+          17024588,
+          17240608,
+          17138654,
+          17072866,
+          16981604,
+          17023795,
+          16891236,
+          17055333,
+          17421823,
+          19458590,
+          19467971,
+          20621148,
+          21348459,
+          21933418,
+          22230208,
+          22753033,
+          23057738,
+          25493051,
+          27171055
+        ],
+        "seo_title": {
+          "pt": ""
+        },
+        "seo_description": {
+          "pt": ""
+        },
+        "google_shopping_category": "",
+        "created_at": "2023-01-27T22:44:07+0000",
+        "updated_at": "2026-04-03T00:15:00+0000"
+      },
+      {
+        "id": 17024588,
+        "name": {
+          "pt": "Emocionart Fotografias"
+        },
+        "description": {
+          "pt": ""
+        },
+        "handle": {
+          "pt": "emocionart"
+        },
+        "parent": 16891194,
+        "subcategories": [],
+        "seo_title": {
+          "pt": ""
+        },
+        "seo_description": {
+          "pt": ""
+        },
+        "google_shopping_category": "",
+        "created_at": "2023-02-04T21:15:45+0000",
+        "updated_at": "2026-04-03T00:15:00+0000"
+      },
+      {
+        "id": 23497185,
+        "name": {
+          "pt": "Cenários Montados"
+        },
+        "description": {
+          "pt": ""
+        },
+        "handle": {
+          "pt": "cenarios-montados1"
+        },
+        "parent": null,
+        "subcategories": [
+          23499011,
+          23498286,
+          23498450,
+          23497806,
+          23498171,
+          23498246,
+          23498254,
+          23498268,
+          23498294,
+          23498316,
+          23498346,
+          23498371,
+          23498396,
+          23498514,
+          23498562,
+          23498691,
+          23498707,
+          23498788,
+          23498822,
+          23499056,
+          23500914,
+          23519742,
+          23519747,
+          23519786,
+          23519787,
+          23519790,
+          23519791,
+          23519794,
+          23519848,
+          23519852,
+          23955049
+        ],
+        "seo_title": {
+          "pt": ""
+        },
+        "seo_description": {
+          "pt": ""
+        },
+        "google_shopping_category": "",
+        "created_at": "2024-02-28T22:35:12+0000",
+        "updated_at": "2026-04-03T00:15:05+0000"
+      },
+      {
+        "id": 23955049,
+        "name": {
+          "pt": "Bosque"
+        },
+        "description": {
+          "pt": ""
+        },
+        "handle": {
+          "pt": "bosque"
+        },
+        "parent": 23497185,
+        "subcategories": [
+          23519841,
+          23519798
+        ],
+        "seo_title": {
+          "pt": ""
+        },
+        "seo_description": {
+          "pt": ""
+        },
+        "google_shopping_category": "",
+        "created_at": "2024-03-25T04:06:57+0000",
+        "updated_at": "2026-04-03T00:15:07+0000"
+      },
+      {
+        "id": 23519841,
+        "name": {
+          "pt": "Pequeno Príncipe"
+        },
+        "description": {
+          "pt": ""
+        },
+        "handle": {
+          "pt": "pequeno-principe1"
+        },
+        "parent": 23955049,
+        "subcategories": [],
+        "seo_title": {
+          "pt": ""
+        },
+        "seo_description": {
+          "pt": ""
+        },
+        "google_shopping_category": "",
+        "created_at": "2024-03-01T03:35:30+0000",
+        "updated_at": "2026-04-03T00:15:06+0000"
+      }
+    ]
+  },
+  {
+    "id": 157535504,
+    "name": {
+      "pt": "Fundo Fotográfico - Smash the Cake - Madeira florida"
+    },
+    "description": {
+      "pt": "<!DOCTYPE html>\n<html lang=\"pt-br\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <style>\n        body {\n            color: black;\n            background-color: white;\n            font-family: Arial, sans-serif;\n            font-weight: bold;\n        }\n\n        .red {\n            color: red;\n        }\n    </style>\n    <title>Fundos Fotográficos</title>\n</head>\n<body>\n    <p><span class=\"red\">Fundos Fotográficos</span> Produzido em Tecido Elastano 160gr / Fundos de 1,70 sem emenda produzido em Tecido Elastano 120gr</p>\n    <p>Prazo para fabricação: até 5 dias úteis.</p>\n    <p>Envio: O prazo do correios não contabiliza os feriados, então fique atento aos feriados regionais e lembre que haverá o acréscimo de 1 dia.</p>\n\n    <p>Este fundo foi gerado por inteligência artificial e pode conter pequenas variações de nitidez e realidade em pequenos detalhes. Esteja de acordo ao adquirir o fundo fotográfico, e em caso de dúvidas, antes de efetuar a compra entre em contato através do nosso WhatsApp para saber mais sobre as imagens geradas por IA (inteligência artificial).</p>\n\n    <p><span class=\"red\">ATENÇÃO:</span> Os fundos na medida 2,00x2,00 serão ajustados de forma proporcional podendo sofrer cortes laterais na imagem. Entre em contato pelo whatsapp e solicite uma simulação da imagem nesta medida ANTES DE EFETUAR A COMPRA. Caso não solicite uma simulação, o fundo será produzido com enquadramento proporcional.</p>\n\n    <p><span class=\"red\">Variação de cor:</span> A imagem visualizada pelo monitor sofrerá alteração em comparação ao produto físico (tecido), pois ocorre uma variação de monitor para monitor em função da calibragem de cada um. A tonalidade da imagem poderá sofrer uma variação de até 15% na transferência para o tecido. Esteja de acordo ao adquirir o fundo fotográfico.</p>\n\n    <p><span class=\"red\">Emenda:</span> todos os fundos com as duas dimensões maiores que 1,50 terão uma emenda discreta na posição que melhor se adequar a imagem escolhida. Caso queira escolher o local adequado da emenda entre em contato pelo whatsapp antes de efetuar a compra para realizar uma simulação, caso contrário, a emenda será feita no local adequado de acordo com a produção. Caso não haja observação sobre a emenda antes de confecção do fundo, a empresa não irá arcar com trocas motivadas pela posição da emenda.</p>\n\n    <p><span class=\"red\">Brinde:</span> Todos os fundos acompanham uma bolsa personalizada com a imagem e medida do fundo para o melhor estoque do produto.</p>\n    <p><span class=\"red\">Atenção:</span> imagens demonstradas no site no formato horizontal serão produzidas na horizontal, e imagens domonstradas no formato vertical serão produzidas na vertical.</p>\n\n    <p>Trocas ou devoluções apenas serão realizadas em caso de defeito de fabricação, como: <span class=\"red\">manchas de tinta que não correspondem a imagem ou defeitos no tecido.</span></p>\n\n    <p><span class=\"red\">OBS:</span> caso seja confirmado motivo aparente para troca, <span class=\"red\">é necessário que o material seja devolvido nas condições em que foi recebido</span>, por isso aconselhamos que verifique o material sem utilizar cola quente e fitas inapropriadas para tecido.</p>\n</body>\n</html>"
+    },
+    "handle": {
+      "pt": "fundo-fotografico-smash-the-cake-madeira-florida"
+    },
+    "attributes": [
+      {
+        "pt": "Tamanho"
+      }
+    ],
+    "published": true,
+    "free_shipping": false,
+    "requires_shipping": true,
+    "canonical_url": "https://www.fundofotograficocloth.com.br/produtos/fundo-fotografico-smash-the-cake-madeira-florida/",
+    "video_url": null,
+    "seo_title": {
+      "pt": "Fundo Fotográfico Smash the Cake - Madeira florida | Cloth Sublimaç"
+    },
+    "seo_description": {
+      "pt": "Compre Fundo Fotográfico Smash the Cake - Madeira florida... Alta qualidade, não amassa e não reflete luz. Confira!"
+    },
+    "brand": "Cloth Sublimação",
+    "has_stock": true,
+    "created_at": "2023-02-16T03:08:15+0000",
+    "updated_at": "2025-01-12T02:19:12+0000",
+    "variants": [
+      {
+        "id": 596762831,
+        "image_id": 438260165,
+        "product_id": 157535504,
+        "position": 1,
+        "price": "96.00",
+        "price_without_taxes": null,
+        "compare_at_price": "96.00",
+        "promotional_price": null,
+        "stock_management": false,
+        "stock": null,
+        "weight": "0.200",
+        "width": "20.00",
+        "height": "8.00",
+        "depth": "30.00",
+        "sku": "Madeira",
+        "values": [
+          {
+            "pt": "1,50x2,00"
+          }
+        ],
+        "barcode": null,
+        "mpn": null,
+        "age_group": null,
+        "gender": null,
+        "created_at": "2023-02-16T03:08:15+0000",
+        "updated_at": "2025-01-12T03:50:52+0000",
+        "cost": null,
+        "visible": true,
+        "inventory_levels": [
+          {
+            "id": 461780915,
+            "variant_id": 596762831,
+            "location_id": "01GYAC3Y3P4YVMJ80XVBWXYC3X",
+            "stock": null
+          }
+        ]
+      }
+    ],
+    "tags": ">, backdrop, cenario fotografico, decoracao estudio fotografico, fotografia, fundo fotografico, madeira, para fotografos, sublimado, tecido para fundo fotografico, tecido sublimado, texturas",
+    "images": [
+      {
+        "id": 438260165,
+        "product_id": 157535504,
+        "src": "https://acdn-us.mitiendanube.com/stores/002/767/708/products/maga-1-111-76dd61e23fb9bd2a6c16765169688843-1024-1024.jpg",
+        "position": 1,
+        "alt": [],
+        "height": 1304,
+        "width": 1920,
+        "thumbnails_generated": 2,
+        "created_at": "2023-02-16T03:08:43+0000",
+        "updated_at": "2023-02-16T03:09:37+0000"
+      }
+    ],
+    "categories": [
+      {
+        "id": 16836211,
+        "name": {
+          "pt": "Texturas"
+        },
+        "description": {
+          "pt": ""
+        },
+        "handle": {
+          "pt": "texturas"
+        },
+        "parent": null,
+        "subcategories": [
+          17209503,
+          17209530,
+          17247978
+        ],
+        "seo_title": {
+          "pt": ""
+        },
+        "seo_description": {
+          "pt": ""
+        },
+        "google_shopping_category": "",
+        "created_at": "2023-01-25T05:30:08+0000",
+        "updated_at": "2026-04-03T00:14:51+0000"
+      },
+      {
+        "id": 17209503,
+        "name": {
+          "pt": "Madeira"
+        },
+        "description": {
+          "pt": ""
+        },
+        "handle": {
+          "pt": "madeira"
+        },
+        "parent": 16836211,
+        "subcategories": [],
+        "seo_title": {
+          "pt": ""
+        },
+        "seo_description": {
+          "pt": ""
+        },
+        "google_shopping_category": "",
+        "created_at": "2023-02-16T03:09:18+0000",
+        "updated_at": "2026-04-03T00:15:00+0000"
+      }
+    ]
+  },
+  {
+    "id": 157535683,
+    "name": {
+      "pt": "Fundo Fotográfico - Parede / Tijolos"
+    },
+    "description": {
+      "pt": "<!DOCTYPE html>\n<html lang=\"pt-br\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <style>\n        body {\n            color: black;\n            background-color: white;\n            font-family: Arial, sans-serif;\n            font-weight: bold;\n        }\n\n        .red {\n            color: red;\n        }\n    </style>\n    <title>Fundos Fotográficos</title>\n</head>\n<body>\n    <p><span class=\"red\">Fundos Fotográficos</span> Produzido em Tecido Elastano 160gr / Fundos de 1,70 sem emenda produzido em Tecido Elastano 120gr</p>\n    <p>Prazo para fabricação: até 5 dias úteis.</p>\n    <p>Envio: O prazo do correios não contabiliza os feriados, então fique atento aos feriados regionais e lembre que haverá o acréscimo de 1 dia.</p>\n\n    <p>Este fundo foi gerado por inteligência artificial e pode conter pequenas variações de nitidez e realidade em pequenos detalhes. Esteja de acordo ao adquirir o fundo fotográfico, e em caso de dúvidas, antes de efetuar a compra entre em contato através do nosso WhatsApp para saber mais sobre as imagens geradas por IA (inteligência artificial).</p>\n\n    <p><span class=\"red\">ATENÇÃO:</span> Os fundos na medida 2,00x2,00 serão ajustados de forma proporcional podendo sofrer cortes laterais na imagem. Entre em contato pelo whatsapp e solicite uma simulação da imagem nesta medida ANTES DE EFETUAR A COMPRA. Caso não solicite uma simulação, o fundo será produzido com enquadramento proporcional.</p>\n\n    <p><span class=\"red\">Variação de cor:</span> A imagem visualizada pelo monitor sofrerá alteração em comparação ao produto físico (tecido), pois ocorre uma variação de monitor para monitor em função da calibragem de cada um. A tonalidade da imagem poderá sofrer uma variação de até 15% na transferência para o tecido. Esteja de acordo ao adquirir o fundo fotográfico.</p>\n\n    <p><span class=\"red\">Emenda:</span> todos os fundos com as duas dimensões maiores que 1,50 terão uma emenda discreta na posição que melhor se adequar a imagem escolhida. Caso queira escolher o local adequado da emenda entre em contato pelo whatsapp antes de efetuar a compra para realizar uma simulação, caso contrário, a emenda será feita no local adequado de acordo com a produção. Caso não haja observação sobre a emenda antes de confecção do fundo, a empresa não irá arcar com trocas motivadas pela posição da emenda.</p>\n\n    <p><span class=\"red\">Brinde:</span> Todos os fundos acompanham uma bolsa personalizada com a imagem e medida do fundo para o melhor estoque do produto.</p>\n    <p><span class=\"red\">Atenção:</span> imagens demonstradas no site no formato horizontal serão produzidas na horizontal, e imagens domonstradas no formato vertical serão produzidas na vertical.</p>\n\n    <p>Trocas ou devoluções apenas serão realizadas em caso de defeito de fabricação, como: <span class=\"red\">manchas de tinta que não correspondem a imagem ou defeitos no tecido.</span></p>\n\n    <p><span class=\"red\">OBS:</span> caso seja confirmado motivo aparente para troca, <span class=\"red\">é necessário que o material seja devolvido nas condições em que foi recebido</span>, por isso aconselhamos que verifique o material sem utilizar cola quente e fitas inapropriadas para tecido.</p>\n</body>\n</html>"
+    },
+    "handle": {
+      "pt": "fundo-fotografico-parede-tijolos"
+    },
+    "attributes": [
+      {
+        "pt": "Tamanho"
+      }
+    ],
+    "published": true,
+    "free_shipping": false,
+    "requires_shipping": true,
+    "canonical_url": "https://www.fundofotograficocloth.com.br/produtos/fundo-fotografico-parede-tijolos/",
+    "video_url": null,
+    "seo_title": {
+      "pt": "Fundo Fotográfico Parede / Tijolos | Cloth Sublimação"
+    },
+    "seo_description": {
+      "pt": "Compre Fundo Fotográfico Parede / Tijolos em tecido sublimado de alta qualidade. Não amassa e não reflete luz. Perfeito para ensaios fotográficos. Confira!"
+    },
+    "brand": "Cloth Sublimação",
+    "has_stock": true,
+    "created_at": "2023-02-16T03:11:25+0000",
+    "updated_at": "2025-01-12T02:19:12+0000",
+    "variants": [
+      {
+        "id": 596763955,
+        "image_id": 438260767,
+        "product_id": 157535683,
+        "position": 1,
+        "price": "96.00",
+        "price_without_taxes": null,
+        "compare_at_price": "96.00",
+        "promotional_price": null,
+        "stock_management": false,
+        "stock": null,
+        "weight": "0.200",
+        "width": "20.00",
+        "height": "8.00",
+        "depth": "30.00",
+        "sku": "Parede / Tijolos / Muro Inglês",
+        "values": [
+          {
+            "pt": "1,50x2,00"
+          }
+        ],
+        "barcode": null,
+        "mpn": null,
+        "age_group": null,
+        "gender": null,
+        "created_at": "2023-02-16T03:11:25+0000",
+        "updated_at": "2025-01-12T03:50:52+0000",
+        "cost": null,
+        "visible": true,
+        "inventory_levels": [
+          {
+            "id": 461780940,
+            "variant_id": 596763955,
+            "location_id": "01GYAC3Y3P4YVMJ80XVBWXYC3X",
+            "stock": null
+          }
+        ]
+      }
+    ],
+    "tags": "/, >, backdrop, cenario fotografico, decoracao estudio fotografico, fotografia, fundo fotografico, ingles, muro, para fotografos, parede, sublimado, tecido para fundo fotografico, tecido sublimado, texturas, tijolos",
+    "images": [
+      {
+        "id": 438260767,
+        "product_id": 157535683,
+        "src": "https://acdn-us.mitiendanube.com/stores/002/767/708/products/maga-61-89fc55cc06bf47926f16765171383439-1024-1024.jpg",
+        "position": 1,
+        "alt": [],
+        "height": 1440,
+        "width": 1920,
+        "thumbnails_generated": 2,
+        "created_at": "2023-02-16T03:11:34+0000",
+        "updated_at": "2023-02-16T03:12:25+0000"
+      }
+    ],
+    "categories": [
+      {
+        "id": 16836211,
+        "name": {
+          "pt": "Texturas"
+        },
+        "description": {
+          "pt": ""
+        },
+        "handle": {
+          "pt": "texturas"
+        },
+        "parent": null,
+        "subcategories": [
+          17209503,
+          17209530,
+          17247978
+        ],
+        "seo_title": {
+          "pt": ""
+        },
+        "seo_description": {
+          "pt": ""
+        },
+        "google_shopping_category": "",
+        "created_at": "2023-01-25T05:30:08+0000",
+        "updated_at": "2026-04-03T00:14:51+0000"
+      },
+      {
+        "id": 17209530,
+        "name": {
+          "pt": "Parede / Tijolos / Muro Inglês"
+        },
+        "description": {
+          "pt": ""
+        },
+        "handle": {
+          "pt": "parede-tijolos-muro-ingles"
+        },
+        "parent": 16836211,
+        "subcategories": [],
+        "seo_title": {
+          "pt": ""
+        },
+        "seo_description": {
+          "pt": ""
+        },
+        "google_shopping_category": "",
+        "created_at": "2023-02-16T03:12:12+0000",
+        "updated_at": "2026-04-03T00:15:00+0000"
+      }
+    ]
+  },
+  {
+    "id": 157536592,
+    "name": {
+      "pt": "Fundo Fotográfico - Tijolos"
+    },
+    "description": {
+      "pt": "<!DOCTYPE html>\n<html lang=\"pt-br\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <style>\n        body {\n            color: black;\n            background-color: white;\n            font-family: Arial, sans-serif;\n            font-weight: bold;\n        }\n\n        .red {\n            color: red;\n        }\n    </style>\n    <title>Fundos Fotográficos</title>\n</head>\n<body>\n    <p><span class=\"red\">Fundos Fotográficos</span> Produzido em Tecido Elastano 160gr / Fundos de 1,70 sem emenda produzido em Tecido Elastano 120gr</p>\n    <p>Prazo para fabricação: até 5 dias úteis.</p>\n    <p>Envio: O prazo do correios não contabiliza os feriados, então fique atento aos feriados regionais e lembre que haverá o acréscimo de 1 dia.</p>\n\n    <p>Este fundo foi gerado por inteligência artificial e pode conter pequenas variações de nitidez e realidade em pequenos detalhes. Esteja de acordo ao adquirir o fundo fotográfico, e em caso de dúvidas, antes de efetuar a compra entre em contato através do nosso WhatsApp para saber mais sobre as imagens geradas por IA (inteligência artificial).</p>\n\n    <p><span class=\"red\">ATENÇÃO:</span> Os fundos na medida 2,00x2,00 serão ajustados de forma proporcional podendo sofrer cortes laterais na imagem. Entre em contato pelo whatsapp e solicite uma simulação da imagem nesta medida ANTES DE EFETUAR A COMPRA. Caso não solicite uma simulação, o fundo será produzido com enquadramento proporcional.</p>\n\n    <p><span class=\"red\">Variação de cor:</span> A imagem visualizada pelo monitor sofrerá alteração em comparação ao produto físico (tecido), pois ocorre uma variação de monitor para monitor em função da calibragem de cada um. A tonalidade da imagem poderá sofrer uma variação de até 15% na transferência para o tecido. Esteja de acordo ao adquirir o fundo fotográfico.</p>\n\n    <p><span class=\"red\">Emenda:</span> todos os fundos com as duas dimensões maiores que 1,50 terão uma emenda discreta na posição que melhor se adequar a imagem escolhida. Caso queira escolher o local adequado da emenda entre em contato pelo whatsapp antes de efetuar a compra para realizar uma simulação, caso contrário, a emenda será feita no local adequado de acordo com a produção. Caso não haja observação sobre a emenda antes de confecção do fundo, a empresa não irá arcar com trocas motivadas pela posição da emenda.</p>\n\n    <p><span class=\"red\">Brinde:</span> Todos os fundos acompanham uma bolsa personalizada com a imagem e medida do fundo para o melhor estoque do produto.</p>\n    <p><span class=\"red\">Atenção:</span> imagens demonstradas no site no formato horizontal serão produzidas na horizontal, e imagens domonstradas no formato vertical serão produzidas na vertical.</p>\n\n    <p>Trocas ou devoluções apenas serão realizadas em caso de defeito de fabricação, como: <span class=\"red\">manchas de tinta que não correspondem a imagem ou defeitos no tecido.</span></p>\n\n    <p><span class=\"red\">OBS:</span> caso seja confirmado motivo aparente para troca, <span class=\"red\">é necessário que o material seja devolvido nas condições em que foi recebido</span>, por isso aconselhamos que verifique o material sem utilizar cola quente e fitas inapropriadas para tecido.</p>\n</body>\n</html>"
+    },
+    "handle": {
+      "pt": "fundo-fotografico-tijolos"
+    },
+    "attributes": [
+      {
+        "pt": "Tamanho"
+      }
+    ],
+    "published": true,
+    "free_shipping": false,
+    "requires_shipping": true,
+    "canonical_url": "https://www.fundofotograficocloth.com.br/produtos/fundo-fotografico-tijolos/",
+    "video_url": null,
+    "seo_title": {
+      "pt": "Fundo Fotográfico Tijolos | Cloth Sublimação"
+    },
+    "seo_description": {
+      "pt": "Compre Fundo Fotográfico Tijolos em tecido sublimado de alta qualidade. Não amassa e não reflete luz. Perfeito para ensaios fotográficos. Confira!"
+    },
+    "brand": "Cloth Sublimação",
+    "has_stock": true,
+    "created_at": "2023-02-16T03:20:58+0000",
+    "updated_at": "2025-01-12T02:19:12+0000",
+    "variants": [
+      {
+        "id": 596768230,
+        "image_id": 438262722,
+        "product_id": 157536592,
+        "position": 1,
+        "price": "96.00",
+        "price_without_taxes": null,
+        "compare_at_price": "96.00",
+        "promotional_price": null,
+        "stock_management": false,
+        "stock": null,
+        "weight": "0.200",
+        "width": "20.00",
+        "height": "8.00",
+        "depth": "30.00",
+        "sku": "Parede / Tijolos / Muro Inglês",
+        "values": [
+          {
+            "pt": "1,50x2,00"
+          }
+        ],
+        "barcode": null,
+        "mpn": null,
+        "age_group": null,
+        "gender": null,
+        "created_at": "2023-02-16T03:20:59+0000",
+        "updated_at": "2025-01-12T03:50:50+0000",
+        "cost": null,
+        "visible": true,
+        "inventory_levels": [
+          {
+            "id": 461781011,
+            "variant_id": 596768230,
+            "location_id": "01GYAC3Y3P4YVMJ80XVBWXYC3X",
+            "stock": null
+          }
+        ]
+      }
+    ],
+    "tags": "/, >, backdrop, cenario fotografico, decoracao estudio fotografico, fotografia, fundo fotografico, ingles, muro, para fotografos, parede, sublimado, tecido para fundo fotografico, tecido sublimado, texturas, tijolos",
+    "images": [
+      {
+        "id": 438262722,
+        "product_id": 157536592,
+        "src": "https://acdn-us.mitiendanube.com/stores/002/767/708/products/maga-371-bf46f54aaec084ba4916765176964528-1024-1024.jpg",
+        "position": 1,
+        "alt": [],
+        "height": 1276,
+        "width": 1920,
+        "thumbnails_generated": 2,
+        "created_at": "2023-02-16T03:21:10+0000",
+        "updated_at": "2023-02-16T03:21:45+0000"
+      }
+    ],
+    "categories": [
+      {
+        "id": 16836211,
+        "name": {
+          "pt": "Texturas"
+        },
+        "description": {
+          "pt": ""
+        },
+        "handle": {
+          "pt": "texturas"
+        },
+        "parent": null,
+        "subcategories": [
+          17209503,
+          17209530,
+          17247978
+        ],
+        "seo_title": {
+          "pt": ""
+        },
+        "seo_description": {
+          "pt": ""
+        },
+        "google_shopping_category": "",
+        "created_at": "2023-01-25T05:30:08+0000",
+        "updated_at": "2026-04-03T00:14:51+0000"
+      },
+      {
+        "id": 17209530,
+        "name": {
+          "pt": "Parede / Tijolos / Muro Inglês"
+        },
+        "description": {
+          "pt": ""
+        },
+        "handle": {
+          "pt": "parede-tijolos-muro-ingles"
+        },
+        "parent": 16836211,
+        "subcategories": [],
+        "seo_title": {
+          "pt": ""
+        },
+        "seo_description": {
+          "pt": ""
+        },
+        "google_shopping_category": "",
+        "created_at": "2023-02-16T03:12:12+0000",
+        "updated_at": "2026-04-03T00:15:00+0000"
+      }
+    ]
+  },
+  {
+    "id": 157536651,
+    "name": {
+      "pt": "Fundo Fotográfico - Tijolos"
+    },
+    "description": {
+      "pt": "<!DOCTYPE html>\n<html lang=\"pt-br\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <style>\n        body {\n            color: black;\n            background-color: white;\n            font-family: Arial, sans-serif;\n            font-weight: bold;\n        }\n\n        .red {\n            color: red;\n        }\n    </style>\n    <title>Fundos Fotográficos</title>\n</head>\n<body>\n    <p><span class=\"red\">Fundos Fotográficos</span> Produzido em Tecido Elastano 160gr / Fundos de 1,70 sem emenda produzido em Tecido Elastano 120gr</p>\n    <p>Prazo para fabricação: até 5 dias úteis.</p>\n    <p>Envio: O prazo do correios não contabiliza os feriados, então fique atento aos feriados regionais e lembre que haverá o acréscimo de 1 dia.</p>\n\n    <p>Este fundo foi gerado por inteligência artificial e pode conter pequenas variações de nitidez e realidade em pequenos detalhes. Esteja de acordo ao adquirir o fundo fotográfico, e em caso de dúvidas, antes de efetuar a compra entre em contato através do nosso WhatsApp para saber mais sobre as imagens geradas por IA (inteligência artificial).</p>\n\n    <p><span class=\"red\">ATENÇÃO:</span> Os fundos na medida 2,00x2,00 serão ajustados de forma proporcional podendo sofrer cortes laterais na imagem. Entre em contato pelo whatsapp e solicite uma simulação da imagem nesta medida ANTES DE EFETUAR A COMPRA. Caso não solicite uma simulação, o fundo será produzido com enquadramento proporcional.</p>\n\n    <p><span class=\"red\">Variação de cor:</span> A imagem visualizada pelo monitor sofrerá alteração em comparação ao produto físico (tecido), pois ocorre uma variação de monitor para monitor em função da calibragem de cada um. A tonalidade da imagem poderá sofrer uma variação de até 15% na transferência para o tecido. Esteja de acordo ao adquirir o fundo fotográfico.</p>\n\n    <p><span class=\"red\">Emenda:</span> todos os fundos com as duas dimensões maiores que 1,50 terão uma emenda discreta na posição que melhor se adequar a imagem escolhida. Caso queira escolher o local adequado da emenda entre em contato pelo whatsapp antes de efetuar a compra para realizar uma simulação, caso contrário, a emenda será feita no local adequado de acordo com a produção. Caso não haja observação sobre a emenda antes de confecção do fundo, a empresa não irá arcar com trocas motivadas pela posição da emenda.</p>\n\n    <p><span class=\"red\">Brinde:</span> Todos os fundos acompanham uma bolsa personalizada com a imagem e medida do fundo para o melhor estoque do produto.</p>\n    <p><span class=\"red\">Atenção:</span> imagens demonstradas no site no formato horizontal serão produzidas na horizontal, e imagens domonstradas no formato vertical serão produzidas na vertical.</p>\n\n    <p>Trocas ou devoluções apenas serão realizadas em caso de defeito de fabricação, como: <span class=\"red\">manchas de tinta que não correspondem a imagem ou defeitos no tecido.</span></p>\n\n    <p><span class=\"red\">OBS:</span> caso seja confirmado motivo aparente para troca, <span class=\"red\">é necessário que o material seja devolvido nas condições em que foi recebido</span>, por isso aconselhamos que verifique o material sem utilizar cola quente e fitas inapropriadas para tecido.</p>\n</body>\n</html>"
+    },
+    "handle": {
+      "pt": "fundo-fotografico-tijolos4"
+    },
+    "attributes": [
+      {
+        "pt": "Tamanho"
+      }
+    ],
+    "published": true,
+    "free_shipping": false,
+    "requires_shipping": true,
+    "canonical_url": "https://www.fundofotograficocloth.com.br/produtos/fundo-fotografico-tijolos4/",
+    "video_url": null,
+    "seo_title": {
+      "pt": "Fundo Fotográfico Tijolos | Cloth Sublimação"
+    },
+    "seo_description": {
+      "pt": "Compre Fundo Fotográfico Tijolos em tecido sublimado de alta qualidade. Não amassa e não reflete luz. Perfeito para ensaios fotográficos. Confira!"
+    },
+    "brand": "Cloth Sublimação",
+    "has_stock": true,
+    "created_at": "2023-02-16T03:22:16+0000",
+    "updated_at": "2025-01-12T02:19:12+0000",
+    "variants": [
+      {
+        "id": 655792533,
+        "image_id": null,
+        "product_id": 157536651,
+        "position": 1,
+        "price": "76.50",
+        "price_without_taxes": null,
+        "compare_at_price": "76.50",
+        "promotional_price": null,
+        "stock_management": false,
+        "stock": null,
+        "weight": "0.200",
+        "width": "20.00",
+        "height": "8.00",
+        "depth": "10.00",
+        "sku": "Parede / Tijolos / Muro Inglês",
+        "values": [
+          {
+            "pt": "1,57x1,00"
+          }
+        ],
+        "barcode": null,
+        "mpn": null,
+        "age_group": null,
+        "gender": null,
+        "created_at": "2023-06-13T10:39:45+0000",
+        "updated_at": "2025-01-12T03:50:49+0000",
+        "cost": null,
+        "visible": true,
+        "inventory_levels": [
+          {
+            "id": 461781035,
+            "variant_id": 655792533,
+            "location_id": "01GYAC3Y3P4YVMJ80XVBWXYC3X",
+            "stock": null
+          }
+        ]
+      },
+      {
+        "id": 596768607,
+        "image_id": 438263042,
+        "product_id": 157536651,
+        "position": 2,
+        "price": "96.00",
+        "price_without_taxes": null,
+        "compare_at_price": "96.00",
+        "promotional_price": null,
+        "stock_management": false,
+        "stock": null,
+        "weight": "0.200",
+        "width": "20.00",
+        "height": "8.00",
+        "depth": "30.00",
+        "sku": "Parede / Tijolos / Muro Inglês",
+        "values": [
+          {
+            "pt": "1,50x2,00"
+          }
+        ],
+        "barcode": null,
+        "mpn": null,
+        "age_group": null,
+        "gender": null,
+        "created_at": "2023-02-16T03:22:17+0000",
+        "updated_at": "2025-01-12T03:50:49+0000",
+        "cost": null,
+        "visible": true,
+        "inventory_levels": [
+          {
+            "id": 461781030,
+            "variant_id": 596768607,
+            "location_id": "01GYAC3Y3P4YVMJ80XVBWXYC3X",
+            "stock": null
+          }
+        ]
+      },
+      {
+        "id": 596768615,
+        "image_id": 438263042,
+        "product_id": 157536651,
+        "position": 3,
+        "price": "103.00",
+        "price_without_taxes": null,
+        "compare_at_price": "103.00",
+        "promotional_price": null,
+        "stock_management": false,
+        "stock": null,
+        "weight": "0.200",
+        "width": "20.00",
+        "height": "8.00",
+        "depth": "10.00",
+        "sku": "Parede / Tijolos / Muro Inglês",
+        "values": [
+          {
+            "pt": "1,50x2,20"
+          }
+        ],
+        "barcode": null,
+        "mpn": null,
+        "age_group": null,
+        "gender": null,
+        "created_at": "2023-02-16T03:22:18+0000",
+        "updated_at": "2025-01-12T03:50:49+0000",
+        "cost": null,
+        "visible": true,
+        "inventory_levels": [
+          {
+            "id": 461781031,
+            "variant_id": 596768615,
+            "location_id": "01GYAC3Y3P4YVMJ80XVBWXYC3X",
+            "stock": null
+          }
+        ]
+      },
+      {
+        "id": 596768616,
+        "image_id": 438263042,
+        "product_id": 157536651,
+        "position": 4,
+        "price": "178.00",
+        "price_without_taxes": null,
+        "compare_at_price": "178.00",
+        "promotional_price": null,
+        "stock_management": false,
+        "stock": null,
+        "weight": "0.300",
+        "width": "20.00",
+        "height": "8.00",
+        "depth": "10.00",
+        "sku": "Parede / Tijolos / Muro Inglês",
+        "values": [
+          {
+            "pt": "2,00x2,00"
+          }
+        ],
+        "barcode": null,
+        "mpn": null,
+        "age_group": null,
+        "gender": null,
+        "created_at": "2023-02-16T03:22:18+0000",
+        "updated_at": "2025-01-12T03:50:49+0000",
+        "cost": null,
+        "visible": true,
+        "inventory_levels": [
+          {
+            "id": 461781032,
+            "variant_id": 596768616,
+            "location_id": "01GYAC3Y3P4YVMJ80XVBWXYC3X",
+            "stock": null
+          }
+        ]
+      },
+      {
+        "id": 596768617,
+        "image_id": 438263042,
+        "product_id": 157536651,
+        "position": 5,
+        "price": "215.00",
+        "price_without_taxes": null,
+        "compare_at_price": "215.00",
+        "promotional_price": null,
+        "stock_management": false,
+        "stock": null,
+        "weight": "0.330",
+        "width": "20.00",
+        "height": "8.00",
+        "depth": "10.00",
+        "sku": "Parede / Tijolos / Muro Inglês",
+        "values": [
+          {
+            "pt": "2,50x2,00"
+          }
+        ],
+        "barcode": null,
+        "mpn": null,
+        "age_group": null,
+        "gender": null,
+        "created_at": "2023-02-16T03:22:18+0000",
+        "updated_at": "2025-01-12T03:50:49+0000",
+        "cost": null,
+        "visible": true,
+        "inventory_levels": [
+          {
+            "id": 461781033,
+            "variant_id": 596768617,
+            "location_id": "01GYAC3Y3P4YVMJ80XVBWXYC3X",
+            "stock": null
+          }
+        ]
+      },
+      {
+        "id": 596768618,
+        "image_id": 438263042,
+        "product_id": 157536651,
+        "position": 6,
+        "price": "279.00",
+        "price_without_taxes": null,
+        "compare_at_price": "279.00",
+        "promotional_price": null,
+        "stock_management": false,
+        "stock": null,
+        "weight": "0.400",
+        "width": "20.00",
+        "height": "8.00",
+        "depth": "10.00",
+        "sku": "Parede / Tijolos / Muro Inglês",
+        "values": [
+          {
+            "pt": "3,00x2,00"
+          }
+        ],
+        "barcode": null,
+        "mpn": null,
+        "age_group": null,
+        "gender": null,
+        "created_at": "2023-02-16T03:22:18+0000",
+        "updated_at": "2025-01-12T03:50:49+0000",
+        "cost": null,
+        "visible": true,
+        "inventory_levels": [
+          {
+            "id": 461781034,
+            "variant_id": 596768618,
+            "location_id": "01GYAC3Y3P4YVMJ80XVBWXYC3X",
+            "stock": null
+          }
+        ]
+      }
+    ],
+    "tags": "/, >, backdrop, cenario fotografico, decoracao estudio fotografico, fotografia, fundo fotografico, ingles, muro, para fotografos, parede, sublimado, tecido para fundo fotografico, tecido sublimado, texturas, tijolos",
+    "images": [
+      {
+        "id": 438263042,
+        "product_id": 157536651,
+        "src": "https://acdn-us.mitiendanube.com/stores/002/767/708/products/maga-411-6fe67c27e2e324394b16765177507820-1024-1024.jpg",
+        "position": 1,
+        "alt": [],
+        "height": 1279,
+        "width": 1920,
+        "thumbnails_generated": 2,
+        "created_at": "2023-02-16T03:22:27+0000",
+        "updated_at": "2023-02-16T03:22:38+0000"
+      }
+    ],
+    "categories": [
+      {
+        "id": 16836211,
+        "name": {
+          "pt": "Texturas"
+        },
+        "description": {
+          "pt": ""
+        },
+        "handle": {
+          "pt": "texturas"
+        },
+        "parent": null,
+        "subcategories": [
+          17209503,
+          17209530,
+          17247978
+        ],
+        "seo_title": {
+          "pt": ""
+        },
+        "seo_description": {
+          "pt": ""
+        },
+        "google_shopping_category": "",
+        "created_at": "2023-01-25T05:30:08+0000",
+        "updated_at": "2026-04-03T00:14:51+0000"
+      },
+      {
+        "id": 17209530,
+        "name": {
+          "pt": "Parede / Tijolos / Muro Inglês"
+        },
+        "description": {
+          "pt": ""
+        },
+        "handle": {
+          "pt": "parede-tijolos-muro-ingles"
+        },
+        "parent": 16836211,
+        "subcategories": [],
+        "seo_title": {
+          "pt": ""
+        },
+        "seo_description": {
+          "pt": ""
+        },
+        "google_shopping_category": "",
+        "created_at": "2023-02-16T03:12:12+0000",
+        "updated_at": "2026-04-03T00:15:00+0000"
+      }
+    ]
+  }
+]

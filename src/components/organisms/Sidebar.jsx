@@ -11,7 +11,8 @@ import {
   Code2,
   Share2,
   ShoppingCart,
-  PackagePlus
+  PackagePlus,
+  DollarSign
 } from 'lucide-react';
 
 const Sidebar = ({ activeTab, setActiveTab }) => {
@@ -24,6 +25,7 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
     { id: 'ai-creator', label: 'IA Creator', icon: Sparkles },
     { id: 'abandoned-cart', label: '🛒 Carrinhos', icon: ShoppingBag },
     { id: 'marketing', label: 'Marketing', icon: Share2 },
+    { id: 'commissions', label: 'Comissões', icon: DollarSign },
     { id: 'script-manager', label: 'Script da Loja', icon: Code2 },
     { id: 'settings', label: 'Configurações', icon: Settings },
   ];

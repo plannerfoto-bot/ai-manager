@@ -1521,6 +1521,103 @@ app.get('/api/categories', async (req, res) => {
   }
 });
 
+// --- Gerenciamento Financeiro (Comissões) ---
+app.get('/api/commissions-report', async (req, res) => {
+  const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
+  const client = await getApiClient(storeId);
+  try {
+    const { categoryId, dateMin, dateMax } = req.query;
+    if (!categoryId) return res.status(400).json({ error: 'categoryId é obrigatório' });
+
+    let categoryProductIds = new Set();
+    let pPage = 1;
+    let pHasMore = true;
+    while(pHasMore) {
+      const pRes = await client.get('/products', { params: { categories: categoryId, per_page: 200, page: pPage } });
+      const prods = pRes.data;
+      if (!prods || prods.length === 0) {
+        pHasMore = false;
+      } else {
+        prods.forEach(p => categoryProductIds.add(p.id));
+        pPage++;
+        if (pPage > 100) pHasMore = false;
+      }
+    }
+
+    if (categoryProductIds.size === 0) {
+      return res.json({ orders: [], summary: { grossRevenue: 0, netRevenue: 0, totalCommission: 0 } });
+    }
+
+    let allOrders = [];
+    let oPage = 1;
+    let oHasMore = true;
+    while (oHasMore) {
+      const params = { per_page: 200, page: oPage, status: 'any' };
+      if (dateMin) params.created_at_min = dateMin;
+      if (dateMax) params.created_at_max = dateMax;
+      
+      const response = await client.get('/orders', { params });
+      const orders = response.data;
+      if (!orders || orders.length === 0) {
+        oHasMore = false;
+      } else {
+        allOrders = allOrders.concat(orders);
+        oPage++;
+        if (oPage > 500) oHasMore = false;
+      }
+    }
+
+    let reportData = [];
+    let totalGrossRevenue = 0;
+    let totalCommission = 0;
+
+    for (const order of allOrders) {
+      if (!order.products || order.products.length === 0) continue;
+      
+      let collectionItemCount = 0;
+      let collectionRevenue = 0;
+      
+      for (const item of order.products) {
+        if (categoryProductIds.has(item.product_id)) {
+          const qty = parseInt(item.quantity || 1, 10);
+          collectionItemCount += qty;
+          collectionRevenue += (parseFloat(item.price || 0) * qty);
+        }
+      }
+
+      if (collectionItemCount > 0) {
+        const orderCommission = collectionItemCount * 50; // R$ 50 por unidade vendida
+        totalGrossRevenue += collectionRevenue;
+        totalCommission += orderCommission;
+
+        reportData.push({
+          orderId: order.id,
+          orderNumber: order.number,
+          customerName: order.customer ? order.customer.name : 'N/A',
+          createdAt: order.created_at,
+          status: order.status,
+          collectionItemsSold: collectionItemCount,
+          collectionRevenue: collectionRevenue,
+          commissionValue: orderCommission
+        });
+      }
+    }
+
+    res.json({
+      summary: {
+        grossRevenue: totalGrossRevenue,
+        totalCommission: totalCommission,
+        netRevenue: totalGrossRevenue - totalCommission
+      },
+      orders: reportData
+    });
+  } catch (error) {
+    console.error('Error generating commission report:', error.response ? error.response.data : error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+
 // IA Engine - Geração Massiva
 app.post('/api/ai/bulk-process', async (req, res) => {
   const { concepts } = req.body; // Array de strings ou objetos

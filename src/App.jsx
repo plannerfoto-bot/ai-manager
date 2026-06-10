@@ -12,6 +12,7 @@ import ScriptManager from './pages/ScriptManager';
 import Marketing from './pages/Marketing';
 import AbandonedCart from './components/organisms/AbandonedCart';
 import UnitaryRegistration from './pages/UnitaryRegistration';
+import Commissions from './pages/Commissions';
 
 // ─── Componentes Auxiliares Fora da Função Principal ───────────────────
 class ErrorBoundary extends React.Component {
@@ -206,6 +207,8 @@ const App = () => {
         return <AbandonedCart storeId={storeId} />;
       case 'unitary-registration':
         return <UnitaryRegistration />;
+      case 'commissions':
+        return <Commissions />;
       default:
         return <Dashboard stats={stats} />;
     }

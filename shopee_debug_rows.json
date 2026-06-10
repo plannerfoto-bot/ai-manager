@@ -1,0 +1,33 @@
+[
+  [
+    "Geral"
+  ],
+  [
+    "O modelo de criação em massa foi projetado para vendedores adicionarem produtos e gerenciarem as informações de um grande número de produtos de forma eficiente. O vendedor pode utilizar esse modelo para fazer a criação de seus produtos de diferentes categorias ao mesmo tempo. O modelo para envio em massa também permite fazer a criação  dos produtos com estrutura de até 2 tipos de variação (exemplo: cor e tamanho). Consulte a aba \"Criar Produtos\" caso haja alguma dúvida."
+  ],
+  [],
+  [],
+  [],
+  [],
+  [],
+  [
+    "Aviso"
+  ],
+  [
+    "Por favor, preste atenção às informações copiadas de outro arquivo do Excel, você pode perder a função de inspeção colando as células com um novo formato. Por favor, insira complementos para cada linha que possa realmente ajudá-lo a gerenciar seus itens. Por favor, insira o número de referência entre parêntesis também se você tiver mais de um complemento para o produto."
+  ],
+  [],
+  [],
+  [],
+  [
+    "Definição"
+  ],
+  [
+    "Item",
+    "Item é o que chamamos de produto na Shopee. Você pode publicar produtos sem ou com SKUs."
+  ],
+  [
+    "Variação",
+    "Variação refere-se a modelos diferentes do mesmo produto. Nesta planilha, você pode atualizar os produtos: sem variação; com 1 variação (ex.: cor); com 2 variações (ex.: cor, tamanho)."
+  ]
+]
