@@ -211,6 +211,19 @@ const KPISidebar = ({ activeKpi, onClose, data }) => {
               <span>Painéis / Unidades Produzidas:</span>
               <span className="text-violet-400 font-bold">{data.analyzedItems} unidades</span>
             </div>
+            
+            <div className="p-3 bg-slate-900 rounded-lg border border-slate-800 space-y-2">
+              <h4 className="font-bold text-white mb-2">Detalhamento por Tipo</h4>
+              <div className="flex justify-between text-slate-300">
+                <span>Overloque (Padrão):</span> 
+                <span className="text-violet-400">{data.overloqueCount || 0} unidades</span>
+              </div>
+              <div className="flex justify-between text-slate-300">
+                <span>Emendas:</span> 
+                <span className="text-violet-400">{data.emendaCount || 0} unidades</span>
+              </div>
+            </div>
+
             <hr className="border-slate-800" />
             <div className="flex justify-between text-violet-400 font-bold text-base"><span>Custo Total Costura:</span> <span>{fmtBRL(data.sewingCost)}</span></div>
           </div>

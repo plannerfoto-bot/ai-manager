@@ -3,6 +3,7 @@ import express from 'express';
 import axios from 'axios';
 import path from 'path';
 import fs from 'fs';
+import { exec } from 'child_process';
 import crypto from 'crypto';
 import cors from 'cors';
 import { fileURLToPath } from 'url';
@@ -45,6 +46,34 @@ app.use(express.static('public'));
 
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+});
+
+function getSystemSettings() {
+  try {
+    const data = fs.readFileSync(path.join(__dirname, 'system_settings.json'), 'utf8');
+    return JSON.parse(data);
+  } catch(e) {
+    return {
+      finance: { bobina120g: 22.50, bobina160g: 24.70, bobinaEspecial: 24.90, costuraOverloque: 4.00, costuraEmenda: 13.00, costuraEspecial: 6.00 },
+      commissions: { valorFixo: 50.00 }
+    };
+  }
+}
+
+app.get('/api/settings', (req, res) => {
+  res.json(getSystemSettings());
+});
+
+app.post('/api/settings', (req, res) => {
+  try {
+    fs.writeFileSync(path.join(__dirname, 'system_settings.json'), JSON.stringify(req.body, null, 2));
+    exec('git add system_settings.json && git commit -m "chore: update system settings" && git -c http.sslVerify=false push', (err) => {
+      if (err) console.error("Git Push Failed:", err);
+    });
+    res.json({ success: true });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 /**
@@ -1206,8 +1235,6 @@ app.get('/api/stats', async (req, res) => {
 /**
  * Configurações de Custos Reais (Produção e Fornecedor)
  */
-const COST_METRO_120G = 22.50;
-const COST_METRO_160G = 24.70;
 const BOBINA_LARGURA = 1.50;
 
 /**
@@ -1256,31 +1283,28 @@ function calcLinearMeters(d1, d2) {
   return Math.min(optionA, optionB);
 }
 
-function calcProductionCost(gram, d1, d2) {
-  const precoMetro = gram === '160g' ? COST_METRO_160G : COST_METRO_120G;
+function calcProductionCost(gram, d1, d2, settings) {
+  const precoMetro = gram === '160g' ? settings.bobina160g : settings.bobina120g;
   const metrosLineares = calcLinearMeters(d1, d2);
   return metrosLineares * precoMetro;
 }
 
 /**
- * Calcula custo de costureira baseado nas regras de dimensão.
- * R$ 13.00 para emenda (ambas dimensões >= 1.70m)
- * R$ 4.00 para overloque normal
+ * Calcula custo de costureira baseado nas regras de dimensão e configurações.
  */
-function calcSewingCost(d1, d2) {
-  if (d1 >= 1.70 && d2 >= 1.70) return 13.00; // Emenda
-  return 4.00; // Overloque
+function calcSewingCost(d1, d2, settings) {
+  if (d1 >= 1.70 && d2 >= 1.70) return { cost: settings.costuraEmenda, type: 'emenda' };
+  return { cost: settings.costuraOverloque, type: 'overloque' };
 }
 
 /**
- * Analisa um line_item de pedido e retorna { profit, sewingCost } ou null se não reconhecido.
+ * Analisa um line_item de pedido e retorna estatísticas ou null se não reconhecido.
  */
-function analyzeLineItem(item) {
+function analyzeLineItem(item, settings) {
   const price = parseFloat(item.price || 0);
   const qty = parseInt(item.quantity || 1);
   if (price <= 0) return null;
 
-  // Tenta a variante do item (nome da variante inclui medidas)
   const variantName = item.variant_values
     ? (Array.isArray(item.variant_values) ? item.variant_values.join(' / ') : item.variant_values)
     : (item.name || '');
@@ -1288,13 +1312,10 @@ function analyzeLineItem(item) {
   const dims = detectDimensions(variantName) || detectDimensions(item.name || '');
 
   if (!dims) {
-    // Medidas são obrigatórias para o cálculo de metro corrido
     return null;
   }
 
-  // Se a gramatura não for detectada, assume-se 160g por padrão (regra de segurança de custo)
   const gram = detectGramatura(variantName) || detectGramatura(item.name || '') || '160g';
-
   const [d1, d2] = dims;
 
   const inSpecialRange = (d) => d >= 1.70 && d <= 1.75;
@@ -1302,17 +1323,21 @@ function analyzeLineItem(item) {
   
   let prodCostUnit = 0;
   let sewingCostUnit = 0;
+  let sewingType = 'overloque';
   let meters120g = 0;
   let meters160g = 0;
   let m2120g = 0;
 
   if (isSpecial && gram === '120g') {
-    prodCostUnit = (d1 * d2) * 24.90;
-    sewingCostUnit = 6.00; // Overloque especial 6 reais
+    prodCostUnit = (d1 * d2) * settings.bobinaEspecial;
+    sewingCostUnit = settings.costuraEspecial;
+    sewingType = 'overloque';
     m2120g = d1 * d2;
   } else {
-    prodCostUnit = calcProductionCost(gram, d1, d2);
-    sewingCostUnit = calcSewingCost(d1, d2);
+    prodCostUnit = calcProductionCost(gram, d1, d2, settings);
+    const sewRes = calcSewingCost(d1, d2, settings);
+    sewingCostUnit = sewRes.cost;
+    sewingType = sewRes.type;
     if (gram === '120g') meters120g = calcLinearMeters(d1, d2);
     if (gram === '160g') meters160g = calcLinearMeters(d1, d2);
   }
@@ -1325,6 +1350,8 @@ function analyzeLineItem(item) {
     meters120g: meters120g * qty,
     meters160g: meters160g * qty,
     m2120g: m2120g * qty,
+    overloqueCount: sewingType === 'overloque' ? qty : 0,
+    emendaCount: sewingType === 'emenda' ? qty : 0
   };
 }
 
@@ -1421,6 +1448,9 @@ app.get('/api/profit-stats', async (req, res) => {
     let totalMeters160g = 0;
     let totalM2120g = 0;
     let analyzedItems = 0;
+    let totalOverloqueCount = 0;
+    let totalEmendaCount = 0;
+    const settings = getSystemSettings().finance;
     let shippingDetails = {};
 
     for (const order of allOrders) {
@@ -1429,7 +1459,7 @@ app.get('/api/profit-stats', async (req, res) => {
       let orderSewingCost = 0;
 
       for (const item of lineItems) {
-        const result = analyzeLineItem(item);
+        const result = analyzeLineItem(item, settings);
         if (result) {
           orderProdCost += result.prodCost;
           orderSewingCost += result.sewingCost;
@@ -1439,6 +1469,8 @@ app.get('/api/profit-stats', async (req, res) => {
           totalMeters160g += result.meters160g;
           totalM2120g += result.m2120g;
           analyzedItems += parseInt(item.quantity || 1);
+          totalOverloqueCount += result.overloqueCount;
+          totalEmendaCount += result.emendaCount;
         }
       }
 
@@ -1732,7 +1764,8 @@ app.get('/api/commissions-report', async (req, res) => {
       }
 
       if (collectionItemCount > 0) {
-        const orderCommission = collectionItemCount * 50; // R$ 50 por unidade vendida
+        const settings = getSystemSettings().commissions;
+        const orderCommission = collectionItemCount * (settings.valorFixo || 50); // R$ Dinâmico por unidade vendida
         totalGrossRevenue += collectionRevenue;
         totalCommission += orderCommission;
 

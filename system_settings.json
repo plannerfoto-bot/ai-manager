@@ -1,0 +1,13 @@
+{
+  "finance": {
+    "bobina120g": 22.50,
+    "bobina160g": 24.70,
+    "bobinaEspecial": 24.90,
+    "costuraOverloque": 4.00,
+    "costuraEmenda": 13.00,
+    "costuraEspecial": 6.00
+  },
+  "commissions": {
+    "valorFixo": 50.00
+  }
+}

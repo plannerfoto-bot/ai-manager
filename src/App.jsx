@@ -14,6 +14,7 @@ import AbandonedCart from './components/organisms/AbandonedCart';
 import UnitaryRegistration from './pages/UnitaryRegistration';
 import Commissions from './pages/Commissions';
 import Finance from './pages/Finance';
+import Settings from './pages/Settings';
 
 // ─── Componentes Auxiliares Fora da Função Principal ───────────────────
 class ErrorBoundary extends React.Component {
@@ -212,6 +213,8 @@ const App = () => {
         return <UnitaryRegistration />;
       case 'commissions':
         return <Commissions />;
+      case 'settings':
+        return <Settings />;
       default:
         return <Dashboard stats={stats} />;
     }
