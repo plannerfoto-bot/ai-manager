@@ -118,10 +118,10 @@ const Finance = () => {
   const [profitData, setProfitData] = useState(null);
   const [profitLoading, setProfitLoading] = useState(true);
   const [profitError, setProfitError] = useState(null);
-  const [feePercent, setFeePercent] = useState(4.79);
-  const [feeFixed, setFeeFixed] = useState(0.30);
-  const [feePixPercent, setFeePixPercent] = useState(0.00);
-  const [feePixFixed, setFeePixFixed] = useState(0.99);
+  const [feePercent, setFeePercent] = useState(4.69);
+  const [feeFixed, setFeeFixed] = useState(0.35);
+  const [feePixPercent, setFeePixPercent] = useState(0.99);
+  const [feePixFixed, setFeePixFixed] = useState(0.00);
 
   const fetchProfitStats = useCallback(async (period, start, end, fP, fF, fpP, fpF) => {
     setProfitLoading(true);
