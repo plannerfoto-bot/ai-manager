@@ -1250,31 +1250,26 @@ function detectDimensions(variantName) {
   return [d1, d2];
 }
 
-/**
- * Calcula o custo de produção para o fornecedor baseado em "Metro Corrido".
- * A bobina tem largura fixa (1.50m). O fornecedor dispõe o painel de forma a 
- * economizar metros lineares.
- */
+function calcLinearMeters(d1, d2) {
+  const optionA = Math.ceil(d1 / BOBINA_LARGURA) * d2;
+  const optionB = Math.ceil(d2 / BOBINA_LARGURA) * d1;
+  return Math.min(optionA, optionB);
+}
+
 function calcProductionCost(gram, d1, d2) {
   const precoMetro = gram === '160g' ? COST_METRO_160G : COST_METRO_120G;
-  
-  // Opção A: Bobina alinhada ao lado d1. Metros lineares necessários = ceil(d1 / 1.5) * d2
-  const optionA = Math.ceil(d1 / BOBINA_LARGURA) * d2;
-  // Opção B: Bobina alinhada ao lado d2. Metros lineares necessários = ceil(d2 / 1.5) * d1
-  const optionB = Math.ceil(d2 / BOBINA_LARGURA) * d1;
-  
-  const metrosLineares = Math.min(optionA, optionB);
+  const metrosLineares = calcLinearMeters(d1, d2);
   return metrosLineares * precoMetro;
 }
 
 /**
- * Calcula custo de costureira baseado nas regras de dimensão (1.70m).
- * Se pelo menos uma dimensão for menor que 1.70m: R$ 3,00 (Pequeno)
- * Se ambas forem maiores ou iguais a 1.70m: R$ 15,00 (Grande/Emenda)
+ * Calcula custo de costureira baseado nas regras de dimensão.
+ * R$ 13.00 para emenda (ambas dimensões >= 1.70m)
+ * R$ 4.00 para overloque normal
  */
 function calcSewingCost(d1, d2) {
-  if (d1 < 1.70 || d2 < 1.70) return 3.00;
-  return 15.00;
+  if (d1 >= 1.70 && d2 >= 1.70) return 13.00; // Emenda
+  return 4.00; // Overloque
 }
 
 /**
@@ -1302,16 +1297,32 @@ function analyzeLineItem(item) {
 
   const [d1, d2] = dims;
 
-  // CÁLCULO DINÂMICO DE PRECISAO
-  const prodCostUnit = calcProductionCost(gram, d1, d2);
-  const sewingCostUnit = calcSewingCost(d1, d2);
+  const inSpecialRange = (d) => d >= 1.70 && d <= 1.75;
+  const isSpecial = (inSpecialRange(d1) || inSpecialRange(d2));
   
-  // Lucro por unidade = Preço - Custo Fornecedor - Custo Costureira
-  const profitUnit = price - prodCostUnit - sewingCostUnit;
+  let prodCostUnit = 0;
+  let sewingCostUnit = 0;
+  let meters120g = 0;
+  let meters160g = 0;
+  let m2120g = 0;
+
+  if (isSpecial && gram === '120g') {
+    prodCostUnit = (d1 * d2) * 24.90;
+    sewingCostUnit = 6.00; // Overloque especial 6 reais
+    m2120g = d1 * d2;
+  } else {
+    prodCostUnit = calcProductionCost(gram, d1, d2);
+    sewingCostUnit = calcSewingCost(d1, d2);
+    if (gram === '120g') meters120g = calcLinearMeters(d1, d2);
+    if (gram === '160g') meters160g = calcLinearMeters(d1, d2);
+  }
 
   return {
-    profit: profitUnit * qty,
     sewingCost: sewingCostUnit * qty,
+    prodCost: prodCostUnit * qty,
+    meters120g: meters120g * qty,
+    meters160g: meters160g * qty,
+    m2120g: m2120g * qty,
   };
 }
 
@@ -1330,7 +1341,9 @@ app.get('/api/profit-stats', async (req, res) => {
   const client = await getApiClient(storeId);
 
   try {
-    const { period = 'current_month', start, end } = req.query;
+    const { period = 'current_month', start, end, feePercent = 0, feeFixed = 0 } = req.query;
+    const feeP = parseFloat(feePercent) || 0;
+    const feeF = parseFloat(feeFixed) || 0;
 
     // Calcular datas do período no fuso de São Paulo
     const now = new Date();
@@ -1346,6 +1359,16 @@ app.get('/api/profit-stats', async (req, res) => {
     } else if (period === 'custom' && start && end) {
       startDate = start;
       endDate = end;
+    } else if (period === 'semana') {
+      const min = new Date(brtNow);
+      min.setDate(brtNow.getDate() - 7);
+      startDate = min.toISOString().split('T')[0];
+      endDate = brtNow.toISOString().split('T')[0];
+    } else if (period === 'quinzena') {
+      const min = new Date(brtNow);
+      min.setDate(brtNow.getDate() - 15);
+      startDate = min.toISOString().split('T')[0];
+      endDate = brtNow.toISOString().split('T')[0];
     } else {
       // current_month (padrão)
       const firstDay = new Date(brtNow.getFullYear(), brtNow.getMonth(), 1);
@@ -1354,59 +1377,90 @@ app.get('/api/profit-stats', async (req, res) => {
     }
 
     // Buscar pedidos PAGOS no período
-    // A Nuvemshop aceita created_at_min e created_at_max
-    const ordersRes = await client.get('/orders', {
-      params: {
-        per_page: 200,
-        payment_status: 'paid',
-        created_at_min: `${startDate}T00:00:00-03:00`,
-        created_at_max: `${endDate}T23:59:59-03:00`,
+    let allOrders = [];
+    let oPage = 1;
+    let oHasMore = true;
+    while (oHasMore) {
+      const response = await client.get('/orders', {
+        params: {
+          per_page: 200,
+          page: oPage,
+          payment_status: 'paid',
+          created_at_min: `${startDate}T00:00:00-03:00`,
+          created_at_max: `${endDate}T23:59:59-03:00`,
+        }
+      });
+      const ordersData = response.data || [];
+      if (ordersData.length === 0) {
+        oHasMore = false;
+      } else {
+        allOrders = allOrders.concat(ordersData);
+        if (ordersData.length < 200) oHasMore = false;
+        else oPage++;
+        if (oPage > 500) oHasMore = false;
       }
-    });
-
-    const orders = ordersRes.data || [];
+    }
 
     let totalProfit = 0;
     let totalSewingCost = 0;
     let totalProductionCost = 0;
+    let totalShippingCustomer = 0;
+    let totalGatewayFee = 0;
+    let totalMeters120g = 0;
+    let totalMeters160g = 0;
+    let totalM2120g = 0;
     let analyzedItems = 0;
+    let shippingDetails = {};
 
-    for (const order of orders) {
+    for (const order of allOrders) {
       const lineItems = order.products || order.line_items || [];
+      let orderProdCost = 0;
+      let orderSewingCost = 0;
 
       for (const item of lineItems) {
         const result = analyzeLineItem(item);
         if (result) {
-          // O lucro retornado por analyzeLineItem já é (Price - ProdCost - SewingCost)
-          // Mas precisamos dos custos brutos para os outros KPIs
-          const price = parseFloat(item.price || 0);
-          const qty = parseInt(item.quantity || 1);
-          
-          // Recalcula custos brutos para estatísticas (analyzeLineItem já validou gram/dims)
-          const variantName = item.variant_values
-            ? (Array.isArray(item.variant_values) ? item.variant_values.join(' / ') : item.variant_values)
-            : (item.name || '');
-          const dims = detectDimensions(variantName) || detectDimensions(item.name || '');
-          
-          if (dims) {
-            // Segue a mesma regra de fallback: se não detectar gramatura, usa 160g
-            const gram = detectGramatura(variantName) || detectGramatura(item.name || '') || '160g';
-            const [d1, d2] = dims;
-            totalProductionCost += calcProductionCost(gram, d1, d2) * qty;
-          }
-
-          totalProfit += result.profit;
-          totalSewingCost += result.sewingCost;
+          orderProdCost += result.prodCost;
+          orderSewingCost += result.sewingCost;
+          totalMeters120g += result.meters120g;
+          totalMeters160g += result.meters160g;
+          totalM2120g += result.m2120g;
           analyzedItems++;
         }
       }
+
+      totalProductionCost += orderProdCost;
+      totalSewingCost += orderSewingCost;
+
+      // Cálculos financeiros do pedido
+      const orderTotal = parseFloat(order.total || 0);
+      const shippingCustomer = parseFloat(order.shipping_cost_customer || order.shipping || 0);
+      const gatewayFee = (orderTotal * (feeP / 100)) + feeF;
+
+      totalShippingCustomer += shippingCustomer;
+      totalGatewayFee += gatewayFee;
+
+      const orderNetRevenue = orderTotal - shippingCustomer - gatewayFee;
+      const orderProfit = orderNetRevenue - orderProdCost - orderSewingCost;
+
+      totalProfit += orderProfit;
+
+      // Agrupamento de frete
+      const shipOption = order.shipping_option || 'Desconhecido';
+      shippingDetails[shipOption] = (shippingDetails[shipOption] || 0) + shippingCustomer;
     }
 
     res.json({
       totalProfit: parseFloat(totalProfit.toFixed(2)),
       sewingCost: parseFloat(totalSewingCost.toFixed(2)),
       productionCost: parseFloat(totalProductionCost.toFixed(2)),
-      ordersCount: orders.length,
+      shippingTotal: parseFloat(totalShippingCustomer.toFixed(2)),
+      gatewayFeeTotal: parseFloat(totalGatewayFee.toFixed(2)),
+      meters120g: parseFloat(totalMeters120g.toFixed(2)),
+      meters160g: parseFloat(totalMeters160g.toFixed(2)),
+      m2120g: parseFloat(totalM2120g.toFixed(2)),
+      shippingDetails,
+      ordersCount: allOrders.length,
       analyzedItems,
       period,
       startDate,

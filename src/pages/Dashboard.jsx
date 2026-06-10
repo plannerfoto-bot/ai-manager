@@ -45,6 +45,8 @@ function getPeriodLabel(period, startDate, endDate) {
     const last = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     return `${MONTH_NAMES[last.getMonth()]} ${last.getFullYear()}`;
   }
+  if (period === 'semana') return 'Últimos 7 dias';
+  if (period === 'quinzena') return 'Últimos 15 dias';
   if (startDate && endDate) {
     const s = startDate.split('-').reverse().join('/');
     const e = endDate.split('-').reverse().join('/');
@@ -93,6 +95,18 @@ const PeriodSelector = ({ period, onChangePeriod, customStart, customEnd, onChan
         className={`${btnBase} ${period === 'last_month' ? btnActive : btnInactive}`}
       >
         Mês Passado
+      </button>
+      <button
+        onClick={() => handlePeriod('semana')}
+        className={`${btnBase} ${period === 'semana' ? btnActive : btnInactive}`}
+      >
+        Semana
+      </button>
+      <button
+        onClick={() => handlePeriod('quinzena')}
+        className={`${btnBase} ${period === 'quinzena' ? btnActive : btnInactive}`}
+      >
+        Quinzena
       </button>
       <button
         onClick={() => handlePeriod('custom')}
@@ -209,13 +223,15 @@ const Dashboard = ({ stats }) => {
   const [profitData, setProfitData] = useState(null);
   const [profitLoading, setProfitLoading] = useState(true);
   const [profitError, setProfitError] = useState(null);
+  const [feePercent, setFeePercent] = useState(4.79);
+  const [feeFixed, setFeeFixed] = useState(0.30);
 
   // ── Busca dados de lucro
-  const fetchProfitStats = useCallback(async (period, start, end) => {
+  const fetchProfitStats = useCallback(async (period, start, end, fP, fF) => {
     setProfitLoading(true);
     setProfitError(null);
     try {
-      const params = { period };
+      const params = { period, feePercent: fP, feeFixed: fF };
       if (period === 'custom' && start && end) {
         params.start = start;
         params.end = end;
@@ -232,8 +248,8 @@ const Dashboard = ({ stats }) => {
 
   // Carrega ao montar e quando os parâmetros mudarem
   useEffect(() => {
-    fetchProfitStats(profitPeriod, profitCustomStart, profitCustomEnd);
-  }, [profitPeriod, profitCustomStart, profitCustomEnd, fetchProfitStats]);
+    fetchProfitStats(profitPeriod, profitCustomStart, profitCustomEnd, feePercent, feeFixed);
+  }, [profitPeriod, profitCustomStart, profitCustomEnd, feePercent, feeFixed, fetchProfitStats]);
 
   const handleChangePeriod = (period, start, end) => {
     setProfitPeriod(period);
@@ -298,8 +314,22 @@ const Dashboard = ({ stats }) => {
             </p>
           </div>
 
-          {/* Seletor de período + botão refresh */}
+          {/* Configuração de Taxas */}
           <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-2 bg-slate-800/50 p-2 rounded-lg border border-slate-700/50">
+              <span className="text-xs text-slate-400 font-medium">Taxa Nuvem Pago:</span>
+              <input 
+                type="number" step="0.01" value={feePercent} onChange={e => setFeePercent(e.target.value)}
+                className="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-white w-16 focus:border-emerald-500 outline-none"
+                title="Porcentagem (%)"
+              />
+              <span className="text-xs text-slate-500">% + R$</span>
+              <input 
+                type="number" step="0.01" value={feeFixed} onChange={e => setFeeFixed(e.target.value)}
+                className="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-white w-16 focus:border-emerald-500 outline-none"
+                title="Valor Fixo (R$)"
+              />
+            </div>
             <PeriodSelector
               period={profitPeriod}
               onChangePeriod={handleChangePeriod}
@@ -310,7 +340,7 @@ const Dashboard = ({ stats }) => {
           </div>
 
           <button
-            onClick={() => fetchProfitStats(profitPeriod, profitCustomStart, profitCustomEnd)}
+            onClick={() => fetchProfitStats(profitPeriod, profitCustomStart, profitCustomEnd, feePercent, feeFixed)}
             disabled={profitLoading}
             className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-all disabled:opacity-40"
             title="Atualizar"
@@ -319,11 +349,11 @@ const Dashboard = ({ stats }) => {
           </button>
         </div>
 
-        {/* Os três cards de KPI lado a lado */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Os cards de KPI lado a lado */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {/* LUCRO LÍQUIDO */}
           <ProfitKpiCard
-            title="Lucro Líquido do Período"
+            title="Lucro Líquido Real"
             value={fmtBRL(profitData?.totalProfit)}
             subtitle={periodLabel}
             icon={TrendingUp}
@@ -333,12 +363,12 @@ const Dashboard = ({ stats }) => {
             error={profitError}
           />
 
-          {/* CUSTO PRODUÇÃO (SUBIDOR) */}
+          {/* CUSTO PRODUÇÃO (FORNECEDOR) */}
           <ProfitKpiCard
             title="Custo de Produção"
             value={fmtBRL(profitData?.productionCost)}
-            subtitle="Metro Corrido (Fornecedor)"
-            icon={TrendingUp}
+            subtitle="Base Fornecedor"
+            icon={TrendingDown}
             color="text-amber-400"
             gradient="bg-gradient-to-br from-amber-950/60 via-slate-900/80 to-slate-950 border-amber-800/30"
             loading={profitLoading}
@@ -349,10 +379,47 @@ const Dashboard = ({ stats }) => {
           <ProfitKpiCard
             title="Custo com Costureira"
             value={fmtBRL(profitData?.sewingCost)}
-            subtitle={`${profitData?.analyzedItems ?? 0} itens costurados`}
+            subtitle={`${profitData?.analyzedItems ?? 0} itens faturados`}
             icon={Scissors}
             color="text-violet-400"
             gradient="bg-gradient-to-br from-violet-950/60 via-slate-900/80 to-slate-950 border-violet-800/30"
+            loading={profitLoading}
+            error={profitError}
+          />
+
+          {/* FRETES */}
+          <ProfitKpiCard
+            title="Custo de Frete (Total)"
+            value={fmtBRL(profitData?.shippingTotal)}
+            subtitle={Object.entries(profitData?.shippingDetails || {})
+              .map(([k, v]) => `${k}: ${fmtBRL(v)}`).join(' | ') || 'Sem frete'}
+            icon={ArrowDownRight}
+            color="text-rose-400"
+            gradient="bg-gradient-to-br from-rose-950/60 via-slate-900/80 to-slate-950 border-rose-800/30"
+            loading={profitLoading}
+            error={profitError}
+          />
+
+          {/* TAXAS GATEWAY */}
+          <ProfitKpiCard
+            title="Taxas do Nuvem Pago"
+            value={fmtBRL(profitData?.gatewayFeeTotal)}
+            subtitle={`${feePercent}% + R$ ${parseFloat(feeFixed).toFixed(2)} por pedido`}
+            icon={DollarSign}
+            color="text-blue-400"
+            gradient="bg-gradient-to-br from-blue-950/60 via-slate-900/80 to-slate-950 border-blue-800/30"
+            loading={profitLoading}
+            error={profitError}
+          />
+
+          {/* CONSUMO DE TECIDO */}
+          <ProfitKpiCard
+            title="Consumo de Tecido"
+            value={`${profitData?.meters120g || 0}m (120g)`}
+            subtitle={`${profitData?.meters160g || 0}m (160g) | ${profitData?.m2120g || 0}m² especiais`}
+            icon={ShoppingBag}
+            color="text-slate-400"
+            gradient="bg-gradient-to-br from-slate-800/60 via-slate-900/80 to-slate-950 border-slate-700/30"
             loading={profitLoading}
             error={profitError}
           />
@@ -363,15 +430,15 @@ const Dashboard = ({ stats }) => {
           <div className="flex flex-wrap gap-4 pt-2 border-t border-slate-800">
             <div className="flex items-center gap-2 text-xs text-slate-500">
               <div className="w-2 h-2 rounded-full bg-emerald-500" />
-              <span>Lucro Líquido = Receita - Produção - Costura</span>
+              <span>Lucro = Total Recebido - Produção - Costura - Frete - Taxas do Cartão</span>
             </div>
             <div className="flex items-center gap-2 text-xs text-slate-500">
               <div className="w-2 h-2 rounded-full bg-amber-500" />
-              <span>Custo de Produção baseado em Metro Corrido (Bobina 1.50m)</span>
+              <span>Produção: Metro Linear p/ geral e M² (R$ 24,90) para 120g ≥ 1.70m</span>
             </div>
             <div className="flex items-center gap-2 text-xs text-slate-500">
               <div className="w-2 h-2 rounded-full bg-violet-500" />
-              <span>Regra de Costura: R$ 3 ({'<'} 1.70m) ou R$ 15 (Emenda)</span>
+              <span>Costura: R$ 4 (Overloque) ou R$ 13 (Emenda). R$ 6 (Overloque painéis m²)</span>
             </div>
             {profitData.analyzedItems < (profitData.ordersCount * 1) && (
               <div className="flex items-center gap-2 text-xs text-amber-500/80">
