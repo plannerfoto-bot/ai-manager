@@ -228,7 +228,7 @@ const App = () => {
       <Toaster position="top-right" />
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
       
-      <main className="pl-[320px] p-8 transition-all duration-300">
+      <main className="pl-64 p-8 transition-all duration-300">
         {/* ── Toggle da Calculadora ── */}
         <div className="max-w-7xl mx-auto mb-6">
           <button

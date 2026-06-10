@@ -116,117 +116,113 @@ const MetricCard = ({ title, value, icon: Icon, color, onClick }) => (
 );
 
 const KPISidebar = ({ activeKpi, onClose, data }) => {
+  const d = data || {};
   const renderContent = () => {
     switch (activeKpi) {
       case 'lucro':
         return (
-          <div className="space-y-4 text-sm">
-            <div className="flex justify-between text-[var(--text-muted)]"><span>Receita Total (Bruta):</span> <span>{fmtBRL(data.totalProfit + data.gatewayFeeTotal + data.shippingOwnerTotal + data.productionCost + data.sewingCost)}</span></div>
-            <div className="flex justify-between text-rose-400"><span>- Custo Produção:</span> <span>{fmtBRL(data.productionCost)}</span></div>
-            <div className="flex justify-between text-violet-400"><span>- Custo Costura:</span> <span>{fmtBRL(data.sewingCost)}</span></div>
-            <div className="flex justify-between text-orange-400"><span>- Transportadoras:</span> <span>{fmtBRL(data.shippingOwnerTotal)}</span></div>
-            <div className="flex justify-between text-amber-500"><span>- Taxas Nuvem Pago:</span> <span>{fmtBRL(data.gatewayFeeTotal)}</span></div>
+          <div className="space-y-6 text-[18px]">
+            <div className="flex justify-between text-[var(--text-muted)]"><span>Receita Total (Bruta):</span> <span>{fmtBRL((d.totalProfit || 0) + (d.gatewayFeeTotal || 0) + (d.shippingOwnerTotal || 0) + (d.productionCost || 0) + (d.sewingCost || 0))}</span></div>
+            <div className="flex justify-between text-rose-400"><span>- Custo Produção:</span> <span>{fmtBRL(d.productionCost || 0)}</span></div>
+            <div className="flex justify-between text-violet-400"><span>- Custo Costura:</span> <span>{fmtBRL(d.sewingCost || 0)}</span></div>
+            <div className="flex justify-between text-orange-400"><span>- Transportadoras:</span> <span>{fmtBRL(d.shippingOwnerTotal || 0)}</span></div>
+            <div className="flex justify-between text-amber-500"><span>- Taxas Nuvem Pago:</span> <span>{fmtBRL(d.gatewayFeeTotal || 0)}</span></div>
             <hr className="border-[var(--border-soft)]" />
-            <div className="flex justify-between text-emerald-500 font-bold text-base"><span>Lucro Líquido Real:</span> <span>{fmtBRL(data.totalProfit)}</span></div>
+            <div className="flex justify-between text-emerald-500 font-bold text-[22px]"><span>Lucro Líquido Real:</span> <span>{fmtBRL(d.totalProfit || 0)}</span></div>
           </div>
         );
       case 'frete_cliente':
         return (
-          <div className="space-y-4 text-sm">
-            <p className="text-[var(--text-muted)]">Este é o valor total exato que os seus clientes pagaram de frete no checkout da loja.</p>
+          <div className="space-y-6 text-[18px]">
+            <p className="text-[var(--text-muted)] text-[16px]">Este é o valor total exato que os seus clientes pagaram de frete no checkout da loja.</p>
             <div className="p-4 bg-[var(--surface-glass)] rounded-lg border border-[var(--border-soft)] text-center">
-              <span className="text-2xl font-bold text-rose-400">{fmtBRL(data.shippingCustomerTotal)}</span>
+              <span className="text-[30px] font-bold text-rose-400">{fmtBRL(d.shippingCustomerTotal || 0)}</span>
             </div>
           </div>
         );
       case 'frete_real':
         return (
-          <div className="space-y-4 text-sm">
-            <p className="text-[var(--text-muted)]">Custo real pago para as transportadoras (inclui fretes grátis que saíram do seu bolso).</p>
-            <div className="space-y-2 mt-4">
-              {Object.entries(data.shippingDetails || {}).map(([name, val]) => (
-                <div key={name} className="flex justify-between text-[var(--text-muted)] bg-[var(--surface-glass)] p-2 rounded border border-[var(--border-soft)]">
+          <div className="space-y-6 text-[18px]">
+            <p className="text-[var(--text-muted)] text-[16px]">Custo real pago para as transportadoras (inclui fretes grátis que saíram do seu bolso).</p>
+            <div className="space-y-4 mt-4">
+              {Object.entries(d.shippingDetails || {}).map(([name, val]) => (
+                <div key={name} className="flex justify-between text-[var(--text-muted)] bg-[var(--surface-glass)] p-3 rounded border border-[var(--border-soft)]">
                   <span>{name}</span>
                   <span className="font-medium text-orange-400">{fmtBRL(val)}</span>
                 </div>
               ))}
             </div>
             <hr className="border-[var(--border-soft)]" />
-            <div className="flex justify-between text-orange-400 font-bold text-base"><span>Total Pago:</span> <span>{fmtBRL(data.shippingOwnerTotal)}</span></div>
+            <div className="flex justify-between text-orange-400 font-bold text-[22px]"><span>Total Pago:</span> <span>{fmtBRL(d.shippingOwnerTotal || 0)}</span></div>
           </div>
         );
       case 'frete_gratis':
         return (
-          <div className="space-y-4 text-sm">
-            <p className="text-[var(--text-muted)]">Análise de ROI sobre o subsídio de Frete Grátis.</p>
-            <div className="flex justify-between text-[var(--text-muted)]"><span>Prejuízo bancado (Bolso):</span> <span className="text-red-500 font-medium">-{fmtBRL(data.freeShippingCost)}</span></div>
-            <div className="flex justify-between text-[var(--text-muted)]"><span>Lucro Líquido nestas vendas:</span> <span className="text-emerald-500 font-medium">{fmtBRL(data.profitFromFreeShipping)}</span></div>
-            <div className="mt-4 p-3 bg-[var(--surface-glass)] rounded border border-[var(--border-soft)]">
-              <p className="text-xs text-[var(--text-muted)]">O retorno final (Lucro - Prejuízo) nestas vendas específicas foi de <strong className="text-[var(--text-primary)]">{fmtBRL(data.profitFromFreeShipping - data.freeShippingCost)}</strong>.</p>
+          <div className="space-y-6 text-[18px]">
+            <p className="text-[var(--text-muted)] text-[16px]">Análise de ROI sobre o subsídio de Frete Grátis.</p>
+            <div className="flex justify-between text-[var(--text-muted)]"><span>Prejuízo bancado (Bolso):</span> <span className="text-red-500 font-bold">-{fmtBRL(d.freeShippingCost || 0)}</span></div>
+            <div className="flex justify-between text-[var(--text-muted)]"><span>Lucro Líquido nestas vendas:</span> <span className="text-emerald-500 font-bold">{fmtBRL(d.profitFromFreeShipping || 0)}</span></div>
+            <div className="mt-4 p-4 bg-[var(--surface-glass)] rounded-lg border border-[var(--border-soft)]">
+              <p className="text-[16px] text-[var(--text-muted)] leading-relaxed">O retorno final (Lucro - Prejuízo) nestas vendas específicas foi de <strong className="text-[var(--text-primary)] text-[20px]">{fmtBRL((d.profitFromFreeShipping || 0) - (d.freeShippingCost || 0))}</strong>.</p>
             </div>
           </div>
         );
       case 'taxas':
         return (
-          <div className="space-y-4 text-sm">
-            <p className="text-[var(--text-muted)]">Divisão dos custos cobrados pelo Nuvem Pago.</p>
-            <div className="flex justify-between text-[var(--text-muted)] bg-[var(--surface-glass)] p-3 rounded border border-[var(--border-soft)]">
+          <div className="space-y-6 text-[18px]">
+            <p className="text-[var(--text-muted)] text-[16px]">Divisão dos custos cobrados pelo Nuvem Pago.</p>
+            <div className="flex justify-between text-[var(--text-muted)] bg-[var(--surface-glass)] p-4 rounded-lg border border-[var(--border-soft)]">
               <span>Cartão de Crédito</span>
-              <span className="text-amber-500 font-medium">{fmtBRL(data.gatewayFeeCard)}</span>
+              <span className="font-bold text-amber-500">{fmtBRL(d.gatewayFeeCard || 0)}</span>
             </div>
-            <div className="flex justify-between text-[var(--text-muted)] bg-[var(--surface-glass)] p-3 rounded border border-[var(--border-soft)]">
+            <div className="flex justify-between text-[var(--text-muted)] bg-[var(--surface-glass)] p-4 rounded-lg border border-[var(--border-soft)]">
               <span>Pix</span>
-              <span className="text-amber-500 font-medium">{fmtBRL(data.gatewayFeePix)}</span>
+              <span className="font-bold text-emerald-500">{fmtBRL(d.gatewayFeePix || 0)}</span>
             </div>
-            <hr className="border-[var(--border-soft)]" />
-            <div className="flex justify-between text-amber-500 font-bold text-base"><span>Total de Taxas:</span> <span>{fmtBRL(data.gatewayFeeTotal)}</span></div>
           </div>
         );
       case 'bobina':
         return (
-          <div className="space-y-4 text-sm">
-            <p className="text-[var(--text-muted)]">Consumo e custo da matéria prima separados por gramatura.</p>
+          <div className="space-y-6 text-[18px]">
+            <p className="text-[var(--text-muted)] text-[16px]">Consumo e custo da matéria prima separados por gramatura.</p>
             
-            <div className="p-3 bg-[var(--surface-glass)] rounded-lg border border-[var(--border-soft)] space-y-2">
-              <h4 className="font-bold text-[var(--text-primary)] mb-2">Tecido 120g</h4>
-              <div className="flex justify-between text-[var(--text-muted)]"><span>Metros Lineares:</span> <span>{data.meters120g?.toFixed(2)} m</span></div>
-              <div className="flex justify-between text-[var(--text-muted)]"><span>Metros Quadrados (Especiais):</span> <span>{data.m2120g?.toFixed(2)} m²</span></div>
-              <div className="flex justify-between text-[var(--text-muted)] font-medium pt-2 border-t border-[var(--border-soft)]"><span>Custo Financeiro:</span> <span className="text-[var(--text-muted)]">{fmtBRL(data.productionCost120g)}</span></div>
+            <div className="p-4 bg-[var(--surface-glass)] rounded-xl border border-[var(--border-soft)] space-y-3">
+              <h4 className="font-bold text-[var(--text-primary)] mb-2 text-[20px]">Tecido 120g</h4>
+              <div className="flex justify-between text-[var(--text-muted)]"><span>Metros Lineares:</span> <span>{d.meters120g?.toFixed(2) || 0} m</span></div>
+              <div className="flex justify-between text-[var(--text-muted)]"><span>Metros Quadrados (Especiais):</span> <span>{d.m2120g?.toFixed(2) || 0} m²</span></div>
+              <div className="flex justify-between text-[var(--text-muted)] font-medium pt-3 border-t border-[var(--border-soft)] text-[20px]"><span>Custo Financeiro:</span> <span className="text-[var(--text-primary)]">{fmtBRL(d.productionCost120g || 0)}</span></div>
             </div>
 
-            <div className="p-3 bg-[var(--surface-glass)] rounded-lg border border-[var(--border-soft)] space-y-2">
-              <h4 className="font-bold text-[var(--text-primary)] mb-2">Tecido 160g</h4>
-              <div className="flex justify-between text-[var(--text-muted)]"><span>Metros Lineares:</span> <span>{data.meters160g?.toFixed(2)} m</span></div>
-              <div className="flex justify-between text-[var(--text-muted)] font-medium pt-2 border-t border-[var(--border-soft)]"><span>Custo Financeiro:</span> <span className="text-[var(--text-muted)]">{fmtBRL(data.productionCost160g)}</span></div>
+            <div className="p-4 bg-[var(--surface-glass)] rounded-xl border border-[var(--border-soft)] space-y-3">
+              <h4 className="font-bold text-[var(--text-primary)] mb-2 text-[20px]">Tecido 160g</h4>
+              <div className="flex justify-between text-[var(--text-muted)]"><span>Metros Lineares:</span> <span>{d.meters160g?.toFixed(2) || 0} m</span></div>
+              <div className="flex justify-between text-[var(--text-muted)] font-medium pt-3 border-t border-[var(--border-soft)] text-[20px]"><span>Custo Financeiro:</span> <span className="text-[var(--text-primary)]">{fmtBRL(d.productionCost160g || 0)}</span></div>
             </div>
-
-            <hr className="border-[var(--border-soft)]" />
-            <div className="flex justify-between text-[var(--text-primary)] font-bold text-base"><span>Custo Total:</span> <span>{fmtBRL(data.productionCost)}</span></div>
+            
+            <div className="mt-6 p-4 bg-rose-500/10 rounded-xl border border-rose-500/20">
+              <div className="flex justify-between font-bold text-rose-400 text-[22px]">
+                <span>Custo Total de Matéria Prima:</span>
+                <span>{fmtBRL(d.productionCost || 0)}</span>
+              </div>
+            </div>
           </div>
         );
       case 'costura':
         return (
-          <div className="space-y-4 text-sm">
-            <p className="text-[var(--text-muted)]">Total repassado para a costureira baseado nos painéis analisados.</p>
-            <div className="flex justify-between text-[var(--text-muted)] bg-[var(--surface-glass)] p-3 rounded border border-[var(--border-soft)]">
+          <div className="space-y-6 text-[18px]">
+            <p className="text-[var(--text-muted)] text-[16px]">Total repassado para a costureira baseado nos painéis analisados.</p>
+            <div className="flex justify-between text-[var(--text-muted)] bg-[var(--surface-glass)] p-4 rounded-lg border border-[var(--border-soft)]">
               <span>Painéis / Unidades Produzidas:</span>
-              <span className="text-violet-400 font-bold">{data.analyzedItems} unidades</span>
+              <span className="font-bold text-[var(--text-primary)]">{d.analyzedItems || 0} un</span>
             </div>
-            
-            <div className="p-3 bg-[var(--surface-glass)] rounded-lg border border-[var(--border-soft)] space-y-2">
-              <h4 className="font-bold text-[var(--text-primary)] mb-2">Detalhamento por Tipo</h4>
-              <div className="flex justify-between text-[var(--text-muted)]">
-                <span>Overloque (Padrão):</span> 
-                <span className="text-violet-400">{data.overloqueCount || 0} unidades</span>
-              </div>
-              <div className="flex justify-between text-[var(--text-muted)]">
-                <span>Emendas:</span> 
-                <span className="text-violet-400">{data.emendaCount || 0} unidades</span>
-              </div>
+            <div className="flex justify-between text-[var(--text-muted)] bg-[var(--surface-glass)] p-4 rounded-lg border border-[var(--border-soft)]">
+              <span>Unidades Overloque:</span>
+              <span className="font-bold text-[var(--text-primary)]">{d.overloqueCount || 0} un</span>
             </div>
-
-            <hr className="border-[var(--border-soft)]" />
-            <div className="flex justify-between text-violet-400 font-bold text-base"><span>Custo Total Costura:</span> <span>{fmtBRL(data.sewingCost)}</span></div>
+            <div className="flex justify-between text-[var(--text-muted)] bg-[var(--surface-glass)] p-4 rounded-lg border border-[var(--border-soft)]">
+              <span>Unidades Emendadas:</span>
+              <span className="font-bold text-[var(--text-primary)]">{d.emendaCount || 0} un</span>
+            </div>
           </div>
         );
       default:
@@ -261,9 +257,9 @@ const KPISidebar = ({ activeKpi, onClose, data }) => {
           onClick={e => e.stopPropagation()}
         >
           <div className="flex items-center justify-between p-6 border-b border-[var(--border-soft)]">
-            <h3 className="text-lg font-bold text-[var(--text-primary)]">{titles[activeKpi]}</h3>
-            <button onClick={onClose} className="p-2 text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-glass)] rounded-lg transition-all">
-              <X size={20} />
+            <h3 className="text-[25px] font-extrabold text-[var(--text-primary)] tracking-tight">{titles[activeKpi] || 'Detalhes'}</h3>
+            <button onClick={onClose} className="p-3 text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-glass)] rounded-lg transition-all">
+              <X size={28} />
             </button>
           </div>
           <div className="p-6 flex-1 overflow-y-auto">
