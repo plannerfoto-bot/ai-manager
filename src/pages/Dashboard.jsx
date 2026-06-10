@@ -60,30 +60,7 @@ const Dashboard = ({ stats }) => {
     },
   ];
 
-    }
-  }, []);
 
-  // Carrega ao montar e quando os parâmetros mudarem
-  useEffect(() => {
-    fetchProfitStats(profitPeriod, profitCustomStart, profitCustomEnd, feePercent, feeFixed);
-  }, [profitPeriod, profitCustomStart, profitCustomEnd, feePercent, feeFixed, fetchProfitStats]);
-
-  const handleChangePeriod = (period, start, end) => {
-    setProfitPeriod(period);
-    if (start !== undefined) setProfitCustomStart(start || '');
-    if (end !== undefined) setProfitCustomEnd(end || '');
-  };
-
-  const handleChangeCustomDates = (start, end) => {
-    setProfitCustomStart(start);
-    setProfitCustomEnd(end);
-  };
-
-  const periodLabel = getPeriodLabel(
-    profitPeriod,
-    profitData?.startDate,
-    profitData?.endDate
-  );
 
   return (
     <div className="space-y-8">
