@@ -41,7 +41,7 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
       initial={{ x: 30, opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
       transition={{ type: 'spring', stiffness: 200, damping: 25 }}
-      className="w-64 h-screen bg-[var(--surface-glass)] border-r border-[var(--border-soft)] backdrop-blur-xl flex flex-col fixed left-0 top-0 z-50 shadow-[var(--shadow-glass)]"
+      className="w-[320px] h-screen bg-[var(--surface-glass)] border-r border-[var(--border-soft)] backdrop-blur-xl flex flex-col fixed left-0 top-0 z-50 shadow-[var(--shadow-glass)]"
     >
       <div className="p-6">
         <div className="flex items-center gap-3 mb-8">
@@ -49,8 +49,8 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
             <Sparkles size={24} />
           </div>
           <div>
-            <h1 className="text-[var(--text-primary)] font-extrabold text-xl leading-tight tracking-tight">AI Manager</h1>
-            <p className="text-[var(--text-primary)] opacity-60 text-xs font-medium">Cloth Sublimação</p>
+            <h1 className="text-[var(--text-primary)] font-extrabold text-2xl leading-tight tracking-tight">AI Manager</h1>
+            <p className="text-[var(--text-primary)] opacity-60 text-sm font-medium">Cloth Sublimação</p>
           </div>
         </div>
 
@@ -63,17 +63,17 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
               <button
                 key={item.id}
                 onClick={() => setActiveTab(item.id)}
-                className={`w-full flex items-center justify-between px-4 py-3.5 rounded-xl transition-all duration-300 group ${
+                className={`w-full flex items-center justify-between px-5 py-4 rounded-xl transition-all duration-300 group ${
                   isActive 
                     ? 'bg-[var(--accent-glow)] text-[var(--accent)]' 
                     : 'text-[var(--text-primary)] opacity-70 hover:bg-[var(--border-soft)] hover:opacity-100'
                 }`}
               >
-                <div className="flex items-center gap-3">
-                  <Icon size={22} className={isActive ? 'text-[var(--accent)]' : 'text-[var(--text-primary)] transition-colors'} />
-                  <span className={`text-[15px] ${isActive ? 'font-bold' : 'font-medium'}`}>{item.label}</span>
+                <div className="flex items-center gap-4">
+                  <Icon size={28} className={isActive ? 'text-[var(--accent)]' : 'text-[var(--text-primary)] transition-colors'} />
+                  <span className={`text-[25px] ${isActive ? 'font-bold' : 'font-medium'}`}>{item.label}</span>
                 </div>
-                {isActive && <div className="w-1.5 h-1.5 bg-[var(--accent)] rounded-full shadow-[0_0_8px_var(--accent-glow)]" />}
+                {isActive && <div className="w-2 h-2 bg-[var(--accent)] rounded-full shadow-[0_0_8px_var(--accent-glow)]" />}
               </button>
             );
           })}
@@ -84,15 +84,15 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
         {/* Toggle Theme Button */}
         <button 
           onClick={toggleTheme}
-          className="w-full flex items-center gap-3 px-4 py-3.5 text-[var(--text-primary)] opacity-70 hover:bg-[var(--border-soft)] hover:opacity-100 rounded-xl transition-all"
+          className="w-full flex items-center gap-4 px-5 py-4 text-[var(--text-primary)] opacity-70 hover:bg-[var(--border-soft)] hover:opacity-100 rounded-xl transition-all"
         >
-          {isDark ? <Sun size={22} /> : <Moon size={22} />}
-          <span className="font-medium text-[15px]">{isDark ? 'Light Mode' : 'Dark Mode'}</span>
+          {isDark ? <Sun size={28} /> : <Moon size={28} />}
+          <span className="font-medium text-[25px]">{isDark ? 'Light Mode' : 'Dark Mode'}</span>
         </button>
 
-        <button className="w-full flex items-center gap-3 px-4 py-3.5 text-[var(--text-primary)] opacity-70 hover:bg-red-500/10 hover:text-red-500 hover:opacity-100 rounded-xl transition-all">
-          <LogOut size={22} />
-          <span className="font-medium text-[15px]">Sair</span>
+        <button className="w-full flex items-center gap-4 px-5 py-4 text-[var(--text-primary)] opacity-70 hover:bg-red-500/10 hover:text-red-500 hover:opacity-100 rounded-xl transition-all">
+          <LogOut size={28} />
+          <span className="font-medium text-[25px]">Sair</span>
         </button>
       </div>
     </motion.div>

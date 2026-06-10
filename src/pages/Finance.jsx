@@ -51,8 +51,10 @@ function getPeriodLabel(period, startDate, endDate) {
   return 'Período';
 }
 
-const PeriodSelector = ({ period, onChangePeriod, customStart, customEnd, onChangeCustom }) => {
+const PeriodSelector = ({ period, onChangePeriod, customStart, customEnd }) => {
   const [showCustom, setShowCustom] = useState(false);
+  const [localStart, setLocalStart] = useState(customStart || '');
+  const [localEnd, setLocalEnd] = useState(customEnd || '');
 
   const handlePeriod = (p) => {
     if (p === 'custom') {
@@ -64,8 +66,8 @@ const PeriodSelector = ({ period, onChangePeriod, customStart, customEnd, onChan
   };
 
   const applyCustom = () => {
-    if (customStart && customEnd) {
-      onChangePeriod('custom', customStart, customEnd);
+    if (localStart && localEnd) {
+      onChangePeriod('custom', localStart, localEnd);
       setShowCustom(false);
     }
   };
@@ -89,10 +91,10 @@ const PeriodSelector = ({ period, onChangePeriod, customStart, customEnd, onChan
 
       {showCustom && (
         <div className="flex items-center gap-2 mt-2 w-full md:w-auto md:mt-0">
-          <input type="date" value={customStart} onChange={(e) => onChangeCustom(e.target.value, customEnd)} className="bg-[var(--surface-glass)] border border-[var(--border-soft)] rounded-lg px-3 py-2 text-xs text-[var(--text-primary)] focus:outline-none focus:border-indigo-500" />
+          <input type="date" value={localStart} onChange={(e) => setLocalStart(e.target.value)} className="bg-[var(--surface-glass)] border border-[var(--border-soft)] rounded-lg px-3 py-2 text-xs text-[var(--text-primary)] focus:outline-none focus:border-indigo-500" />
           <span className="text-[var(--text-muted)] text-xs">até</span>
-          <input type="date" value={customEnd} onChange={(e) => onChangeCustom(customStart, e.target.value)} className="bg-[var(--surface-glass)] border border-[var(--border-soft)] rounded-lg px-3 py-2 text-xs text-[var(--text-primary)] focus:outline-none focus:border-indigo-500" />
-          <button onClick={applyCustom} disabled={!customStart || !customEnd} className="px-4 py-2 rounded-lg text-xs font-bold btn-primary text-[var(--text-primary)] disabled:opacity-40 hover:btn-primary transition-all">Filtrar</button>
+          <input type="date" value={localEnd} onChange={(e) => setLocalEnd(e.target.value)} className="bg-[var(--surface-glass)] border border-[var(--border-soft)] rounded-lg px-3 py-2 text-xs text-[var(--text-primary)] focus:outline-none focus:border-indigo-500" />
+          <button onClick={applyCustom} disabled={!localStart || !localEnd} className="px-4 py-2 rounded-lg text-xs font-bold btn-primary text-[var(--text-primary)] disabled:opacity-40 hover:btn-primary transition-all">Filtrar</button>
         </div>
       )}
     </div>
@@ -366,7 +368,6 @@ const Finance = () => {
           onChangePeriod={handleChangePeriod}
           customStart={profitCustomStart}
           customEnd={profitCustomEnd}
-          onChangeCustom={(s, e) => { setProfitCustomStart(s); setProfitCustomEnd(e); }}
         />
       </div>
 
