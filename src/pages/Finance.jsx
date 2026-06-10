@@ -185,6 +185,11 @@ const KPISidebar = ({ activeKpi, onClose, data, extraData }) => {
         return (
           <div className="space-y-6 text-[18px]">
             <p className="text-[var(--text-muted)] text-[16px]">Custo de material gasto na confecção (120g e 160g) e consumo em metros.</p>
+            {d.minOrderNumber && d.maxOrderNumber && (
+              <div className="bg-[var(--surface-input)] border border-[var(--border-soft)] text-[var(--text-muted)] p-3 rounded-lg text-[14px]">
+                <strong className="text-[var(--text-primary)]">Pedidos analisados:</strong> do #{d.minOrderNumber} ao #{d.maxOrderNumber}
+              </div>
+            )}
             
             <div className="flex flex-col gap-2 bg-[var(--surface-glass)] p-4 rounded-lg border border-[var(--border-soft)]">
               <div className="flex justify-between text-[var(--text-muted)]">

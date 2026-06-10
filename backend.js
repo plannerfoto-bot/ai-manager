@@ -1235,7 +1235,7 @@ app.get('/api/stats', async (req, res) => {
 /**
  * Configurações de Custos Reais (Produção e Fornecedor)
  */
-const BOBINA_LARGURA = 1.50;
+const BOBINA_LARGURA = 1.57;
 
 /**
  * Detecta a gramatura a partir do nome da variante.
@@ -1523,6 +1523,16 @@ app.get('/api/profit-stats', async (req, res) => {
       shippingDetails[shipOption] = (shippingDetails[shipOption] || 0) + shippingOwner;
     }
 
+    let minOrderNumber = null;
+    let maxOrderNumber = null;
+    if (historicalOrders.length > 0) {
+      const nums = historicalOrders.map(o => parseInt(o.number, 10)).filter(n => !isNaN(n));
+      if (nums.length > 0) {
+        minOrderNumber = Math.min(...nums);
+        maxOrderNumber = Math.max(...nums);
+      }
+    }
+
     res.json({
       totalProfit: parseFloat(totalProfit.toFixed(2)),
       sewingCost: parseFloat(totalSewingCost.toFixed(2)),
@@ -1546,6 +1556,8 @@ app.get('/api/profit-stats', async (req, res) => {
       analyzedItems,
       overloqueCount: totalOverloqueCount,
       emendaCount: totalEmendaCount,
+      minOrderNumber,
+      maxOrderNumber,
       period,
       startDate,
       endDate,
