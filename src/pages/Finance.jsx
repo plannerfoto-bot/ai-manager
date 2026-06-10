@@ -326,8 +326,8 @@ const Finance = () => {
   });
 
   // --- Estados do Simulador de Projeção (Simulador 2) ---
-  const [sim2CartCount, setSim2CartCount] = useState(10);
-  const [sim2CartValue, setSim2CartValue] = useState(500);
+  const [sim2MinCartValue, setSim2MinCartValue] = useState(480);
+  const [sim2ExtraSales, setSim2ExtraSales] = useState(2);
   const [sim2Installments, setSim2Installments] = useState(3);
 
   const calculateSimulation2 = () => {
@@ -338,40 +338,61 @@ const Finance = () => {
         historyMargin = profitData.totalProfit / historyGross;
       }
     }
+
+    // 1. Cenário Real (Histórico Filtrado)
+    let historicalMatchCount = 0;
+    let historicalMatchedRevenue = 0;
     
-    const projGross = sim2CartCount * sim2CartValue;
-    const profitScenarioA = projGross * historyMargin;
-    
+    if (profitData && profitData.historicalOrders) {
+      const matches = profitData.historicalOrders.filter(o => o.total >= sim2MinCartValue);
+      historicalMatchCount = matches.length;
+      historicalMatchedRevenue = matches.reduce((sum, o) => sum + o.total, 0);
+    }
+
+    const historicalMatchedProfit = historicalMatchedRevenue * historyMargin;
+
+    // 2. Cenário Base com Promoção (Se não vendesse nenhuma a mais)
     const selectedRatePercent = simRates[sim2Installments] || 4.99;
     const baselineRate = simRates[1] || 4.99;
     const extraRate = Math.max(0, selectedRatePercent - baselineRate);
     
-    const extraFeeCost = projGross * (extraRate / 100);
-    const profitScenarioB = profitScenarioA - extraFeeCost;
+    // Custo extra caso oferecesse o parcelamento para esses mesmos pedidos reais
+    const baseExtraFeeCost = historicalMatchedRevenue * (extraRate / 100);
+    const baseNewProfit = historicalMatchedProfit - baseExtraFeeCost;
     
-    let historicalMatchCount = 0;
-    let historicalCardMatchCount = 0;
-    let historicalMatchedRevenue = 0;
-    if (profitData && profitData.historicalOrders) {
-      const matches = profitData.historicalOrders.filter(o => o.total >= sim2CartValue);
-      historicalMatchCount = matches.length;
-      historicalCardMatchCount = matches.filter(o => o.paymentMethod === 'credit_card').length;
-      historicalMatchedRevenue = matches.reduce((sum, o) => sum + o.total, 0);
+    // Break-even
+    let breakEvenSalesNeeded = 0;
+    let averageCartValue = historicalMatchCount > 0 ? (historicalMatchedRevenue / historicalMatchCount) : sim2MinCartValue;
+    if (averageCartValue === 0) averageCartValue = sim2MinCartValue || 1; // Fallback
+
+    // Lucro unitário de um pedido médio já descontando o custo do juros:
+    const profitPerAvgSaleWithPromo = (averageCartValue * historyMargin) - (averageCartValue * (extraRate / 100));
+
+    if (profitPerAvgSaleWithPromo > 0) {
+      breakEvenSalesNeeded = Math.ceil(baseExtraFeeCost / profitPerAvgSaleWithPromo);
     }
-    
-    const historicalMatchedProfit = historicalMatchedRevenue * historyMargin;
-    const profitDifference = profitScenarioB - historicalMatchedProfit;
-    const projectedTotalProfit = (profitData?.totalProfit || 0) + profitDifference;
+
+    // 3. Cenário Projetado (+ sim2ExtraSales)
+    const projectedRevenue = historicalMatchedRevenue + (sim2ExtraSales * averageCartValue);
+    const projectedExtraFeeCost = projectedRevenue * (extraRate / 100);
+    const projectedProfit = (projectedRevenue * historyMargin) - projectedExtraFeeCost;
+    const projectedProfitDifference = projectedProfit - historicalMatchedProfit;
 
     return {
-      projGross,
-      profitScenarioA,
-      extraFeeCost,
-      profitScenarioB,
       historicalMatchCount,
-      historicalCardMatchCount,
-      projectedTotalProfit,
-      profitDifference
+      historicalMatchedRevenue,
+      historicalMatchedProfit,
+      
+      baseExtraFeeCost,
+      baseNewProfit,
+      breakEvenSalesNeeded,
+      averageCartValue,
+      
+      projectedSalesCount: historicalMatchCount + sim2ExtraSales,
+      projectedRevenue,
+      projectedProfit,
+      projectedProfitDifference,
+      profitPerAvgSaleWithPromo
     };
   };
 
@@ -787,13 +808,16 @@ const Finance = () => {
             {/* Inputs Section */}
             <div className="lg:col-span-4 space-y-4">
               <div>
-                <label className="text-xs font-semibold text-[var(--text-muted)] uppercase block mb-1">Valor do Carrinho (R$)</label>
-                <input type="number" min="0" value={sim2CartValue} onChange={e => setSim2CartValue(Number(e.target.value))} className="w-full bg-[var(--surface-input)] border border-[var(--border-soft)] rounded-lg p-2 text-white font-bold outline-none" />
+                <label className="text-xs font-semibold text-[var(--text-muted)] uppercase block mb-1">Alvo da Promoção (Ticket Mín.)</label>
+                <div className="flex items-center bg-[var(--surface-input)] border border-[var(--border-soft)] rounded-lg p-2 text-white font-bold">
+                  <span className="text-[var(--text-muted)] mr-2">R$</span>
+                  <input type="number" min="0" value={sim2MinCartValue} onChange={e => setSim2MinCartValue(Number(e.target.value))} className="w-full bg-transparent outline-none" />
+                </div>
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-[var(--text-muted)] uppercase block mb-1">Quantidade de Carrinhos</label>
-                <input type="number" min="0" value={sim2CartCount} onChange={e => setSim2CartCount(Number(e.target.value))} className="w-full bg-[var(--surface-input)] border border-[var(--border-soft)] rounded-lg p-2 text-white font-bold outline-none" />
+                <label className="text-xs font-semibold text-[var(--text-muted)] uppercase block mb-1">Projeção de Novas Vendas (Qtd)</label>
+                <input type="number" min="0" value={sim2ExtraSales} onChange={e => setSim2ExtraSales(Number(e.target.value))} className="w-full bg-[var(--surface-input)] border border-[var(--border-soft)] rounded-lg p-2 text-white font-bold outline-none" />
                 
                 {sim2Results && sim2Results.historicalMatchCount !== undefined && (
                   <div 
@@ -801,15 +825,10 @@ const Finance = () => {
                     className="mt-4 p-4 bg-[var(--surface-input)]/50 border border-[var(--border-soft)] rounded-xl cursor-pointer hover:border-amber-500/50 transition-colors flex items-center justify-between group"
                   >
                     <div>
-                      <div className="text-xs font-semibold text-[var(--text-muted)] uppercase mb-1">Base Histórica</div>
+                      <div className="text-xs font-semibold text-[var(--text-muted)] uppercase mb-1">Base Histórica Encontrada</div>
                       <div className="text-[18px] font-bold text-amber-400 group-hover:text-amber-300">
-                        {sim2Results.historicalMatchCount} carrinhos <span className="text-sm text-[var(--text-muted)] font-normal ml-1">acima de {fmtBRL(sim2CartValue)}</span>
+                        {sim2Results.historicalMatchCount} carrinhos <span className="text-sm text-[var(--text-muted)] font-normal ml-1">acima de {fmtBRL(sim2MinCartValue)}</span>
                       </div>
-                      {sim2Results.historicalMatchCount > 0 && (
-                        <div className="text-xs text-[var(--text-muted)] mt-1">
-                          Sendo <strong className="text-emerald-400">{sim2Results.historicalCardMatchCount}</strong> no Cartão
-                        </div>
-                      )}
                     </div>
                     <div className="w-8 h-8 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500">
                       <ShoppingBag size={16} />
@@ -819,7 +838,7 @@ const Finance = () => {
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-[var(--text-muted)] uppercase block mb-1">Parcelas s/ Juros</label>
+                <label className="text-xs font-semibold text-[var(--text-muted)] uppercase block mb-1">Parcelas s/ Juros Oferecidas</label>
                 <select value={sim2Installments} onChange={e => setSim2Installments(Number(e.target.value))} className="w-full bg-[var(--surface-input)] border border-[var(--border-soft)] rounded-lg p-2 text-white font-bold outline-none">
                   {[1,2,3,4,5,6,7,8,9,10,11,12].map(n => <option key={n} value={n}>{n}x</option>)}
                 </select>
@@ -831,40 +850,43 @@ const Finance = () => {
               <div className="h-full rounded-2xl bg-[var(--surface-input)] border border-[var(--border-soft)] p-6">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 h-full">
                   
-                  {/* Cenario A */}
+                  {/* Cenario Real */}
                   <div className="flex flex-col h-full border-r border-[var(--border-soft)] pr-8">
-                    <h4 className="text-sm font-bold text-[var(--text-muted)] uppercase mb-4">Cenário A: Sem Juros Repassado</h4>
+                    <h4 className="text-sm font-bold text-[var(--text-muted)] uppercase mb-4">Passo 1: Sua Realidade</h4>
                     <div className="space-y-4 flex-1">
                       <div>
-                        <p className="text-xs text-[var(--text-muted)]">Faturamento Bruto</p>
-                        <p className="text-lg font-semibold text-white">{fmtBRL(sim2Results?.projGross || 0)}</p>
+                        <p className="text-xs text-[var(--text-muted)]">Faturamento ({sim2Results?.historicalMatchCount} vendas)</p>
+                        <p className="text-lg font-semibold text-white">{fmtBRL(sim2Results?.historicalMatchedRevenue || 0)}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-[var(--text-muted)]">Lucro Líquido</p>
-                        <p className="text-3xl font-black text-emerald-500/80">{fmtBRL(sim2Results?.profitScenarioA || 0)}</p>
+                        <p className="text-xs text-[var(--text-muted)]">Lucro Real Limpo</p>
+                        <p className="text-3xl font-black text-white">{fmtBRL(sim2Results?.historicalMatchedProfit || 0)}</p>
                       </div>
                     </div>
                   </div>
 
-                  {/* Cenario B */}
+                  {/* Cenario Base com Promo */}
                   <div className="flex flex-col h-full pl-2">
                     <h4 className="text-sm font-bold text-[var(--text-muted)] uppercase mb-4 flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                      Cenário B: Absorvendo {sim2Installments}x
+                      <span className="w-2 h-2 rounded-full bg-rose-500"></span>
+                      Passo 2: Custo de Oferecer {sim2Installments}x
                     </h4>
                     <div className="space-y-4 flex-1">
                       <div>
-                        <p className="text-xs text-[var(--text-muted)]">Faturamento Bruto</p>
-                        <p className="text-lg font-semibold text-white">{fmtBRL(sim2Results?.projGross || 0)}</p>
-                      </div>
-                      <div>
                         <p className="text-xs text-[var(--text-muted)]">Custo Extra dos Juros</p>
-                        <p className="text-lg font-semibold text-rose-400">-{fmtBRL(sim2Results?.extraFeeCost || 0)}</p>
+                        <p className="text-lg font-semibold text-rose-400">-{fmtBRL(sim2Results?.baseExtraFeeCost || 0)}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-[var(--text-muted)]">Lucro Líquido</p>
-                        <p className="text-3xl font-black text-emerald-500">{fmtBRL(sim2Results?.profitScenarioB || 0)}</p>
+                        <p className="text-xs text-[var(--text-muted)]">Lucro se as vendas não aumentarem</p>
+                        <p className="text-2xl font-black text-rose-400">{fmtBRL(sim2Results?.baseNewProfit || 0)}</p>
                       </div>
+                      {sim2Results?.breakEvenSalesNeeded > 0 && (
+                         <div className="mt-2 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+                           <p className="text-xs text-amber-500 font-medium">
+                             Ponto de Equilíbrio: Você precisa fazer <strong className="text-amber-400">+{sim2Results.breakEvenSalesNeeded} vendas</strong> extras para pagar esse custo.
+                           </p>
+                         </div>
+                      )}
                     </div>
                   </div>
 
@@ -874,23 +896,23 @@ const Finance = () => {
 
           </div>
 
-          {/* Impacto / Diferença vs Realidade - FULL WIDTH */}
+          {/* Passo 3: Projeção - FULL WIDTH */}
           <div className="mt-6 w-full">
-            <div className="relative overflow-hidden bg-gradient-to-br from-[var(--surface-sunken)] to-[var(--surface-card)] p-6 rounded-2xl border border-[var(--border-soft)] shadow-xl">
+            <div className={`relative overflow-hidden bg-gradient-to-br from-[var(--surface-sunken)] to-[var(--surface-card)] p-6 rounded-2xl border ${sim2Results?.projectedProfitDifference >= 0 ? 'border-emerald-500/30' : 'border-rose-500/30'} shadow-xl`}>
               
               {/* Decorative Background */}
-              <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl -mr-20 -mt-20"></div>
+              <div className={`absolute top-0 right-0 w-64 h-64 rounded-full blur-3xl -mr-20 -mt-20 ${sim2Results?.projectedProfitDifference >= 0 ? 'bg-emerald-500/5' : 'bg-rose-500/5'}`}></div>
 
               <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center gap-6">
                 
                 {/* Text Section */}
                 <div className="flex-1">
                   <h4 className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider mb-3 flex items-center gap-2">
-                    <TrendingUp size={16} className="text-emerald-500" />
-                    Projeção vs Realidade
+                    <TrendingUp size={16} className={sim2Results?.projectedProfitDifference >= 0 ? 'text-emerald-500' : 'text-rose-500'} />
+                    Passo 3: Projeção Final (Realidade + {sim2ExtraSales} novas vendas)
                   </h4>
                   <p className="text-[15px] text-[var(--text-secondary)] leading-relaxed">
-                    Se você vender <strong className="text-white bg-[var(--surface-input)] border border-[var(--border-soft)] px-2 py-0.5 rounded-md mx-1">{sim2CartCount}</strong> carrinhos no <strong className="text-white bg-[var(--surface-input)] border border-[var(--border-soft)] px-2 py-0.5 rounded-md mx-1">{sim2Installments}x sem juros</strong> em vez dos <strong className="text-white bg-[var(--surface-input)] border border-[var(--border-soft)] px-2 py-0.5 rounded-md mx-1">{sim2Results?.historicalMatchCount || 0}</strong> carrinhos reais:
+                    Se você oferecer <strong className="text-white bg-[var(--surface-input)] border border-[var(--border-soft)] px-2 py-0.5 rounded-md mx-1">{sim2Installments}x sem juros</strong> e isso te trouxer <strong className="text-white bg-[var(--surface-input)] border border-[var(--border-soft)] px-2 py-0.5 rounded-md mx-1">+{sim2ExtraSales} vendas</strong> (fechando {sim2Results?.projectedSalesCount} no total):
                   </p>
                 </div>
 
@@ -904,12 +926,12 @@ const Finance = () => {
                 <div className="flex w-full md:w-auto gap-8 justify-between md:justify-end shrink-0">
                   <div className="flex flex-col justify-center">
                     <p className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-1">Novo Lucro Líquido</p>
-                    <p className="text-2xl font-black text-white">{fmtBRL(sim2Results?.projectedTotalProfit || 0)}</p>
+                    <p className="text-2xl font-black text-white">{fmtBRL(sim2Results?.projectedProfit || 0)}</p>
                   </div>
                   <div className="flex flex-col justify-center text-right">
-                    <p className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-1">Lucro Adicional</p>
-                    <p className={`text-2xl font-black ${(sim2Results?.profitDifference || 0) >= 0 ? 'text-emerald-500 drop-shadow-[0_0_8px_rgba(16,185,129,0.3)]' : 'text-rose-500'}`}>
-                      {(sim2Results?.profitDifference || 0) >= 0 ? '+' : ''}{fmtBRL(sim2Results?.profitDifference || 0)}
+                    <p className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-1">Lucro Adicional Limpo</p>
+                    <p className={`text-2xl font-black ${(sim2Results?.projectedProfitDifference || 0) >= 0 ? 'text-emerald-500 drop-shadow-[0_0_8px_rgba(16,185,129,0.3)]' : 'text-rose-500'}`}>
+                      {(sim2Results?.projectedProfitDifference || 0) >= 0 ? '+' : ''}{fmtBRL(sim2Results?.projectedProfitDifference || 0)}
                     </p>
                   </div>
                 </div>
