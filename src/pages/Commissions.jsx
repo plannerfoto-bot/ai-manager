@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 import { DollarSign, Download, Filter, TrendingUp, Search, Calendar, FileText } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
@@ -105,32 +107,63 @@ const Commissions = () => {
     }
   };
 
-  const downloadCSV = () => {
+  const downloadPDF = () => {
     if (!report || !report.orders || report.orders.length === 0) return;
     
-    const headers = ['Pedido', 'Cliente', 'Data', 'Status', 'Qtd Produtos Colecao', 'Receita Colecao (R$)', 'Comissao Parceiro (R$)'];
-    const csvRows = [headers.join(',')];
+    const doc = new jsPDF();
+    const collectionName = categories.find(c => c.id === parseInt(selectedCategory))?.name?.pt || categories.find(c => c.id === parseInt(selectedCategory))?.name || 'Coleção';
     
+    // Título
+    doc.setFontSize(20);
+    doc.setTextColor(15, 23, 42); // slate-900
+    doc.text('Relatório de Comissões e Vendas', 14, 22);
+    
+    // Informações Gerais
+    doc.setFontSize(11);
+    doc.setTextColor(71, 85, 105); // slate-500
+    doc.text(`Coleção Analisada: ${collectionName}`, 14, 32);
+    doc.text(`Período de Vendas: ${selectedPeriod === '' ? 'Todo o período' : selectedPeriod}`, 14, 38);
+    doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}`, 14, 44);
+
+    // Resumo Financeiro
+    doc.setFontSize(14);
+    doc.setTextColor(15, 23, 42);
+    doc.text('Resumo Financeiro', 14, 56);
+    
+    doc.setFontSize(11);
+    doc.setTextColor(30, 41, 59);
+    doc.text(`Faturamento Bruto (Coleção): R$ ${report.summary.grossRevenue.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`, 14, 64);
+    doc.text(`Faturamento Líquido: R$ ${report.summary.netRevenue.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`, 14, 70);
+    doc.setTextColor(5, 150, 105); // emerald-600
+    doc.text(`Valor Total de Comissões: R$ ${report.summary.totalCommission.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`, 14, 76);
+
+    // Tabela de Pedidos
+    const tableColumn = ["Pedido", "Data", "Cliente", "Itens", "Fat. Bruto", "Comissão"];
+    const tableRows = [];
+
     report.orders.forEach(o => {
-      const row = [
+      const rowData = [
         `#${o.orderNumber}`,
-        `"${o.customerName}"`,
         new Date(o.createdAt).toLocaleDateString('pt-BR'),
-        o.status,
-        o.collectionItemsSold,
-        o.collectionRevenue.toFixed(2),
-        o.commissionValue.toFixed(2)
+        o.customerName,
+        `${o.collectionItemsSold} un.`,
+        `R$ ${o.collectionRevenue.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`,
+        `R$ ${o.commissionValue.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`
       ];
-      csvRows.push(row.join(','));
+      tableRows.push(rowData);
     });
-    
-    const csvString = csvRows.join('\n');
-    const blob = new Blob([csvString], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.setAttribute('href', url);
-    a.setAttribute('download', `relatorio_comissao_${new Date().getTime()}.csv`);
-    a.click();
+
+    doc.autoTable({
+      startY: 84,
+      head: [tableColumn],
+      body: tableRows,
+      theme: 'grid',
+      headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255], fontStyle: 'bold' },
+      styles: { fontSize: 9, cellPadding: 4 },
+      alternateRowStyles: { fillColor: [248, 250, 252] }
+    });
+
+    doc.save(`Relatorio_Comissoes_${new Date().getTime()}.pdf`);
   };
 
   return (
@@ -144,8 +177,8 @@ const Commissions = () => {
           <p className="text-slate-400 mt-1">Gerenciamento de comissões fixas para parceiros por coleção</p>
         </div>
         {report && (
-          <button onClick={downloadCSV} className="px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-700 transition-colors flex items-center gap-2">
-            <Download className="w-5 h-5" /> Exportar CSV
+          <button onClick={downloadPDF} className="px-5 py-2.5 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 shadow-lg shadow-blue-500/20">
+            <Download className="w-5 h-5" /> Exportar Relatório em PDF
           </button>
         )}
       </div>
