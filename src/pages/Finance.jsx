@@ -335,6 +335,7 @@ const Finance = () => {
   const [sim2MinCartValue, setSim2MinCartValue] = useState(480);
   const [sim2ExtraSales, setSim2ExtraSales] = useState(2);
   const [sim2Installments, setSim2Installments] = useState(3);
+  const [sim2SalesTarget, setSim2SalesTarget] = useState(200);
 
   const calculateSimulation2 = () => {
     let historyMargin = 0.25;
@@ -449,6 +450,25 @@ const Finance = () => {
 
   const simResults = calculateSimulation();
 
+  // --- Contabilidade e Impostos Dinamicos ---
+  let days = 30;
+  if (profitData?.startDate && profitData?.endDate) {
+    const s = new Date(profitData.startDate);
+    const e = new Date(profitData.endDate);
+    days = Math.ceil(Math.abs(e - s) / (1000 * 60 * 60 * 24)) || 1;
+  }
+  const accountingFixedCost = 706;
+  const analyzedItems = profitData?.analyzedItems || 1;
+  const accDynamicTotal = (accountingFixedCost / 30) * days;
+  const accDynamicPerItem = analyzedItems > 0 ? (accDynamicTotal / analyzedItems) : 0;
+  const accTargetPerItem = sim2SalesTarget > 0 ? (accountingFixedCost / sim2SalesTarget) : 0;
+  const totalTaxes = profitData?.totalTaxes || 0;
+  const averageTaxPerItem = analyzedItems > 0 ? (totalTaxes / analyzedItems) : 0;
+  
+  // O Lucro Líquido Real precisa deduzir a contabilidade (pois o backend só deduziu o imposto)
+  const finalNetProfit = profitData ? profitData.totalProfit - accDynamicTotal : 0;
+
+
   const fetchProfitStats = useCallback(async (period, start, end, fP, fF, fpP, fpF) => {
     setProfitLoading(true);
     setProfitError(null);
@@ -524,13 +544,17 @@ const Finance = () => {
         </div>
       </div>
 
-      <div className="bg-[var(--surface-glass)]/40 p-4 rounded-2xl border border-[var(--border-soft)]/60 backdrop-blur-sm">
+      <div className="bg-[var(--surface-glass)]/40 p-4 rounded-2xl border border-[var(--border-soft)]/60 backdrop-blur-sm flex flex-col md:flex-row items-center justify-between gap-4">
         <PeriodSelector
           period={profitPeriod}
           onChangePeriod={handleChangePeriod}
           customStart={profitCustomStart}
           customEnd={profitCustomEnd}
         />
+        <div className="flex items-center gap-2 bg-[var(--surface-input)] border border-[var(--border-soft)] rounded-xl p-2 px-4">
+          <label className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">Meta Vendas/Mês (Peças):</label>
+          <input type="number" value={sim2SalesTarget} onChange={e => setSim2SalesTarget(Number(e.target.value))} className="bg-transparent text-amber-400 font-bold outline-none w-16 text-right" />
+        </div>
       </div>
 
       {profitError && (
@@ -561,7 +585,7 @@ const Finance = () => {
               {profitLoading ? (
                 <div className="h-10 w-40 bg-[var(--surface-glass)]/50 rounded animate-pulse" />
               ) : (
-                <h3 className="text-4xl font-black text-[var(--text-primary)] tracking-tight">{fmtBRL(profitData?.totalProfit)}</h3>
+                <h3 className="text-4xl font-black text-[var(--text-primary)] tracking-tight">{fmtBRL(finalNetProfit)}</h3>
               )}
             </div>
             <div className="mt-6 flex items-center justify-between opacity-50 group-hover:opacity-100 transition-opacity">
@@ -581,6 +605,10 @@ const Finance = () => {
             
             <MetricCard title="Custo Bobina Fornecedor" value={fmtBRL(profitData?.productionCost)} icon={TrendingDown} color="text-[var(--text-muted)]" onClick={() => setActiveKpi('bobina')} tooltip="Estimativa do custo de tecido gasto, calculado pelo metro linear consumido pelos produtos vendidos nesse período." />
             <MetricCard title="Custo de Costureira" value={fmtBRL(profitData?.sewingCost)} icon={Scissors} color="text-violet-400" onClick={() => setActiveKpi('costura')} tooltip="O custo total de mão de obra (costureiras) referente à produção de todas as peças vendidas neste período." />
+
+            <MetricCard title="Imposto Simples (4%)" value={fmtBRL(totalTaxes)} icon={TrendingDown} color="text-rose-400" onClick={() => setActiveKpi('imposto')} tooltip={`Você pagou 4% de imposto sobre cada venda. Isso dá uma média de ${fmtBRL(averageTaxPerItem)} por peça vendida neste período.`} />
+            <MetricCard title="Contabilidade p/ Peça (Dinâmico)" value={fmtBRL(accDynamicPerItem)} icon={TrendingDown} color="text-emerald-400" onClick={() => setActiveKpi('contabil_dinamico')} tooltip={`O custo de contabilidade proporcional a esses ${days} dias (${fmtBRL(accDynamicTotal)}) foi dividido pelas ${analyzedItems} peças vendidas.`} />
+            <MetricCard title="Contabilidade p/ Peça (Meta)" value={fmtBRL(accTargetPerItem)} icon={TrendingDown} color="text-amber-400" onClick={() => setActiveKpi('contabil_meta')} tooltip={`O custo fixo de R$ 706 mensais dividido pela sua meta de ${sim2SalesTarget} peças/mês.`} />
           </div>
         </div>
       </div>
