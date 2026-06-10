@@ -324,8 +324,11 @@ const Finance = () => {
     const profitScenarioB = profitScenarioA - extraFeeCost;
     
     let historicalMatchCount = 0;
-    if (profitData && profitData.orderTotals) {
-      historicalMatchCount = profitData.orderTotals.filter(t => t >= sim2CartValue).length;
+    let historicalCardMatchCount = 0;
+    if (profitData && profitData.historicalOrders) {
+      const matches = profitData.historicalOrders.filter(o => o.total >= sim2CartValue);
+      historicalMatchCount = matches.length;
+      historicalCardMatchCount = matches.filter(o => o.paymentMethod === 'credit_card').length;
     }
 
     return {
@@ -333,7 +336,8 @@ const Finance = () => {
       profitScenarioA,
       extraFeeCost,
       profitScenarioB,
-      historicalMatchCount
+      historicalMatchCount,
+      historicalCardMatchCount
     };
   };
 
@@ -767,6 +771,11 @@ const Finance = () => {
                       <div className="text-[18px] font-bold text-amber-400 group-hover:text-amber-300">
                         {sim2Results.historicalMatchCount} carrinhos <span className="text-sm text-[var(--text-muted)] font-normal ml-1">acima de {fmtBRL(sim2CartValue)}</span>
                       </div>
+                      {sim2Results.historicalMatchCount > 0 && (
+                        <div className="text-xs text-[var(--text-muted)] mt-1">
+                          Sendo <strong className="text-emerald-400">{sim2Results.historicalCardMatchCount}</strong> no Cartão
+                        </div>
+                      )}
                     </div>
                     <div className="w-8 h-8 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500">
                       <ShoppingBag size={16} />
