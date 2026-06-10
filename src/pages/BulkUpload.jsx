@@ -53,7 +53,7 @@ const BulkUpload = ({ onSaveAll }) => {
         </div>
         <div className="flex gap-4">
           <div className="glass px-4 py-2 rounded-lg flex items-center gap-2 text-sm text-[var(--text-muted)]">
-            <Zap className="w-4 h-4 text-amber-400" /> Modo Turbo Ativo
+            <Zap className="w-4 h-4 text-amber-500" /> Modo Turbo Ativo
           </div>
         </div>
       </div>
@@ -71,7 +71,7 @@ const BulkUpload = ({ onSaveAll }) => {
           <button 
             onClick={handleBulkProcess}
             disabled={loading}
-            className="mt-6 w-full py-4 bg-primary text-[var(--text-primary)] font-bold rounded-xl hover:shadow-[0_0_30px_rgba(37,99,235,0.4)] transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+            className="mt-6 w-full py-4 btn-primary text-[var(--text-primary)] font-bold rounded-xl hover:shadow-[0_0_30px_rgba(37,99,235,0.4)] transition-all flex items-center justify-center gap-3 disabled:opacity-50"
           >
             {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : <Sparkles className="w-6 h-6" />}
             {loading ? 'Processando Inteligência AIOX...' : 'Gerar Catálogo Inteligente'}
@@ -124,7 +124,7 @@ const BulkUpload = ({ onSaveAll }) => {
                     </div>
                     <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
                       <p className="text-[10px] text-emerald-500 uppercase font-bold mb-1 italic">Score SEO IA</p>
-                      <p className="text-emerald-400 font-bold">98/100</p>
+                      <p className="text-emerald-500 font-bold">98/100</p>
                     </div>
                   </div>
                 </div>

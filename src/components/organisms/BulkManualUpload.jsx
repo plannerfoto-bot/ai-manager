@@ -86,7 +86,7 @@ const BulkManualUpload = ({ onComplete, initialData = null }) => {
   return (
     <div className="glass p-8 rounded-3xl border-primary max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-8 duration-500">
       <div className="flex items-center gap-4 mb-8">
-        <div className="p-3 bg-primary/10 rounded-2xl">
+        <div className="p-3 btn-primary/10 rounded-2xl">
           <Upload className="w-8 h-8 text-primary" />
         </div>
         <div>
@@ -101,10 +101,10 @@ const BulkManualUpload = ({ onComplete, initialData = null }) => {
 
       {initialData && (
         <div className="mb-8 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex items-start gap-4 animate-pulse-slow">
-          <Package className="w-6 h-6 text-emerald-400 shrink-0 mt-1" />
+          <Package className="w-6 h-6 text-emerald-500 shrink-0 mt-1" />
           <div>
-            <h3 className="text-emerald-400 font-bold mb-1">Modo de Replicação Ativado</h3>
-            <p className="text-emerald-400/80 text-sm">
+            <h3 className="text-emerald-500 font-bold mb-1">Modo de Replicação Ativado</h3>
+            <p className="text-emerald-500/80 text-sm">
               Clonando: <b>{baseName}</b><br/>
               Todas as variações de tamanhos, preços promocionais, peso, categorias, opções e informações de SEO serão transferidas fielmente para os produtos abaixo. 
               Você só precisa definir o <b>Nome de Exibição</b> e a <b>Foto</b> exclusiva.
@@ -147,7 +147,7 @@ const BulkManualUpload = ({ onComplete, initialData = null }) => {
               </div>
             ))}
 
-            <label className="aspect-[4/5] rounded-2xl border-2 border-dashed border-[var(--border-soft)] flex flex-col items-center justify-center cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-all group min-h-[300px]">
+            <label className="aspect-[4/5] rounded-2xl border-2 border-dashed border-[var(--border-soft)] flex flex-col items-center justify-center cursor-pointer hover:border-primary/50 hover:btn-primary/5 transition-all group min-h-[300px]">
               <Upload className="w-10 h-10 text-[var(--text-muted)] group-hover:text-primary transition-all duration-300" />
               <span className="text-sm text-[var(--text-muted)] mt-4 font-bold uppercase tracking-wide group-hover:text-primary transition-all">Mais Fotos</span>
               <input type="file" multiple accept="image/*" onChange={handleImageUpload} className="hidden" />
@@ -210,7 +210,7 @@ const BulkManualUpload = ({ onComplete, initialData = null }) => {
         {/* Status e Ação */}
         <div className="flex flex-col gap-4 pt-6 border-t border-[var(--border-soft)]">
           {status === 'success' && (
-            <div className="flex items-center gap-2 text-emerald-400 animate-in zoom-in-95 duration-300">
+            <div className="flex items-center gap-2 text-emerald-500 animate-in zoom-in-95 duration-300">
               <CheckCircle2 className="w-5 h-5" />
               <span className="font-bold">Processo de lote concluído! Produtos enviados para a loja.</span>
             </div>
@@ -233,7 +233,7 @@ const BulkManualUpload = ({ onComplete, initialData = null }) => {
             <button 
               type="submit"
               disabled={loading || items.length === 0}
-              className={`px-8 py-4 bg-primary text-[var(--text-primary)] font-black rounded-2xl flex items-center gap-3 transition-all hover:scale-105 active:scale-95 shadow-lg shadow-primary/20 disabled:grayscale disabled:opacity-50`}
+              className={`px-8 py-4 btn-primary text-[var(--text-primary)] font-black rounded-2xl flex items-center gap-3 transition-all hover:scale-105 active:scale-95 shadow-lg shadow-primary/20 disabled:grayscale disabled:opacity-50`}
             >
               {loading ? (
                 <Loader2 className="w-5 h-5 animate-spin" />

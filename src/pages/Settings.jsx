@@ -87,7 +87,7 @@ const Settings = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-[var(--text-primary)] tracking-tight flex items-center gap-3">
-            <SettingsIcon className="w-8 h-8 text-emerald-400" />
+            <SettingsIcon className="w-8 h-8 text-emerald-500" />
             Configurações do Sistema
           </h1>
           <p className="text-[var(--text-muted)] mt-1">Gerencie os custos bases de produção e taxas de comissão.</p>
@@ -121,7 +121,7 @@ const Settings = () => {
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)]">R$</span>
                 <input 
                   type="number" step="0.01" 
-                  className="w-full bg-slate-950 border border-[var(--border-soft)] rounded-xl py-3 pl-10 pr-4 text-[var(--text-primary)] focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all"
+                  className="w-full bg-[var(--surface-input)] border border-[var(--border-soft)] rounded-xl py-3 pl-10 pr-4 text-[var(--text-primary)] focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all"
                   value={settings.finance.bobina120g}
                   onChange={(e) => handleChange('finance', 'bobina120g', e.target.value)}
                 />
@@ -133,7 +133,7 @@ const Settings = () => {
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)]">R$</span>
                 <input 
                   type="number" step="0.01" 
-                  className="w-full bg-slate-950 border border-[var(--border-soft)] rounded-xl py-3 pl-10 pr-4 text-[var(--text-primary)] focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all"
+                  className="w-full bg-[var(--surface-input)] border border-[var(--border-soft)] rounded-xl py-3 pl-10 pr-4 text-[var(--text-primary)] focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all"
                   value={settings.finance.bobina160g}
                   onChange={(e) => handleChange('finance', 'bobina160g', e.target.value)}
                 />
@@ -145,7 +145,7 @@ const Settings = () => {
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)]">R$</span>
                 <input 
                   type="number" step="0.01" 
-                  className="w-full bg-slate-950 border border-[var(--border-soft)] rounded-xl py-3 pl-10 pr-4 text-[var(--text-primary)] focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all"
+                  className="w-full bg-[var(--surface-input)] border border-[var(--border-soft)] rounded-xl py-3 pl-10 pr-4 text-[var(--text-primary)] focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all"
                   value={settings.finance.bobinaEspecial}
                   onChange={(e) => handleChange('finance', 'bobinaEspecial', e.target.value)}
                 />
@@ -172,7 +172,7 @@ const Settings = () => {
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)]">R$</span>
                 <input 
                   type="number" step="0.01" 
-                  className="w-full bg-slate-950 border border-[var(--border-soft)] rounded-xl py-3 pl-10 pr-4 text-[var(--text-primary)] focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all"
+                  className="w-full bg-[var(--surface-input)] border border-[var(--border-soft)] rounded-xl py-3 pl-10 pr-4 text-[var(--text-primary)] focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all"
                   value={settings.finance.costuraOverloque}
                   onChange={(e) => handleChange('finance', 'costuraOverloque', e.target.value)}
                 />
@@ -184,7 +184,7 @@ const Settings = () => {
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)]">R$</span>
                 <input 
                   type="number" step="0.01" 
-                  className="w-full bg-slate-950 border border-[var(--border-soft)] rounded-xl py-3 pl-10 pr-4 text-[var(--text-primary)] focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all"
+                  className="w-full bg-[var(--surface-input)] border border-[var(--border-soft)] rounded-xl py-3 pl-10 pr-4 text-[var(--text-primary)] focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all"
                   value={settings.finance.costuraEmenda}
                   onChange={(e) => handleChange('finance', 'costuraEmenda', e.target.value)}
                 />
@@ -196,7 +196,7 @@ const Settings = () => {
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)]">R$</span>
                 <input 
                   type="number" step="0.01" 
-                  className="w-full bg-slate-950 border border-[var(--border-soft)] rounded-xl py-3 pl-10 pr-4 text-[var(--text-primary)] focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all"
+                  className="w-full bg-[var(--surface-input)] border border-[var(--border-soft)] rounded-xl py-3 pl-10 pr-4 text-[var(--text-primary)] focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all"
                   value={settings.finance.costuraEspecial}
                   onChange={(e) => handleChange('finance', 'costuraEspecial', e.target.value)}
                 />
@@ -210,7 +210,7 @@ const Settings = () => {
           <div className="absolute -top-10 -right-10 w-40 h-40 bg-emerald-500/10 blur-3xl rounded-full group-hover:bg-emerald-500/20 transition-all duration-500" />
           <div className="flex items-center gap-3 mb-6">
             <div className="w-10 h-10 bg-emerald-500/20 rounded-xl flex items-center justify-center">
-              <DollarSign className="w-5 h-5 text-emerald-400" />
+              <DollarSign className="w-5 h-5 text-emerald-500" />
             </div>
             <h2 className="text-xl font-bold text-[var(--text-primary)]">Taxa de Comissão (Parceiros)</h2>
           </div>
@@ -221,7 +221,7 @@ const Settings = () => {
               <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)]">R$</span>
               <input 
                 type="number" step="0.01" 
-                className="w-full bg-slate-950 border border-[var(--border-soft)] rounded-xl py-3 pl-10 pr-4 text-[var(--text-primary)] focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all"
+                className="w-full bg-[var(--surface-input)] border border-[var(--border-soft)] rounded-xl py-3 pl-10 pr-4 text-[var(--text-primary)] focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all"
                 value={settings.commissions.valorFixo}
                 onChange={(e) => handleChange('commissions', 'valorFixo', e.target.value)}
               />

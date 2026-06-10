@@ -220,7 +220,7 @@ const Marketing = () => {
                     </div>
                     
                     {/* Navegação por Abas */}
-                    <div className="flex bg-slate-950/50 p-1 rounded-2xl border border-[var(--border-soft)]/50">
+                    <div className="flex bg-[var(--surface-input)]/50 p-1 rounded-2xl border border-[var(--border-soft)]/50">
                         <TabButton id="activity" label="Atividade" icon={Monitor} />
                         <TabButton id="config" label="Configurações" icon={Settings} />
                         <TabButton id="guide" label="Guia de Ajuda" icon={HelpCircle} />
@@ -245,13 +245,13 @@ const Marketing = () => {
                                 </div>
                                 <div className="flex flex-col items-end">
                                     <span className="text-[10px] text-[var(--text-muted)] font-mono uppercase tracking-widest">Capacidade</span>
-                                    <span className="text-xs font-bold text-slate-300">25 posts / 24h</span>
+                                    <span className="text-xs font-bold text-[var(--text-muted)]">25 posts / 24h</span>
                                 </div>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {queue.length === 0 ? (
-                                    <div className="md:col-span-2 py-12 flex flex-col items-center justify-center bg-slate-950/20 rounded-2xl border border-dashed border-[var(--border-soft)]">
+                                    <div className="md:col-span-2 py-12 flex flex-col items-center justify-center bg-[var(--surface-input)]/20 rounded-2xl border border-dashed border-[var(--border-soft)]">
                                         <div className="w-12 h-12 bg-[var(--surface-glass)] rounded-full flex items-center justify-center mb-3">
                                             <CheckCircle2 size={24} className="text-slate-700" />
                                         </div>
@@ -260,7 +260,7 @@ const Marketing = () => {
                                 ) : (
                                     queue.map((job, i) => (
                                         <div key={i} className={`p-4 rounded-2xl border transition-all ${
-                                            job.status === 'failed' ? 'bg-rose-500/5 border-rose-500/20' : 'bg-slate-950/80 border-[var(--border-soft)] group hover:border-[var(--border-soft)]'
+                                            job.status === 'failed' ? 'bg-rose-500/5 border-rose-500/20' : 'bg-[var(--surface-input)]/80 border-[var(--border-soft)] group hover:border-[var(--border-soft)]'
                                         }`}>
                                             <div className="flex gap-4">
                                                 {/* Imagem do Produto */}
@@ -372,7 +372,7 @@ const Marketing = () => {
                                 <Monitor size={16} />
                                 Visão da Bio / Feed
                             </h3>
-                            <div className="max-w-md mx-auto aspect-square rounded-2xl bg-slate-950 border border-[var(--border-soft)] flex items-center justify-center relative group shadow-2xl overflow-hidden ring-1 ring-white/5">
+                            <div className="max-w-md mx-auto aspect-square rounded-2xl bg-[var(--surface-input)] border border-[var(--border-soft)] flex items-center justify-center relative group shadow-2xl overflow-hidden ring-1 ring-white/5">
                                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-60 z-10" />
                                 <Sparkles className="text-slate-800 group-hover:text-pink-500/20 transition-all" size={100} />
                                 <div className="absolute bottom-0 left-0 right-0 p-6 z-20 space-y-2">
@@ -405,7 +405,7 @@ const Marketing = () => {
                                     </div>
                                 ) : (
                                     history.map((log, i) => (
-                                        <div key={i} className="bg-slate-950/60 border border-[var(--border-soft)]/60 rounded-2xl p-4 group hover:border-[var(--border-soft)] transition-all">
+                                        <div key={i} className="bg-[var(--surface-input)]/60 border border-[var(--border-soft)]/60 rounded-2xl p-4 group hover:border-[var(--border-soft)] transition-all">
                                             <div className="flex items-center justify-between mb-3">
                                                 <div className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md ${
                                                     log.status === 'Success' ? 'bg-green-500/10 text-green-500' : 
@@ -478,7 +478,7 @@ const Marketing = () => {
                             <button
                                 onClick={handleValidate}
                                 disabled={validating || !settings.meta_token}
-                                className="bg-slate-950 hover:bg-[var(--surface-glass)] text-[var(--accent)] border border-[var(--border-soft)] px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all disabled:opacity-30 shadow-lg flex items-center gap-3"
+                                className="bg-[var(--surface-input)] hover:bg-[var(--surface-glass)] text-[var(--accent)] border border-[var(--border-soft)] px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all disabled:opacity-30 shadow-lg flex items-center gap-3"
                             >
                                 {validating ? <RefreshCw className="animate-spin" size={14} /> : <Globe size={14} />}
                                 Testar Conexão
@@ -498,7 +498,7 @@ const Marketing = () => {
                                             value={settings.meta_token}
                                             onChange={(e) => setSettings({...settings, meta_token: e.target.value})}
                                             placeholder="Token de longa duração..."
-                                            className="w-full bg-slate-950 border border-[var(--border-soft)] focus:border-indigo-500/50 focus:ring-4 focus:ring-blue-500/10 rounded-2xl py-4 pl-12 pr-4 text-[var(--text-primary)] placeholder:text-slate-700 transition-all outline-none font-mono text-sm"
+                                            className="w-full bg-[var(--surface-input)] border border-[var(--border-soft)] focus:border-indigo-500/50 focus:ring-4 focus:ring-blue-500/10 rounded-2xl py-4 pl-12 pr-4 text-[var(--text-primary)] placeholder:text-slate-700 transition-all outline-none font-mono text-sm"
                                         />
                                     </div>
                                     <p className="text-[10px] text-slate-600 italic">Dê preferência a tokens de "System User" para estabilidade.</p>
@@ -515,7 +515,7 @@ const Marketing = () => {
                                             value={settings.fb_page_id}
                                             onChange={(e) => setSettings({...settings, fb_page_id: e.target.value})}
                                             placeholder="Ex: 1239980869347062"
-                                            className="w-full bg-slate-950 border border-[var(--border-soft)] focus:border-indigo-500/50 focus:ring-4 focus:ring-blue-500/10 rounded-2xl py-4 pl-12 pr-4 text-[var(--text-primary)] placeholder:text-slate-700 transition-all outline-none text-sm"
+                                            className="w-full bg-[var(--surface-input)] border border-[var(--border-soft)] focus:border-indigo-500/50 focus:ring-4 focus:ring-blue-500/10 rounded-2xl py-4 pl-12 pr-4 text-[var(--text-primary)] placeholder:text-slate-700 transition-all outline-none text-sm"
                                         />
                                     </div>
                                 </div>
@@ -529,7 +529,7 @@ const Marketing = () => {
                                     </div>
                                     <span className="text-[10px] font-mono text-slate-600">Suporta Markdown e Emojis</span>
                                 </div>
-                                <div className="relative bg-slate-950 rounded-2xl border border-[var(--border-soft)] overflow-hidden">
+                                <div className="relative bg-[var(--surface-input)] rounded-2xl border border-[var(--border-soft)] overflow-hidden">
                                     <div className="flex gap-2 p-2 bg-[var(--surface-glass)]/50 border-b border-[var(--border-soft)] flex-wrap">
                                         <div className="px-2 py-1 bg-[var(--surface-glass)] rounded-md text-[9px] font-bold text-pink-400">{'{{product_name}}'}</div>
                                         <div className="px-2 py-1 bg-[var(--surface-glass)] rounded-md text-[9px] font-bold text-pink-400">{'{{product_price}}'}</div>
@@ -557,7 +557,7 @@ const Marketing = () => {
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
                                 {/* Webhooks Check */}
-                                <div className="bg-slate-950 border border-[var(--border-soft)] rounded-2xl p-6 space-y-4">
+                                <div className="bg-[var(--surface-input)] border border-[var(--border-soft)] rounded-2xl p-6 space-y-4">
                                     <div className="flex items-center justify-between">
                                         <h4 className="text-xs font-black text-[var(--text-muted)] uppercase tracking-widest">Gatilhos Nuvemshop</h4>
                                         <div className={`w-2 h-2 rounded-full ${webhooks.some(wh => wh.event === 'product/created') ? 'bg-green-500 animate-pulse' : 'bg-slate-700'}`} />
@@ -570,7 +570,7 @@ const Marketing = () => {
                                         <button
                                             onClick={handleRegisterWebhook}
                                             disabled={registering}
-                                            className="w-full py-3 bg-[var(--surface-glass)] hover:bg-[var(--surface-glass)] text-[var(--text-primary)] text-[10px] font-black uppercase tracking-widest rounded-xl transition-all border border-[var(--border-soft)]"
+                                            className="w-full py-3 bg-[var(--surface-glass)] hover:bg-[var(--surface-input)] text-[var(--text-primary)] text-[10px] font-black uppercase tracking-widest rounded-xl transition-all border border-[var(--border-soft)]"
                                         >
                                             {registering ? <RefreshCw className="animate-spin" size={12} /> : 'Ativar Gatilho Automático'}
                                         </button>
@@ -648,7 +648,7 @@ const Marketing = () => {
                             ].map((item, idx) => (
                                 <div key={idx} className="flex gap-8 relative">
                                     {idx < 3 && <div className="absolute top-16 left-8 w-px h-full bg-[var(--surface-glass)]" />}
-                                    <div className={`w-16 h-16 rounded-3xl bg-slate-950 border border-[var(--border-soft)] flex items-center justify-center shrink-0 z-10 ${item.color}`}>
+                                    <div className={`w-16 h-16 rounded-3xl bg-[var(--surface-input)] border border-[var(--border-soft)] flex items-center justify-center shrink-0 z-10 ${item.color}`}>
                                         <item.icon size={28} />
                                     </div>
                                     <div className="space-y-3 pt-2">
@@ -660,7 +660,7 @@ const Marketing = () => {
                                         {item.extra && (
                                             <div className="flex flex-wrap gap-2 pt-2">
                                                 {item.extra.map(p => (
-                                                    <span key={p} className="text-[9px] font-mono bg-slate-950 text-slate-600 border border-[var(--border-soft)] px-2 py-0.5 rounded">{p}</span>
+                                                    <span key={p} className="text-[9px] font-mono bg-[var(--surface-input)] text-slate-600 border border-[var(--border-soft)] px-2 py-0.5 rounded">{p}</span>
                                                 ))}
                                             </div>
                                         )}

@@ -171,13 +171,13 @@ const Commissions = () => {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-[var(--text-primary)] tracking-tight flex items-center gap-3">
-            <DollarSign className="w-8 h-8 text-emerald-400" />
+            <DollarSign className="w-8 h-8 text-emerald-500" />
             Comissões & Financeiro
           </h1>
           <p className="text-[var(--text-muted)] mt-1">Gerenciamento de comissões fixas para parceiros por coleção</p>
         </div>
         {report && (
-          <button onClick={downloadPDF} className="px-5 py-2.5 btn-primary text-[var(--text-primary)] font-semibold rounded-lg hover:bg-blue-700 transition-all flex items-center gap-2 shadow-lg shadow-blue-500/20">
+          <button onClick={downloadPDF} className="px-5 py-2.5 btn-primary text-[var(--text-inverse)] font-semibold rounded-lg hover:brightness-110 transition-all flex items-center gap-2 shadow-lg shadow-blue-500/20">
             <Download className="w-5 h-5" /> Exportar Relatório em PDF
           </button>
         )}
@@ -223,7 +223,7 @@ const Commissions = () => {
             <button 
               onClick={handleGenerateReport}
               disabled={loading}
-              className="w-full py-3 bg-primary text-[var(--text-primary)] font-bold rounded-lg hover:btn-primary transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+              className="w-full py-3 btn-primary text-[var(--text-inverse)] font-bold rounded-lg hover:brightness-110 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
             >
               {loading ? (
                 <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-white"></div>
@@ -244,8 +244,8 @@ const Commissions = () => {
               <p className="text-3xl font-black text-[var(--text-primary)]">R$ {report.summary.grossRevenue.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</p>
             </div>
             <div className="glass p-6 rounded-xl border border-emerald-900/30 bg-gradient-to-br from-emerald-950/20 to-slate-900">
-              <p className="text-emerald-400/80 text-sm font-bold uppercase mb-1">Valor da Comissão Parceiro</p>
-              <p className="text-3xl font-black text-emerald-400">R$ {report.summary.totalCommission.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</p>
+              <p className="text-emerald-500/80 text-sm font-bold uppercase mb-1">Valor da Comissão Parceiro</p>
+              <p className="text-3xl font-black text-emerald-500">R$ {report.summary.totalCommission.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</p>
               <p className="text-xs text-emerald-500/50 mt-1">R$ 50 por unidade vendida</p>
             </div>
             <div className="glass p-6 rounded-xl border border-blue-900/30 bg-gradient-to-br from-blue-950/20 to-slate-900">
@@ -290,12 +290,12 @@ const Commissions = () => {
                             {new Date(o.createdAt).toLocaleDateString('pt-BR')}
                           </div>
                         </td>
-                        <td className="px-6 py-4 text-slate-300">{o.customerName}</td>
+                        <td className="px-6 py-4 text-[var(--text-muted)]">{o.customerName}</td>
                         <td className="px-6 py-4 text-center text-[var(--accent)] font-bold">{o.collectionItemsSold} un.</td>
-                        <td className="px-6 py-4 text-right text-slate-300">
+                        <td className="px-6 py-4 text-right text-[var(--text-muted)]">
                           R$ {o.collectionRevenue.toLocaleString('pt-BR', {minimumFractionDigits:2})}
                         </td>
-                        <td className="px-6 py-4 text-right text-emerald-400 font-bold">
+                        <td className="px-6 py-4 text-right text-emerald-500 font-bold">
                           R$ {o.commissionValue.toLocaleString('pt-BR', {minimumFractionDigits:2})}
                         </td>
                       </tr>

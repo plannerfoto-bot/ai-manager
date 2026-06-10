@@ -93,7 +93,7 @@ const UnitaryRegistration = () => {
                     <p className="text-[var(--text-muted)] mt-2">Replicação inteligente de produtos com marca d'água automática.</p>
                 </div>
                 <div className="glass px-4 py-2 rounded-lg flex items-center gap-2 text-sm text-[var(--text-muted)]">
-                    <Zap className="w-4 h-4 text-amber-400" /> Inteligência Ativa
+                    <Zap className="w-4 h-4 text-amber-500" /> Inteligência Ativa
                 </div>
             </div>
 
@@ -143,7 +143,7 @@ const UnitaryRegistration = () => {
                         )}
 
                         {baseProduct && (
-                            <div className="p-4 bg-primary/10 border border-primary/30 rounded-xl flex items-center gap-4 animate-in zoom-in-95 duration-300">
+                            <div className="p-4 btn-primary/10 border border-primary/30 rounded-xl flex items-center gap-4 animate-in zoom-in-95 duration-300">
                                 <img src={baseProduct.images?.[0]?.src} className="w-16 h-16 rounded-lg object-cover bg-[var(--surface-glass)]" alt="" />
                                 <div className="flex-1">
                                     <p className="text-xs text-primary font-bold uppercase mb-1">Base Selecionada</p>
@@ -188,8 +188,8 @@ const UnitaryRegistration = () => {
                                 </>
                             ) : (
                                 <div className="text-center">
-                                    <p className="text-emerald-400 font-bold mb-2">Imagem Carregada!</p>
-                                    <p className="text-[var(--text-primary)] text-xs font-mono bg-slate-950 px-3 py-1 rounded-full border border-[var(--border-soft)]">{selectedFile.name}</p>
+                                    <p className="text-emerald-500 font-bold mb-2">Imagem Carregada!</p>
+                                    <p className="text-[var(--text-primary)] text-xs font-mono bg-[var(--surface-input)] px-3 py-1 rounded-full border border-[var(--border-soft)]">{selectedFile.name}</p>
                                 </div>
                             )}
                         </div>
@@ -214,7 +214,7 @@ const UnitaryRegistration = () => {
 
                         {previewUrl ? (
                             <div className="flex-1 flex flex-col h-full">
-                                <div className="relative rounded-xl overflow-hidden border border-[var(--border-soft)] group bg-slate-950 flex-1 flex items-center justify-center">
+                                <div className="relative rounded-xl overflow-hidden border border-[var(--border-soft)] group bg-[var(--surface-input)] flex-1 flex items-center justify-center">
                                     <img src={previewUrl} className="max-h-[300px] object-contain" alt="Preview" />
                                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center text-[var(--text-primary)] text-xs font-bold uppercase tracking-widest">
                                         Imagem Original
@@ -227,7 +227,7 @@ const UnitaryRegistration = () => {
                                     </div>
                                     <div className="flex justify-between text-sm">
                                         <span className="text-[var(--text-muted)] italic">Marca d'água:</span>
-                                        <span className="text-amber-400 font-bold">Será aplicada em grade (Tiled)</span>
+                                        <span className="text-amber-500 font-bold">Será aplicada em grade (Tiled)</span>
                                     </div>
                                 </div>
                             </div>
@@ -241,7 +241,7 @@ const UnitaryRegistration = () => {
                         <button 
                             onClick={handleRegister}
                             disabled={loading || !baseProduct || !selectedFile}
-                            className="mt-8 w-full py-5 bg-primary text-[var(--text-primary)] font-bold rounded-2xl hover:shadow-[0_0_40px_rgba(37,99,235,0.4)] transition-all flex items-center justify-center gap-3 disabled:opacity-30 disabled:cursor-not-allowed group"
+                            className="mt-8 w-full py-5 btn-primary text-[var(--text-primary)] font-bold rounded-2xl hover:shadow-[0_0_40px_rgba(37,99,235,0.4)] transition-all flex items-center justify-center gap-3 disabled:opacity-30 disabled:cursor-not-allowed group"
                         >
                             {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : <Save className="w-6 h-6 group-hover:scale-110 transition-transform" />}
                             {loading ? 'Sincronizando com Nuvemshop...' : 'Cadastrar Produto Agora'}
@@ -256,7 +256,7 @@ const UnitaryRegistration = () => {
                                 </div>
                                 <div>
                                     <h3 className="text-[var(--text-primary)] font-bold">Produto Criado!</h3>
-                                    <p className="text-emerald-400 text-xs">Sincronizado com sucesso na loja.</p>
+                                    <p className="text-emerald-500 text-xs">Sincronizado com sucesso na loja.</p>
                                 </div>
                             </div>
                             <div className="flex items-center gap-4 bg-black/20 p-3 rounded-lg">

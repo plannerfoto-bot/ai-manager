@@ -38,7 +38,7 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
 
   return (
     <motion.div 
-      initial={{ x: -100, opacity: 0 }}
+      initial={{ x: 30, opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
       transition={{ type: 'spring', stiffness: 200, damping: 25 }}
       className="w-64 h-screen bg-[var(--surface-glass)] border-r border-[var(--border-soft)] backdrop-blur-xl flex flex-col fixed left-0 top-0 z-50 shadow-[var(--shadow-glass)]"

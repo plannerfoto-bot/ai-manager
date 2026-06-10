@@ -24,8 +24,8 @@ const Orders = () => {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'paid': return 'text-emerald-400 bg-emerald-400/10';
-      case 'open': return 'text-amber-400 bg-amber-400/10';
+      case 'paid': return 'text-emerald-500 bg-emerald-400/10';
+      case 'open': return 'text-amber-500 bg-amber-400/10';
       case 'cancelled': return 'text-rose-400 bg-rose-400/10';
       default: return 'text-[var(--text-muted)] bg-slate-400/10';
     }
@@ -54,7 +54,7 @@ const Orders = () => {
               >
                 <div className="flex justify-between items-start">
                   <div className="flex gap-4">
-                    <div className="p-3 rounded-lg bg-primary/10 text-primary">
+                    <div className="p-3 rounded-lg btn-primary/10 text-primary">
                       <ShoppingBag className="w-6 h-6" />
                     </div>
                     <div>
@@ -95,7 +95,7 @@ const Orders = () => {
                     <a 
                       href={`https://wa.me/${selectedOrder.customer?.phone?.replace(/\D/g, '')}`} 
                       target="_blank"
-                      className="p-2 rounded-lg bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500 hover:text-[var(--text-primary)] transition-all"
+                      className="p-2 rounded-lg bg-emerald-500/20 text-emerald-500 hover:bg-emerald-500 hover:text-[var(--text-primary)] transition-all"
                     >
                       <Phone className="w-4 h-4" />
                     </a>
@@ -106,14 +106,14 @@ const Orders = () => {
                   <p className="text-xs text-[var(--text-muted)] uppercase font-bold px-1">Itens do Pedido</p>
                   {selectedOrder.products?.map(item => (
                     <div key={item.id} className="flex justify-between text-sm py-2 border-b border-[var(--border-soft)]/50">
-                      <span className="text-slate-300">{item.quantity}x {item.name}</span>
+                      <span className="text-[var(--text-muted)]">{item.quantity}x {item.name}</span>
                       <span className="text-[var(--text-primary)] font-bold">R$ {parseFloat(item.price).toLocaleString('pt-BR')}</span>
                     </div>
                   ))}
                 </div>
 
                 <div className="pt-4">
-                  <button className="w-full py-3 bg-primary text-[var(--text-primary)] font-bold rounded-xl hover:shadow-[0_0_20px_rgba(37,99,235,0.4)] transition-all flex items-center justify-center gap-2">
+                  <button className="w-full py-3 btn-primary text-[var(--text-primary)] font-bold rounded-xl hover:shadow-[0_0_20px_rgba(37,99,235,0.4)] transition-all flex items-center justify-center gap-2">
                     <CheckCircle className="w-5 h-5" /> Iniciar Follow-up AIOX
                   </button>
                 </div>

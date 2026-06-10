@@ -130,7 +130,7 @@ const Inventory = ({ products = [], total = 0, page = 1, loading, onDelete, onRe
           {viewMode === 'list' && (
             <button 
               onClick={handleCreateNew}
-              className="px-6 py-3 bg-primary text-[var(--text-primary)] font-black rounded-2xl flex items-center gap-2 hover:scale-105 active:scale-95 transition-all shadow-lg shadow-primary/20"
+              className="px-6 py-3 btn-primary text-[var(--text-primary)] font-black rounded-2xl flex items-center gap-2 hover:scale-105 active:scale-95 transition-all shadow-lg shadow-primary/20"
             >
               <PlusCircle className="w-5 h-5" /> CADASTRAR EM LOTE
             </button>
@@ -138,7 +138,7 @@ const Inventory = ({ products = [], total = 0, page = 1, loading, onDelete, onRe
           {viewMode === 'create' && (
             <button 
               onClick={() => setViewMode('list')}
-              className="px-6 py-3 bg-[var(--surface-glass)] text-[var(--text-primary)] font-black rounded-2xl flex items-center gap-2 hover:bg-slate-700 transition-all"
+              className="px-6 py-3 bg-[var(--surface-input)] text-[var(--text-primary)] font-black rounded-2xl flex items-center gap-2 hover:bg-slate-700 transition-all"
             >
               <LayoutGrid className="w-5 h-5" /> VOLTAR PARA LISTA
             </button>
@@ -186,7 +186,7 @@ const Inventory = ({ products = [], total = 0, page = 1, loading, onDelete, onRe
                         <div 
                           key={product.id} 
                           onClick={() => setSelectedProduct(product)}
-                          className={`glass p-4 rounded-2xl border-[var(--border-soft)] hover:border-primary/50 transition-all cursor-pointer group ${selectedProduct?.id === product.id ? 'border-primary ring-1 ring-primary/30 bg-primary/5' : ''}`}
+                          className={`glass p-4 rounded-2xl border-[var(--border-soft)] hover:border-primary/50 transition-all cursor-pointer group ${selectedProduct?.id === product.id ? 'border-primary ring-1 ring-primary/30 btn-primary/5' : ''}`}
                         >
                           <div className="flex gap-4 text-left">
                             <div className="w-20 h-20 rounded-xl bg-[var(--surface-glass)] overflow-hidden flex-shrink-0 border border-[var(--border-soft)]">
@@ -223,14 +223,14 @@ const Inventory = ({ products = [], total = 0, page = 1, loading, onDelete, onRe
                         <button 
                           disabled={page <= 1 || loading}
                           onClick={() => handlePageChange(page - 1)}
-                          className="px-4 py-2 bg-[var(--surface-glass)] text-[var(--text-primary)] rounded-lg disabled:opacity-30 hover:bg-slate-700 transition-all"
+                          className="px-4 py-2 bg-[var(--surface-input)] text-[var(--text-primary)] rounded-lg disabled:opacity-30 hover:bg-slate-700 transition-all"
                         >
                           Anterior
                         </button>
                         <button 
                           disabled={products.length < 24 || page * 24 >= total || loading}
                           onClick={() => handlePageChange(page + 1)}
-                          className="px-4 py-2 bg-[var(--surface-glass)] text-[var(--text-primary)] rounded-lg disabled:opacity-30 hover:bg-slate-700 transition-all"
+                          className="px-4 py-2 bg-[var(--surface-input)] text-[var(--text-primary)] rounded-lg disabled:opacity-30 hover:bg-slate-700 transition-all"
                         >
                           Próximo
                         </button>
@@ -324,14 +324,14 @@ const Inventory = ({ products = [], total = 0, page = 1, loading, onDelete, onRe
                             href={getText(selectedProduct.canonical_url)} 
                             target="_blank" 
                             rel="noreferrer"
-                            className="flex-1 py-3 bg-[var(--surface-glass)] text-[var(--text-primary)] font-bold rounded-xl hover:bg-slate-700 transition-all flex items-center justify-center gap-2 border border-[var(--border-soft)]"
+                            className="flex-1 py-3 bg-[var(--surface-input)] text-[var(--text-primary)] font-bold rounded-xl hover:bg-slate-700 transition-all flex items-center justify-center gap-2 border border-[var(--border-soft)]"
                           >
                             <ExternalLink className="w-4 h-4" /> VER NA LOJA
                           </a>
                           
                           <button 
                             onClick={handleDuplicate}
-                            className="flex-[1.5] py-3 bg-primary/10 text-primary font-bold rounded-xl hover:bg-primary hover:text-[var(--text-primary)] transition-all flex items-center justify-center gap-2 border border-primary/30"
+                            className="flex-[1.5] py-3 btn-primary/10 text-primary font-bold rounded-xl hover:btn-primary hover:text-[var(--text-primary)] transition-all flex items-center justify-center gap-2 border border-primary/30"
                           >
                             <PlusCircle className="w-5 h-5" /> REPLICAR PARA LOTE
                           </button>
@@ -390,7 +390,7 @@ const Inventory = ({ products = [], total = 0, page = 1, loading, onDelete, onRe
                 value={igCaption}
                 onChange={(e) => setIgCaption(e.target.value)}
                 rows={7}
-                className="w-full bg-slate-950 border border-[var(--border-soft)] focus:border-pink-500/50 focus:ring-4 focus:ring-pink-500/10 rounded-2xl py-3 px-4 text-[var(--text-primary)] text-sm font-mono leading-relaxed resize-none outline-none transition-all"
+                className="w-full bg-[var(--surface-input)] border border-[var(--border-soft)] focus:border-pink-500/50 focus:ring-4 focus:ring-pink-500/10 rounded-2xl py-3 px-4 text-[var(--text-primary)] text-sm font-mono leading-relaxed resize-none outline-none transition-all"
                 placeholder="Digite a legenda aqui..."
               />
               <p className="text-[11px] text-slate-600 italic">Esta legenda é usada no <b className="text-[var(--text-muted)]">Feed</b>. O Story usa apenas o link do produto.</p>

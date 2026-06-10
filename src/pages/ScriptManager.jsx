@@ -92,7 +92,7 @@ const ScriptManager = ({ storeId, apiBase }) => {
         
         {/* Painel de Controle */}
         <div className="md:col-span-1 space-y-6">
-          <div className="bg-slate-950 p-6 rounded-3xl border border-[var(--border-soft)] space-y-6">
+          <div className="bg-[var(--surface-input)] p-6 rounded-3xl border border-[var(--border-soft)] space-y-6">
             <div>
               <label className="text-xs text-[var(--text-muted)] uppercase font-black mb-3 block">Calculadora Ativa</label>
               <button
@@ -148,7 +148,7 @@ const ScriptManager = ({ storeId, apiBase }) => {
                 {scriptStatus.success ? (
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                      <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                      <CheckCircle className="w-4 h-4 text-emerald-500 flex-shrink-0" />
                       <span>Calculadora ativa na sua loja!</span>
                     </div>
                     <a href={scriptStatus.scriptUrl} target="_blank" rel="noopener noreferrer"
@@ -172,7 +172,7 @@ const ScriptManager = ({ storeId, apiBase }) => {
         <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="bg-[var(--surface-glass)]/40 p-8 rounded-[2rem] border border-[var(--border-soft)] hover:border-indigo-500/20 transition-all group">
             <div className="w-12 h-12 bg-emerald-500/10 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-              <ShieldCheck className="w-6 h-6 text-emerald-400" />
+              <ShieldCheck className="w-6 h-6 text-emerald-500" />
             </div>
             <h3 className="text-lg font-black text-[var(--text-primary)] mb-2">Segurança OAuth</h3>
             <p className="text-sm text-[var(--text-muted)] leading-relaxed font-medium">
@@ -192,7 +192,7 @@ const ScriptManager = ({ storeId, apiBase }) => {
 
           <div className="sm:col-span-2 bg-gradient-to-r from-blue-600/10 to-transparent p-8 rounded-[2rem] border border-indigo-500/10">
             <h3 className="text-sm font-black text-[var(--accent)] uppercase tracking-widest mb-2">Como funciona o Novo Modelo</h3>
-            <p className="text-sm text-slate-300 leading-relaxed font-medium">
+            <p className="text-sm text-[var(--text-muted)] leading-relaxed font-medium">
               Diferente do método antigo (FTP), o <b>Modelo Nativo</b> injeta uma ponte inteligente. 
               Isso significa que você tem controle total aqui no painel e estabilidade total na sua loja.
             </p>

@@ -13,9 +13,11 @@
   color-scheme: light;
   --bg-main: #F5F5F7;
   --surface-glass: rgba(255, 255, 255, 0.65);
+  --surface-input: #FFFFFF;
   --border-soft: rgba(0, 0, 0, 0.06);
   --text-primary: #1D1D1F;
   --text-muted: #86868B;
+  --text-inverse: #FFFFFF;
   --accent: #0066CC;
   --accent-glow: rgba(0, 102, 204, 0.15);
   --easing-smooth: cubic-bezier(0.16, 1, 0.3, 1);
@@ -27,9 +29,11 @@ html.dark {
   color-scheme: dark;
   --bg-main: #050506;
   --surface-glass: rgba(255, 255, 255, 0.04);
+  --surface-input: rgba(0, 0, 0, 0.2);
   --border-soft: rgba(255, 255, 255, 0.08);
   --text-primary: #EDEDEF;
   --text-muted: #8A8F98;
+  --text-inverse: #1D1D1F;
   --accent: #5E6AD2;
   --accent-glow: rgba(94, 106, 210, 0.2);
   --shadow-glass: 0 8px 32px rgba(0, 0, 0, 0.3);

@@ -100,7 +100,7 @@ const PeriodSelector = ({ period, onChangePeriod, customStart, customEnd, onChan
 
 const MetricCard = ({ title, value, icon: Icon, color, onClick }) => (
   <div onClick={onClick} className="p-5 rounded-2xl bg-[var(--surface-glass)]/50 border border-[var(--border-soft)] flex items-center gap-4 cursor-pointer hover:bg-[var(--surface-glass)]/80 hover:border-[var(--border-soft)] transition-all duration-300 hover:scale-[1.02]">
-    <div className={`p-3 rounded-xl bg-slate-950 border border-[var(--border-soft)]/50 ${color}`}>
+    <div className={`p-3 rounded-xl bg-[var(--surface-input)] border border-[var(--border-soft)]/50 ${color}`}>
       <Icon size={24} />
     </div>
     <div>
@@ -120,13 +120,13 @@ const KPISidebar = ({ activeKpi, onClose, data }) => {
       case 'lucro':
         return (
           <div className="space-y-4 text-sm">
-            <div className="flex justify-between text-slate-300"><span>Receita Total (Bruta):</span> <span>{fmtBRL(data.totalProfit + data.gatewayFeeTotal + data.shippingOwnerTotal + data.productionCost + data.sewingCost)}</span></div>
+            <div className="flex justify-between text-[var(--text-muted)]"><span>Receita Total (Bruta):</span> <span>{fmtBRL(data.totalProfit + data.gatewayFeeTotal + data.shippingOwnerTotal + data.productionCost + data.sewingCost)}</span></div>
             <div className="flex justify-between text-rose-400"><span>- Custo Produção:</span> <span>{fmtBRL(data.productionCost)}</span></div>
             <div className="flex justify-between text-violet-400"><span>- Custo Costura:</span> <span>{fmtBRL(data.sewingCost)}</span></div>
             <div className="flex justify-between text-orange-400"><span>- Transportadoras:</span> <span>{fmtBRL(data.shippingOwnerTotal)}</span></div>
-            <div className="flex justify-between text-amber-400"><span>- Taxas Nuvem Pago:</span> <span>{fmtBRL(data.gatewayFeeTotal)}</span></div>
+            <div className="flex justify-between text-amber-500"><span>- Taxas Nuvem Pago:</span> <span>{fmtBRL(data.gatewayFeeTotal)}</span></div>
             <hr className="border-[var(--border-soft)]" />
-            <div className="flex justify-between text-emerald-400 font-bold text-base"><span>Lucro Líquido Real:</span> <span>{fmtBRL(data.totalProfit)}</span></div>
+            <div className="flex justify-between text-emerald-500 font-bold text-base"><span>Lucro Líquido Real:</span> <span>{fmtBRL(data.totalProfit)}</span></div>
           </div>
         );
       case 'frete_cliente':
@@ -144,7 +144,7 @@ const KPISidebar = ({ activeKpi, onClose, data }) => {
             <p className="text-[var(--text-muted)]">Custo real pago para as transportadoras (inclui fretes grátis que saíram do seu bolso).</p>
             <div className="space-y-2 mt-4">
               {Object.entries(data.shippingDetails || {}).map(([name, val]) => (
-                <div key={name} className="flex justify-between text-slate-300 bg-[var(--surface-glass)] p-2 rounded border border-[var(--border-soft)]">
+                <div key={name} className="flex justify-between text-[var(--text-muted)] bg-[var(--surface-glass)] p-2 rounded border border-[var(--border-soft)]">
                   <span>{name}</span>
                   <span className="font-medium text-orange-400">{fmtBRL(val)}</span>
                 </div>
@@ -158,8 +158,8 @@ const KPISidebar = ({ activeKpi, onClose, data }) => {
         return (
           <div className="space-y-4 text-sm">
             <p className="text-[var(--text-muted)]">Análise de ROI sobre o subsídio de Frete Grátis.</p>
-            <div className="flex justify-between text-slate-300"><span>Prejuízo bancado (Bolso):</span> <span className="text-red-500 font-medium">-{fmtBRL(data.freeShippingCost)}</span></div>
-            <div className="flex justify-between text-slate-300"><span>Lucro Líquido nestas vendas:</span> <span className="text-emerald-400 font-medium">{fmtBRL(data.profitFromFreeShipping)}</span></div>
+            <div className="flex justify-between text-[var(--text-muted)]"><span>Prejuízo bancado (Bolso):</span> <span className="text-red-500 font-medium">-{fmtBRL(data.freeShippingCost)}</span></div>
+            <div className="flex justify-between text-[var(--text-muted)]"><span>Lucro Líquido nestas vendas:</span> <span className="text-emerald-500 font-medium">{fmtBRL(data.profitFromFreeShipping)}</span></div>
             <div className="mt-4 p-3 bg-[var(--surface-glass)] rounded border border-[var(--border-soft)]">
               <p className="text-xs text-[var(--text-muted)]">O retorno final (Lucro - Prejuízo) nestas vendas específicas foi de <strong className="text-[var(--text-primary)]">{fmtBRL(data.profitFromFreeShipping - data.freeShippingCost)}</strong>.</p>
             </div>
@@ -169,16 +169,16 @@ const KPISidebar = ({ activeKpi, onClose, data }) => {
         return (
           <div className="space-y-4 text-sm">
             <p className="text-[var(--text-muted)]">Divisão dos custos cobrados pelo Nuvem Pago.</p>
-            <div className="flex justify-between text-slate-300 bg-[var(--surface-glass)] p-3 rounded border border-[var(--border-soft)]">
+            <div className="flex justify-between text-[var(--text-muted)] bg-[var(--surface-glass)] p-3 rounded border border-[var(--border-soft)]">
               <span>Cartão de Crédito</span>
-              <span className="text-amber-400 font-medium">{fmtBRL(data.gatewayFeeCard)}</span>
+              <span className="text-amber-500 font-medium">{fmtBRL(data.gatewayFeeCard)}</span>
             </div>
-            <div className="flex justify-between text-slate-300 bg-[var(--surface-glass)] p-3 rounded border border-[var(--border-soft)]">
+            <div className="flex justify-between text-[var(--text-muted)] bg-[var(--surface-glass)] p-3 rounded border border-[var(--border-soft)]">
               <span>Pix</span>
-              <span className="text-amber-400 font-medium">{fmtBRL(data.gatewayFeePix)}</span>
+              <span className="text-amber-500 font-medium">{fmtBRL(data.gatewayFeePix)}</span>
             </div>
             <hr className="border-[var(--border-soft)]" />
-            <div className="flex justify-between text-amber-400 font-bold text-base"><span>Total de Taxas:</span> <span>{fmtBRL(data.gatewayFeeTotal)}</span></div>
+            <div className="flex justify-between text-amber-500 font-bold text-base"><span>Total de Taxas:</span> <span>{fmtBRL(data.gatewayFeeTotal)}</span></div>
           </div>
         );
       case 'bobina':
@@ -188,15 +188,15 @@ const KPISidebar = ({ activeKpi, onClose, data }) => {
             
             <div className="p-3 bg-[var(--surface-glass)] rounded-lg border border-[var(--border-soft)] space-y-2">
               <h4 className="font-bold text-[var(--text-primary)] mb-2">Tecido 120g</h4>
-              <div className="flex justify-between text-slate-300"><span>Metros Lineares:</span> <span>{data.meters120g?.toFixed(2)} m</span></div>
-              <div className="flex justify-between text-slate-300"><span>Metros Quadrados (Especiais):</span> <span>{data.m2120g?.toFixed(2)} m²</span></div>
-              <div className="flex justify-between text-slate-300 font-medium pt-2 border-t border-[var(--border-soft)]"><span>Custo Financeiro:</span> <span className="text-slate-300">{fmtBRL(data.productionCost120g)}</span></div>
+              <div className="flex justify-between text-[var(--text-muted)]"><span>Metros Lineares:</span> <span>{data.meters120g?.toFixed(2)} m</span></div>
+              <div className="flex justify-between text-[var(--text-muted)]"><span>Metros Quadrados (Especiais):</span> <span>{data.m2120g?.toFixed(2)} m²</span></div>
+              <div className="flex justify-between text-[var(--text-muted)] font-medium pt-2 border-t border-[var(--border-soft)]"><span>Custo Financeiro:</span> <span className="text-[var(--text-muted)]">{fmtBRL(data.productionCost120g)}</span></div>
             </div>
 
             <div className="p-3 bg-[var(--surface-glass)] rounded-lg border border-[var(--border-soft)] space-y-2">
               <h4 className="font-bold text-[var(--text-primary)] mb-2">Tecido 160g</h4>
-              <div className="flex justify-between text-slate-300"><span>Metros Lineares:</span> <span>{data.meters160g?.toFixed(2)} m</span></div>
-              <div className="flex justify-between text-slate-300 font-medium pt-2 border-t border-[var(--border-soft)]"><span>Custo Financeiro:</span> <span className="text-slate-300">{fmtBRL(data.productionCost160g)}</span></div>
+              <div className="flex justify-between text-[var(--text-muted)]"><span>Metros Lineares:</span> <span>{data.meters160g?.toFixed(2)} m</span></div>
+              <div className="flex justify-between text-[var(--text-muted)] font-medium pt-2 border-t border-[var(--border-soft)]"><span>Custo Financeiro:</span> <span className="text-[var(--text-muted)]">{fmtBRL(data.productionCost160g)}</span></div>
             </div>
 
             <hr className="border-[var(--border-soft)]" />
@@ -207,18 +207,18 @@ const KPISidebar = ({ activeKpi, onClose, data }) => {
         return (
           <div className="space-y-4 text-sm">
             <p className="text-[var(--text-muted)]">Total repassado para a costureira baseado nos painéis analisados.</p>
-            <div className="flex justify-between text-slate-300 bg-[var(--surface-glass)] p-3 rounded border border-[var(--border-soft)]">
+            <div className="flex justify-between text-[var(--text-muted)] bg-[var(--surface-glass)] p-3 rounded border border-[var(--border-soft)]">
               <span>Painéis / Unidades Produzidas:</span>
               <span className="text-violet-400 font-bold">{data.analyzedItems} unidades</span>
             </div>
             
             <div className="p-3 bg-[var(--surface-glass)] rounded-lg border border-[var(--border-soft)] space-y-2">
               <h4 className="font-bold text-[var(--text-primary)] mb-2">Detalhamento por Tipo</h4>
-              <div className="flex justify-between text-slate-300">
+              <div className="flex justify-between text-[var(--text-muted)]">
                 <span>Overloque (Padrão):</span> 
                 <span className="text-violet-400">{data.overloqueCount || 0} unidades</span>
               </div>
-              <div className="flex justify-between text-slate-300">
+              <div className="flex justify-between text-[var(--text-muted)]">
                 <span>Emendas:</span> 
                 <span className="text-violet-400">{data.emendaCount || 0} unidades</span>
               </div>
@@ -245,7 +245,7 @@ const KPISidebar = ({ activeKpi, onClose, data }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm transition-opacity" onClick={onClose}>
-      <div className="w-full max-w-md h-full bg-slate-950 border-l border-[var(--border-soft)] shadow-2xl flex flex-col transform transition-transform" onClick={e => e.stopPropagation()}>
+      <div className="w-full max-w-md h-full bg-[var(--surface-input)] border-l border-[var(--border-soft)] shadow-2xl flex flex-col transform transition-transform" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between p-6 border-b border-[var(--border-soft)]">
           <h3 className="text-lg font-bold text-[var(--text-primary)]">{titles[activeKpi]}</h3>
           <button onClick={onClose} className="p-2 text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-glass)] rounded-lg transition-all">
@@ -373,13 +373,13 @@ const Finance = () => {
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Card Principal: Lucro Líquido */}
-          <div onClick={() => setActiveKpi('lucro')} className="md:col-span-1 rounded-3xl bg-gradient-to-br from-emerald-900/40 via-slate-900 to-slate-950 border border-emerald-500/20 p-6 flex flex-col justify-between relative overflow-hidden group cursor-pointer hover:scale-[1.02] hover:border-emerald-500/40 transition-all duration-300">
+          <div onClick={() => setActiveKpi('lucro')} className="md:col-span-1 rounded-3xl glass-panel bg-emerald-500/5 border border-emerald-500/20 p-6 flex flex-col justify-between relative overflow-hidden group cursor-pointer hover:scale-[1.02] hover:border-emerald-500/40 transition-all duration-300">
             <div className="absolute -top-10 -right-10 w-40 h-40 bg-emerald-500/10 blur-3xl rounded-full group-hover:bg-emerald-500/30 transition-all duration-500" />
             <div>
               <div className="w-12 h-12 bg-emerald-500/10 rounded-2xl flex items-center justify-center mb-6">
-                <TrendingUp className="text-emerald-400" size={24} />
+                <TrendingUp className="text-emerald-500" size={24} />
               </div>
-              <p className="text-sm font-semibold text-emerald-400/80 uppercase tracking-wider mb-2">Lucro Líquido Real</p>
+              <p className="text-sm font-semibold text-emerald-500/80 uppercase tracking-wider mb-2">Lucro Líquido Real</p>
               {profitLoading ? (
                 <div className="h-10 w-40 bg-[var(--surface-glass)]/50 rounded animate-pulse" />
               ) : (
@@ -387,9 +387,9 @@ const Finance = () => {
               )}
             </div>
             <div className="mt-6 flex items-center justify-between opacity-50 group-hover:opacity-100 transition-opacity">
-              <span className="text-xs text-emerald-400/70 font-medium uppercase">Clique para detalhar</span>
+              <span className="text-xs text-emerald-500/70 font-medium uppercase">Clique para detalhar</span>
               <div className="w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                <Plus size={14} className="text-emerald-400" />
+                <Plus size={14} className="text-emerald-500" />
               </div>
             </div>
           </div>
@@ -399,9 +399,9 @@ const Finance = () => {
             <MetricCard title="Custo Real Transportadoras" value={fmtBRL(profitData?.shippingOwnerTotal)} icon={Truck} color="text-orange-400" onClick={() => setActiveKpi('frete_real')} />
             
             <MetricCard title="Subsídio de Frete Grátis" value={fmtBRL(profitData?.freeShippingCost)} icon={TrendingDown} color="text-red-500" onClick={() => setActiveKpi('frete_gratis')} />
-            <MetricCard title="Taxas Nuvem Pago" value={fmtBRL(profitData?.gatewayFeeTotal)} icon={CreditCard} color="text-amber-400" onClick={() => setActiveKpi('taxas')} />
+            <MetricCard title="Taxas Nuvem Pago" value={fmtBRL(profitData?.gatewayFeeTotal)} icon={CreditCard} color="text-amber-500" onClick={() => setActiveKpi('taxas')} />
             
-            <MetricCard title="Custo Bobina Fornecedor" value={fmtBRL(profitData?.productionCost)} icon={TrendingDown} color="text-slate-300" onClick={() => setActiveKpi('bobina')} />
+            <MetricCard title="Custo Bobina Fornecedor" value={fmtBRL(profitData?.productionCost)} icon={TrendingDown} color="text-[var(--text-muted)]" onClick={() => setActiveKpi('bobina')} />
             <MetricCard title="Custo de Costureira" value={fmtBRL(profitData?.sewingCost)} icon={Scissors} color="text-violet-400" onClick={() => setActiveKpi('costura')} />
           </div>
         </div>
@@ -424,10 +424,10 @@ const Finance = () => {
                <div className="h-20 bg-[var(--surface-glass)]/50 rounded-xl animate-pulse" />
             ) : Object.keys(profitData?.shippingDetails || {}).length > 0 ? (
               Object.entries(profitData.shippingDetails).map(([method, amount], i) => (
-                <div key={i} className="flex items-center justify-between p-4 rounded-xl bg-slate-950/50 border border-[var(--border-soft)]/50">
+                <div key={i} className="flex items-center justify-between p-4 rounded-xl bg-[var(--surface-input)]/50 border border-[var(--border-soft)]/50">
                   <div className="flex items-center gap-3">
                     <span className="w-2 h-2 rounded-full btn-primary" />
-                    <span className="text-sm font-medium text-slate-300">{method.toUpperCase()}</span>
+                    <span className="text-sm font-medium text-[var(--text-muted)]">{method.toUpperCase()}</span>
                   </div>
                   <span className="text-sm font-bold text-[var(--text-primary)]">{fmtBRL(amount)}</span>
                 </div>
@@ -442,7 +442,7 @@ const Finance = () => {
         <div className="rounded-2xl border border-[var(--border-soft)] bg-[var(--surface-glass)]/50 p-6 flex flex-col">
           <div className="flex items-center gap-3 mb-6">
             <div className="p-2 bg-emerald-500/10 rounded-lg">
-              <ShoppingBag className="w-5 h-5 text-emerald-400" />
+              <ShoppingBag className="w-5 h-5 text-emerald-500" />
             </div>
             <h3 className="text-lg font-bold text-[var(--text-primary)]">Consumo de Insumos</h3>
           </div>
@@ -457,7 +457,7 @@ const Finance = () => {
                     <span className="text-[var(--text-muted)] font-medium">Metro Linear (120g)</span>
                     <span className="text-[var(--text-primary)] font-bold">{profitData?.meters120g || 0} m</span>
                   </div>
-                  <div className="h-2 w-full bg-slate-950 rounded-full overflow-hidden">
+                  <div className="h-2 w-full bg-[var(--surface-input)] rounded-full overflow-hidden">
                     <div className="h-full btn-primary rounded-full" style={{ width: '60%' }} />
                   </div>
                 </div>
@@ -467,7 +467,7 @@ const Finance = () => {
                     <span className="text-[var(--text-muted)] font-medium">Metro Linear (160g)</span>
                     <span className="text-[var(--text-primary)] font-bold">{profitData?.meters160g || 0} m</span>
                   </div>
-                  <div className="h-2 w-full bg-slate-950 rounded-full overflow-hidden">
+                  <div className="h-2 w-full bg-[var(--surface-input)] rounded-full overflow-hidden">
                     <div className="h-full bg-emerald-500 rounded-full" style={{ width: '40%' }} />
                   </div>
                 </div>
@@ -475,9 +475,9 @@ const Finance = () => {
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span className="text-[var(--text-muted)] font-medium">Painéis Especiais (120g ≥ 1.70m)</span>
-                    <span className="text-amber-400 font-bold">{profitData?.m2120g || 0} m²</span>
+                    <span className="text-amber-500 font-bold">{profitData?.m2120g || 0} m²</span>
                   </div>
-                  <div className="h-2 w-full bg-slate-950 rounded-full overflow-hidden">
+                  <div className="h-2 w-full bg-[var(--surface-input)] rounded-full overflow-hidden">
                     <div className="h-full bg-amber-500 rounded-full" style={{ width: '25%' }} />
                   </div>
                   <p className="text-xs text-[var(--text-muted)] pt-1">Custo unitário m²: R$ 24,90</p>
