@@ -316,11 +316,17 @@ const Finance = () => {
     const extraFeeCost = projGross * (extraRate / 100);
     const profitScenarioB = profitScenarioA - extraFeeCost;
     
+    let historicalMatchCount = 0;
+    if (profitData && profitData.orderTotals) {
+      historicalMatchCount = profitData.orderTotals.filter(t => t >= sim2CartValue).length;
+    }
+
     return {
       projGross,
       profitScenarioA,
       extraFeeCost,
-      profitScenarioB
+      profitScenarioB,
+      historicalMatchCount
     };
   };
 
@@ -743,6 +749,11 @@ const Finance = () => {
               <div>
                 <label className="text-xs font-semibold text-[var(--text-muted)] uppercase block mb-1">Quantidade de Carrinhos</label>
                 <input type="number" min="0" value={sim2CartCount} onChange={e => setSim2CartCount(Number(e.target.value))} className="w-full bg-[var(--surface-input)] border border-[var(--border-soft)] rounded-lg p-2 text-white font-bold outline-none" />
+                {sim2Results && sim2Results.historicalMatchCount !== undefined && (
+                  <div className="text-xs text-[var(--text-muted)] mt-2">
+                    <span className="text-amber-400 font-bold">{sim2Results.historicalMatchCount}</span> carrinhos no período atual atingiram este valor ou mais.
+                  </div>
+                )}
               </div>
 
               <div>
