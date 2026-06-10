@@ -243,7 +243,7 @@ const Finance = () => {
             <MetricCard title="Fretes Pagos pelo Cliente" value={fmtBRL(profitData?.shippingCustomerTotal || profitData?.shippingTotal)} icon={Truck} color="text-rose-400" trend="Valor cobrado na loja" />
             <MetricCard title="Custo Real Transportadoras" value={fmtBRL(profitData?.shippingOwnerTotal)} icon={Truck} color="text-orange-400" trend="Todos os fretes somados" />
             
-            <MetricCard title="Subsídio de Frete Grátis" value={fmtBRL(profitData?.freeShippingCost)} icon={TrendingDown} color="text-red-500" trend="Saiu do próprio bolso" />
+            <MetricCard title="Subsídio de Frete Grátis" value={fmtBRL(profitData?.freeShippingCost)} icon={TrendingDown} color="text-red-500" trend={`Lucro nestas vendas: ${fmtBRL(profitData?.profitFromFreeShipping)}`} />
             <MetricCard title="Taxas Nuvem Pago" value={fmtBRL(profitData?.gatewayFeeTotal)} icon={CreditCard} color="text-amber-400" trend="Pix e Cartão somados" />
             
             <MetricCard title="Custo Bobina Fornecedor" value={fmtBRL(profitData?.productionCost)} icon={TrendingDown} color="text-slate-300" trend="Metro linear + m²" />

@@ -1409,6 +1409,7 @@ app.get('/api/profit-stats', async (req, res) => {
     let totalShippingCustomer = 0;
     let totalShippingOwner = 0;
     let totalFreeShippingCost = 0;
+    let totalProfitFromFreeShipping = 0;
     let totalGatewayFee = 0;
     let totalMeters120g = 0;
     let totalMeters160g = 0;
@@ -1460,6 +1461,9 @@ app.get('/api/profit-stats', async (req, res) => {
       const orderProfit = orderTotal - gatewayFee - shippingOwner - orderProdCost - orderSewingCost;
 
       totalProfit += orderProfit;
+      if (outOfPocketShipping > 0) {
+        totalProfitFromFreeShipping += orderProfit;
+      }
 
       // Agrupamento de frete (custo real pago à transportadora)
       const shipOption = order.shipping_option || 'Desconhecido';
@@ -1474,6 +1478,7 @@ app.get('/api/profit-stats', async (req, res) => {
       shippingCustomerTotal: parseFloat(totalShippingCustomer.toFixed(2)),
       shippingOwnerTotal: parseFloat(totalShippingOwner.toFixed(2)),
       freeShippingCost: parseFloat(totalFreeShippingCost.toFixed(2)),
+      profitFromFreeShipping: parseFloat(totalProfitFromFreeShipping.toFixed(2)),
       gatewayFeeTotal: parseFloat(totalGatewayFee.toFixed(2)),
       meters120g: parseFloat(totalMeters120g.toFixed(2)),
       meters160g: parseFloat(totalMeters160g.toFixed(2)),
