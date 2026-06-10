@@ -1341,9 +1341,11 @@ app.get('/api/profit-stats', async (req, res) => {
   const client = await getApiClient(storeId);
 
   try {
-    const { period = 'current_month', start, end, feePercent = 0, feeFixed = 0 } = req.query;
+    const { period = 'current_month', start, end, feePercent = 0, feeFixed = 0, feePixPercent = 0, feePixFixed = 0 } = req.query;
     const feeP = parseFloat(feePercent) || 0;
     const feeF = parseFloat(feeFixed) || 0;
+    const feePixP = parseFloat(feePixPercent) || 0;
+    const feePixF = parseFloat(feePixFixed) || 0;
 
     // Calcular datas do período no fuso de São Paulo
     const now = new Date();
@@ -1361,7 +1363,7 @@ app.get('/api/profit-stats', async (req, res) => {
       endDate = end;
     } else if (period === 'semana') {
       const min = new Date(brtNow);
-      min.setDate(brtNow.getDate() - 7);
+      min.setDate(brtNow.getDate() - brtNow.getDay()); // Domingo da semana atual
       startDate = min.toISOString().split('T')[0];
       endDate = brtNow.toISOString().split('T')[0];
     } else if (period === 'quinzena') {
@@ -1435,7 +1437,14 @@ app.get('/api/profit-stats', async (req, res) => {
       // Cálculos financeiros do pedido
       const orderTotal = parseFloat(order.total || 0);
       const shippingCustomer = parseFloat(order.shipping_cost_customer || order.shipping || 0);
-      const gatewayFee = (orderTotal * (feeP / 100)) + feeF;
+      
+      const isPix = order.payment_details && order.payment_details.method === 'pix';
+      let gatewayFee = 0;
+      if (isPix) {
+        gatewayFee = (orderTotal * (feePixP / 100)) + feePixF;
+      } else {
+        gatewayFee = (orderTotal * (feeP / 100)) + feeF;
+      }
 
       totalShippingCustomer += shippingCustomer;
       totalGatewayFee += gatewayFee;

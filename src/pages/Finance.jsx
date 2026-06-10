@@ -120,12 +120,14 @@ const Finance = () => {
   const [profitError, setProfitError] = useState(null);
   const [feePercent, setFeePercent] = useState(4.79);
   const [feeFixed, setFeeFixed] = useState(0.30);
+  const [feePixPercent, setFeePixPercent] = useState(0.00);
+  const [feePixFixed, setFeePixFixed] = useState(0.99);
 
-  const fetchProfitStats = useCallback(async (period, start, end, fP, fF) => {
+  const fetchProfitStats = useCallback(async (period, start, end, fP, fF, fpP, fpF) => {
     setProfitLoading(true);
     setProfitError(null);
     try {
-      const params = { period, feePercent: fP, feeFixed: fF };
+      const params = { period, feePercent: fP, feeFixed: fF, feePixPercent: fpP, feePixFixed: fpF };
       if (period === 'custom' && start && end) {
         params.start = start;
         params.end = end;
@@ -140,8 +142,8 @@ const Finance = () => {
   }, []);
 
   useEffect(() => {
-    fetchProfitStats(profitPeriod, profitCustomStart, profitCustomEnd, feePercent, feeFixed);
-  }, [profitPeriod, profitCustomStart, profitCustomEnd, feePercent, feeFixed, fetchProfitStats]);
+    fetchProfitStats(profitPeriod, profitCustomStart, profitCustomEnd, feePercent, feeFixed, feePixPercent, feePixFixed);
+  }, [profitPeriod, profitCustomStart, profitCustomEnd, feePercent, feeFixed, feePixPercent, feePixFixed, fetchProfitStats]);
 
   const handleChangePeriod = (period, start, end) => {
     setProfitPeriod(period);
@@ -162,18 +164,30 @@ const Finance = () => {
         </div>
         
         <div className="flex flex-col sm:flex-row gap-4 items-end">
+          
+          {/* TAXA PIX */}
           <div className="flex flex-col gap-1 w-full sm:w-auto">
-            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider ml-1">Taxa Nuvem Pago</label>
-            <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 rounded-xl p-1.5 h-10">
-              <input type="number" step="0.01" value={feePercent} onChange={e => setFeePercent(e.target.value)} className="bg-transparent text-white px-2 w-14 text-sm font-medium outline-none text-right" />
-              <span className="text-slate-500 text-sm">% + R$</span>
-              <input type="number" step="0.01" value={feeFixed} onChange={e => setFeeFixed(e.target.value)} className="bg-transparent text-white px-2 w-14 text-sm font-medium outline-none text-right" />
+            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider ml-1">Taxa Pix</label>
+            <div className="flex items-center gap-1 bg-slate-900 border border-slate-800 rounded-xl p-1.5 h-10">
+              <input type="number" step="0.01" value={feePixPercent} onChange={e => setFeePixPercent(e.target.value)} className="bg-transparent text-white px-1 w-12 text-sm font-medium outline-none text-right" />
+              <span className="text-slate-500 text-xs">% + R$</span>
+              <input type="number" step="0.01" value={feePixFixed} onChange={e => setFeePixFixed(e.target.value)} className="bg-transparent text-white px-1 w-12 text-sm font-medium outline-none text-right" />
+            </div>
+          </div>
+
+          {/* TAXA CARTÃO */}
+          <div className="flex flex-col gap-1 w-full sm:w-auto">
+            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider ml-1">Taxa Cartão</label>
+            <div className="flex items-center gap-1 bg-slate-900 border border-slate-800 rounded-xl p-1.5 h-10">
+              <input type="number" step="0.01" value={feePercent} onChange={e => setFeePercent(e.target.value)} className="bg-transparent text-white px-1 w-12 text-sm font-medium outline-none text-right" />
+              <span className="text-slate-500 text-xs">% + R$</span>
+              <input type="number" step="0.01" value={feeFixed} onChange={e => setFeeFixed(e.target.value)} className="bg-transparent text-white px-1 w-12 text-sm font-medium outline-none text-right" />
             </div>
           </div>
           
           <div className="flex gap-2">
             <button
-              onClick={() => fetchProfitStats(profitPeriod, profitCustomStart, profitCustomEnd, feePercent, feeFixed)}
+              onClick={() => fetchProfitStats(profitPeriod, profitCustomStart, profitCustomEnd, feePercent, feeFixed, feePixPercent, feePixFixed)}
               disabled={profitLoading}
               className="h-10 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-medium transition-colors flex items-center gap-2 disabled:opacity-50"
             >
@@ -227,7 +241,7 @@ const Finance = () => {
 
           <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
             <MetricCard title="Custo de Frete Cliente" value={fmtBRL(profitData?.shippingTotal)} icon={Truck} color="text-rose-400" trend="Total repassado" />
-            <MetricCard title="Taxas Nuvem Pago" value={fmtBRL(profitData?.gatewayFeeTotal)} icon={CreditCard} color="text-amber-400" trend={`${feePercent}% + R$ ${parseFloat(feeFixed).toFixed(2)}`} />
+            <MetricCard title="Taxas Nuvem Pago" value={fmtBRL(profitData?.gatewayFeeTotal)} icon={CreditCard} color="text-amber-400" trend="Pix e Cartão somados" />
             <MetricCard title="Custo Bobina Fornecedor" value={fmtBRL(profitData?.productionCost)} icon={TrendingDown} color="text-slate-300" trend="Metro linear + m²" />
             <MetricCard title="Custo de Costureira" value={fmtBRL(profitData?.sewingCost)} icon={Scissors} color="text-violet-400" trend={`${profitData?.analyzedItems ?? 0} painéis`} />
           </div>
