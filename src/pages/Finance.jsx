@@ -286,6 +286,7 @@ const Finance = () => {
   // --- Estados do Simulador ---
   const [simCardAdoption, setSimCardAdoption] = useState(100); // 100% como padrão (editável)
   const [simMaxInstallments, setSimMaxInstallments] = useState(1);
+  const [simIgnoreFreeShipping, setSimIgnoreFreeShipping] = useState(false);
   const [simRates, setSimRates] = useState({
     1: 4.99, 2: 5.59, 3: 6.29, 4: 6.99, 5: 7.69, 6: 8.39,
     7: 9.29, 8: 10.19, 9: 11.09, 10: 11.99, 11: 12.89, 12: 13.79
@@ -293,8 +294,16 @@ const Finance = () => {
 
   const calculateSimulation = () => {
     if (!profitData) return null;
+    
     // Lucro Limpo Original
-    const originalProfit = profitData.totalProfit;
+    let originalProfit = profitData.totalProfit;
+    let extraProfit = 0;
+    
+    // Se remover o custo de frete grátis, o lucro simulado aumenta, pois o lojista não teria tido esse gasto
+    if (simIgnoreFreeShipping && profitData.freeShippingCost) {
+      extraProfit = profitData.freeShippingCost;
+      originalProfit += extraProfit;
+    }
     
     // Receita total que será considerada no cartão no simulador
     // Pode ser que você venda x bruto, vamos simular que "simCardAdoption" % desse bruto vai pro cartão
@@ -540,6 +549,7 @@ const Finance = () => {
             )}
           </div>
         </div>
+      </div>
 
         {/* 🔥 SESSÃO 3: SIMULADOR DE PARCELAMENTO SEM JUROS 🔥 */}
         <div className="mt-6 rounded-2xl border border-[var(--border-soft)] bg-[var(--surface-glass)]/50 p-6 flex flex-col">
@@ -584,6 +594,24 @@ const Finance = () => {
                 </select>
                 <p className="text-xs text-[var(--text-muted)] mt-2">
                   A simulação usará a taxa equivalente a {simMaxInstallments}x da Nuvem Shop: <strong className="text-[var(--text-primary)]">{simRates[simMaxInstallments]}%</strong>.
+                </p>
+              </div>
+
+              <div>
+                <label className="text-sm font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-2 block">
+                  Configurações Adicionais
+                </label>
+                <div 
+                  onClick={() => setSimIgnoreFreeShipping(!simIgnoreFreeShipping)}
+                  className="flex items-center justify-between bg-[var(--surface-input)] border border-[var(--border-soft)] rounded-xl p-3 cursor-pointer hover:border-[var(--accent)] transition-colors"
+                >
+                  <span className="text-sm font-bold text-[var(--text-primary)]">Remover custo de Frete Grátis</span>
+                  <div className={`w-10 h-5 rounded-full relative transition-colors ${simIgnoreFreeShipping ? 'bg-emerald-500' : 'bg-[var(--border-soft)]'}`}>
+                    <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${simIgnoreFreeShipping ? 'left-5.5 right-0.5' : 'left-0.5'}`} />
+                  </div>
+                </div>
+                <p className="text-xs text-[var(--text-muted)] mt-2 leading-relaxed">
+                  Mostra como o lucro ficaria se você não tivesse oferecido e pago frete grátis nessas vendas.
                 </p>
               </div>
             </div>
@@ -658,7 +686,6 @@ const Finance = () => {
           </div>
         </div>
 
-        </div>
         <AnimatePresence>
           {activeKpi && <KPISidebar activeKpi={activeKpi} onClose={() => setActiveKpi(null)} data={profitData} />}
         </AnimatePresence>
