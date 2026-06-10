@@ -867,12 +867,14 @@ const Finance = () => {
                       </div>
                     </div>
                   </div>
+
+                </div>
               </div>
             </div>
 
           </div>
 
-          {/* Impacto / Diferença vs Realidade - NOW FULL WIDTH */}
+          {/* Impacto / Diferença vs Realidade - FULL WIDTH */}
           <div className="mt-6 w-full">
             <div className="relative overflow-hidden bg-gradient-to-br from-[var(--surface-sunken)] to-[var(--surface-card)] p-6 rounded-2xl border border-[var(--border-soft)] shadow-xl">
               
