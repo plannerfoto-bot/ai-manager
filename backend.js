@@ -1415,6 +1415,8 @@ app.get('/api/profit-stats', async (req, res) => {
     let totalFreeShippingCost = 0;
     let totalProfitFromFreeShipping = 0;
     let totalGatewayFee = 0;
+    let totalGatewayFeePix = 0;
+    let totalGatewayFeeCard = 0;
     let totalMeters120g = 0;
     let totalMeters160g = 0;
     let totalM2120g = 0;
@@ -1452,8 +1454,10 @@ app.get('/api/profit-stats', async (req, res) => {
       let gatewayFee = 0;
       if (isPix) {
         gatewayFee = (orderTotal * (feePixP / 100)) + feePixF;
+        totalGatewayFeePix += gatewayFee;
       } else {
         gatewayFee = (orderTotal * (feeP / 100)) + feeF;
+        totalGatewayFeeCard += gatewayFee;
       }
 
       totalShippingCustomer += shippingCustomer;
@@ -1488,6 +1492,8 @@ app.get('/api/profit-stats', async (req, res) => {
       freeShippingCost: parseFloat(totalFreeShippingCost.toFixed(2)),
       profitFromFreeShipping: parseFloat(totalProfitFromFreeShipping.toFixed(2)),
       gatewayFeeTotal: parseFloat(totalGatewayFee.toFixed(2)),
+      gatewayFeePix: parseFloat(totalGatewayFeePix.toFixed(2)),
+      gatewayFeeCard: parseFloat(totalGatewayFeeCard.toFixed(2)),
       meters120g: parseFloat(totalMeters120g.toFixed(2)),
       meters160g: parseFloat(totalMeters160g.toFixed(2)),
       m2120g: parseFloat(totalM2120g.toFixed(2)),

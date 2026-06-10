@@ -12,8 +12,10 @@ import {
   AlertCircle,
   ShoppingBag,
   CreditCard,
+  Plus,
   Truck,
-  Activity
+  Activity,
+  X
 } from 'lucide-react';
 
 const API_BASE_URL = window.location.hostname === 'localhost'
@@ -96,8 +98,8 @@ const PeriodSelector = ({ period, onChangePeriod, customStart, customEnd, onChan
   );
 };
 
-const MetricCard = ({ title, value, icon: Icon, color, trend }) => (
-  <div className="p-5 rounded-2xl bg-slate-900/50 border border-slate-800 flex items-center gap-4">
+const MetricCard = ({ title, value, icon: Icon, color, onClick }) => (
+  <div onClick={onClick} className="p-5 rounded-2xl bg-slate-900/50 border border-slate-800 flex items-center gap-4 cursor-pointer hover:bg-slate-800/80 hover:border-slate-700 transition-all duration-300 hover:scale-[1.02]">
     <div className={`p-3 rounded-xl bg-slate-950 border border-slate-800/50 ${color}`}>
       <Icon size={24} />
     </div>
@@ -105,11 +107,145 @@ const MetricCard = ({ title, value, icon: Icon, color, trend }) => (
       <p className="text-sm font-medium text-slate-400">{title}</p>
       <div className="flex items-end gap-2">
         <h4 className="text-2xl font-bold text-white tracking-tight">{value}</h4>
-        {trend && <span className="text-xs font-medium text-slate-500 mb-1">{trend}</span>}
       </div>
     </div>
   </div>
 );
+
+const KPISidebar = ({ activeKpi, onClose, data }) => {
+  if (!activeKpi || !data) return null;
+
+  const renderContent = () => {
+    switch (activeKpi) {
+      case 'lucro':
+        return (
+          <div className="space-y-4 text-sm">
+            <div className="flex justify-between text-slate-300"><span>Receita Total (Bruta):</span> <span>{fmtBRL(data.totalProfit + data.gatewayFeeTotal + data.shippingOwnerTotal + data.productionCost + data.sewingCost)}</span></div>
+            <div className="flex justify-between text-rose-400"><span>- Custo Produção:</span> <span>{fmtBRL(data.productionCost)}</span></div>
+            <div className="flex justify-between text-violet-400"><span>- Custo Costura:</span> <span>{fmtBRL(data.sewingCost)}</span></div>
+            <div className="flex justify-between text-orange-400"><span>- Transportadoras:</span> <span>{fmtBRL(data.shippingOwnerTotal)}</span></div>
+            <div className="flex justify-between text-amber-400"><span>- Taxas Nuvem Pago:</span> <span>{fmtBRL(data.gatewayFeeTotal)}</span></div>
+            <hr className="border-slate-800" />
+            <div className="flex justify-between text-emerald-400 font-bold text-base"><span>Lucro Líquido Real:</span> <span>{fmtBRL(data.totalProfit)}</span></div>
+          </div>
+        );
+      case 'frete_cliente':
+        return (
+          <div className="space-y-4 text-sm">
+            <p className="text-slate-400">Este é o valor total exato que os seus clientes pagaram de frete no checkout da loja.</p>
+            <div className="p-4 bg-slate-900 rounded-lg border border-slate-800 text-center">
+              <span className="text-2xl font-bold text-rose-400">{fmtBRL(data.shippingCustomerTotal)}</span>
+            </div>
+          </div>
+        );
+      case 'frete_real':
+        return (
+          <div className="space-y-4 text-sm">
+            <p className="text-slate-400">Custo real pago para as transportadoras (inclui fretes grátis que saíram do seu bolso).</p>
+            <div className="space-y-2 mt-4">
+              {Object.entries(data.shippingDetails || {}).map(([name, val]) => (
+                <div key={name} className="flex justify-between text-slate-300 bg-slate-900 p-2 rounded border border-slate-800">
+                  <span>{name}</span>
+                  <span className="font-medium text-orange-400">{fmtBRL(val)}</span>
+                </div>
+              ))}
+            </div>
+            <hr className="border-slate-800" />
+            <div className="flex justify-between text-orange-400 font-bold text-base"><span>Total Pago:</span> <span>{fmtBRL(data.shippingOwnerTotal)}</span></div>
+          </div>
+        );
+      case 'frete_gratis':
+        return (
+          <div className="space-y-4 text-sm">
+            <p className="text-slate-400">Análise de ROI sobre o subsídio de Frete Grátis.</p>
+            <div className="flex justify-between text-slate-300"><span>Prejuízo bancado (Bolso):</span> <span className="text-red-500 font-medium">-{fmtBRL(data.freeShippingCost)}</span></div>
+            <div className="flex justify-between text-slate-300"><span>Lucro Líquido nestas vendas:</span> <span className="text-emerald-400 font-medium">{fmtBRL(data.profitFromFreeShipping)}</span></div>
+            <div className="mt-4 p-3 bg-slate-900 rounded border border-slate-800">
+              <p className="text-xs text-slate-400">O retorno final (Lucro - Prejuízo) nestas vendas específicas foi de <strong className="text-white">{fmtBRL(data.profitFromFreeShipping - data.freeShippingCost)}</strong>.</p>
+            </div>
+          </div>
+        );
+      case 'taxas':
+        return (
+          <div className="space-y-4 text-sm">
+            <p className="text-slate-400">Divisão dos custos cobrados pelo Nuvem Pago.</p>
+            <div className="flex justify-between text-slate-300 bg-slate-900 p-3 rounded border border-slate-800">
+              <span>Cartão de Crédito</span>
+              <span className="text-amber-400 font-medium">{fmtBRL(data.gatewayFeeCard)}</span>
+            </div>
+            <div className="flex justify-between text-slate-300 bg-slate-900 p-3 rounded border border-slate-800">
+              <span>Pix</span>
+              <span className="text-amber-400 font-medium">{fmtBRL(data.gatewayFeePix)}</span>
+            </div>
+            <hr className="border-slate-800" />
+            <div className="flex justify-between text-amber-400 font-bold text-base"><span>Total de Taxas:</span> <span>{fmtBRL(data.gatewayFeeTotal)}</span></div>
+          </div>
+        );
+      case 'bobina':
+        return (
+          <div className="space-y-4 text-sm">
+            <p className="text-slate-400">Consumo e custo da matéria prima separados por gramatura.</p>
+            
+            <div className="p-3 bg-slate-900 rounded-lg border border-slate-800 space-y-2">
+              <h4 className="font-bold text-white mb-2">Tecido 120g</h4>
+              <div className="flex justify-between text-slate-300"><span>Metros Lineares:</span> <span>{data.meters120g?.toFixed(2)} m</span></div>
+              <div className="flex justify-between text-slate-300"><span>Metros Quadrados (Especiais):</span> <span>{data.m2120g?.toFixed(2)} m²</span></div>
+              <div className="flex justify-between text-slate-300 font-medium pt-2 border-t border-slate-800"><span>Custo Financeiro:</span> <span className="text-slate-300">{fmtBRL(data.productionCost120g)}</span></div>
+            </div>
+
+            <div className="p-3 bg-slate-900 rounded-lg border border-slate-800 space-y-2">
+              <h4 className="font-bold text-white mb-2">Tecido 160g</h4>
+              <div className="flex justify-between text-slate-300"><span>Metros Lineares:</span> <span>{data.meters160g?.toFixed(2)} m</span></div>
+              <div className="flex justify-between text-slate-300 font-medium pt-2 border-t border-slate-800"><span>Custo Financeiro:</span> <span className="text-slate-300">{fmtBRL(data.productionCost160g)}</span></div>
+            </div>
+
+            <hr className="border-slate-800" />
+            <div className="flex justify-between text-white font-bold text-base"><span>Custo Total:</span> <span>{fmtBRL(data.productionCost)}</span></div>
+          </div>
+        );
+      case 'costura':
+        return (
+          <div className="space-y-4 text-sm">
+            <p className="text-slate-400">Total repassado para a costureira baseado nos painéis analisados.</p>
+            <div className="flex justify-between text-slate-300 bg-slate-900 p-3 rounded border border-slate-800">
+              <span>Painéis / Unidades Produzidas:</span>
+              <span className="text-violet-400 font-bold">{data.analyzedItems} unidades</span>
+            </div>
+            <hr className="border-slate-800" />
+            <div className="flex justify-between text-violet-400 font-bold text-base"><span>Custo Total Costura:</span> <span>{fmtBRL(data.sewingCost)}</span></div>
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
+
+  const titles = {
+    lucro: 'Detalhamento: Lucro Líquido',
+    frete_cliente: 'Fretes Pagos (Cliente)',
+    frete_real: 'Custo Real (Transportadoras)',
+    frete_gratis: 'Análise de Subsídio (Frete)',
+    taxas: 'Taxas Operacionais (Nuvem Pago)',
+    bobina: 'Custos de Matéria Prima',
+    costura: 'Custos de Costura'
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm transition-opacity" onClick={onClose}>
+      <div className="w-full max-w-md h-full bg-slate-950 border-l border-slate-800 shadow-2xl flex flex-col transform transition-transform" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between p-6 border-b border-slate-800">
+          <h3 className="text-lg font-bold text-white">{titles[activeKpi]}</h3>
+          <button onClick={onClose} className="p-2 text-slate-400 hover:text-white hover:bg-slate-900 rounded-lg transition-colors">
+            <X size={20} />
+          </button>
+        </div>
+        <div className="p-6 flex-1 overflow-y-auto">
+          {renderContent()}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const Finance = () => {
   const [profitPeriod, setProfitPeriod] = useState('current_month');
@@ -122,6 +258,7 @@ const Finance = () => {
   const [feeFixed, setFeeFixed] = useState(0.35);
   const [feePixPercent, setFeePixPercent] = useState(0.99);
   const [feePixFixed, setFeePixFixed] = useState(0.00);
+  const [activeKpi, setActiveKpi] = useState(null);
 
   const fetchProfitStats = useCallback(async (period, start, end, fP, fF, fpP, fpF) => {
     setProfitLoading(true);
@@ -223,8 +360,8 @@ const Finance = () => {
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Card Principal: Lucro Líquido */}
-          <div className="md:col-span-1 rounded-3xl bg-gradient-to-br from-emerald-900/40 via-slate-900 to-slate-950 border border-emerald-500/20 p-6 flex flex-col justify-between relative overflow-hidden group">
-            <div className="absolute -top-10 -right-10 w-40 h-40 bg-emerald-500/10 blur-3xl rounded-full group-hover:bg-emerald-500/20 transition-all duration-500" />
+          <div onClick={() => setActiveKpi('lucro')} className="md:col-span-1 rounded-3xl bg-gradient-to-br from-emerald-900/40 via-slate-900 to-slate-950 border border-emerald-500/20 p-6 flex flex-col justify-between relative overflow-hidden group cursor-pointer hover:scale-[1.02] hover:border-emerald-500/40 transition-all duration-300">
+            <div className="absolute -top-10 -right-10 w-40 h-40 bg-emerald-500/10 blur-3xl rounded-full group-hover:bg-emerald-500/30 transition-all duration-500" />
             <div>
               <div className="w-12 h-12 bg-emerald-500/10 rounded-2xl flex items-center justify-center mb-6">
                 <TrendingUp className="text-emerald-400" size={24} />
@@ -236,18 +373,23 @@ const Finance = () => {
                 <h3 className="text-4xl font-black text-white tracking-tight">{fmtBRL(profitData?.totalProfit)}</h3>
               )}
             </div>
-            <p className="text-xs text-slate-500 mt-6 font-medium">Após deduzir taxas, fretes e insumos.</p>
+            <div className="mt-6 flex items-center justify-between opacity-50 group-hover:opacity-100 transition-opacity">
+              <span className="text-xs text-emerald-400/70 font-medium uppercase">Clique para detalhar</span>
+              <div className="w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                <Plus size={14} className="text-emerald-400" />
+              </div>
+            </div>
           </div>
 
           <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <MetricCard title="Fretes Pagos pelo Cliente" value={fmtBRL(profitData?.shippingCustomerTotal || profitData?.shippingTotal)} icon={Truck} color="text-rose-400" trend="Valor cobrado na loja" />
-            <MetricCard title="Custo Real Transportadoras" value={fmtBRL(profitData?.shippingOwnerTotal)} icon={Truck} color="text-orange-400" trend="Todos os fretes somados" />
+            <MetricCard title="Fretes Pagos pelo Cliente" value={fmtBRL(profitData?.shippingCustomerTotal || profitData?.shippingTotal)} icon={Truck} color="text-rose-400" onClick={() => setActiveKpi('frete_cliente')} />
+            <MetricCard title="Custo Real Transportadoras" value={fmtBRL(profitData?.shippingOwnerTotal)} icon={Truck} color="text-orange-400" onClick={() => setActiveKpi('frete_real')} />
             
-            <MetricCard title="Subsídio de Frete Grátis" value={fmtBRL(profitData?.freeShippingCost)} icon={TrendingDown} color="text-red-500" trend={`Lucro nestas vendas: ${fmtBRL(profitData?.profitFromFreeShipping)}`} />
-            <MetricCard title="Taxas Nuvem Pago" value={fmtBRL(profitData?.gatewayFeeTotal)} icon={CreditCard} color="text-amber-400" trend="Pix e Cartão somados" />
+            <MetricCard title="Subsídio de Frete Grátis" value={fmtBRL(profitData?.freeShippingCost)} icon={TrendingDown} color="text-red-500" onClick={() => setActiveKpi('frete_gratis')} />
+            <MetricCard title="Taxas Nuvem Pago" value={fmtBRL(profitData?.gatewayFeeTotal)} icon={CreditCard} color="text-amber-400" onClick={() => setActiveKpi('taxas')} />
             
-            <MetricCard title="Custo Bobina Fornecedor" value={fmtBRL(profitData?.productionCost)} icon={TrendingDown} color="text-slate-300" trend={`120g: ${fmtBRL(profitData?.productionCost120g)} | 160g: ${fmtBRL(profitData?.productionCost160g)}`} />
-            <MetricCard title="Custo de Costureira" value={fmtBRL(profitData?.sewingCost)} icon={Scissors} color="text-violet-400" trend={`${profitData?.analyzedItems ?? 0} painéis`} />
+            <MetricCard title="Custo Bobina Fornecedor" value={fmtBRL(profitData?.productionCost)} icon={TrendingDown} color="text-slate-300" onClick={() => setActiveKpi('bobina')} />
+            <MetricCard title="Custo de Costureira" value={fmtBRL(profitData?.sewingCost)} icon={Scissors} color="text-violet-400" onClick={() => setActiveKpi('costura')} />
           </div>
         </div>
       </div>
@@ -333,6 +475,7 @@ const Finance = () => {
         </div>
 
       </div>
+      <KPISidebar activeKpi={activeKpi} onClose={() => setActiveKpi(null)} data={profitData} />
     </div>
   );
 };
