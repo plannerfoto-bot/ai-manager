@@ -1514,8 +1514,18 @@ app.get('/api/categories', async (req, res) => {
   const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
   const client = await getApiClient(storeId);
   try {
-    const response = await client.get('/categories');
-    res.json(response.data);
+    let allCats = [];
+    let page = 1;
+    let hasMore = true;
+    while(hasMore) {
+      const response = await client.get('/categories', { params: { per_page: 200, page } });
+      const cats = response.data || [];
+      allCats = allCats.concat(cats);
+      if (cats.length < 200) hasMore = false;
+      else page++;
+      if (page > 10) hasMore = false; // Limit safety
+    }
+    res.json(allCats);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -1529,9 +1539,18 @@ app.get('/api/commissions-report', async (req, res) => {
     const { categoryId, dateMin, dateMax } = req.query;
     if (!categoryId) return res.status(400).json({ error: 'categoryId é obrigatório' });
 
-    // 1. Mapear árvore de categorias para incluir subcategorias
-    const catsRes = await client.get('/categories');
-    const allCats = catsRes.data;
+    // 1. Mapear árvore de categorias para incluir subcategorias (Busca paginada completa)
+    let allCats = [];
+    let cPage = 1;
+    let cHasMore = true;
+    while(cHasMore) {
+      const cRes = await client.get('/categories', { params: { per_page: 200, page: cPage } });
+      const cats = cRes.data || [];
+      allCats = allCats.concat(cats);
+      if (cats.length < 200) cHasMore = false;
+      else cPage++;
+      if (cPage > 10) cHasMore = false;
+    }
     
     let targetCategoryIds = new Set([parseInt(categoryId, 10)]);
     const addSubcats = (parentId) => {
@@ -1561,8 +1580,12 @@ app.get('/api/commissions-report', async (req, res) => {
             pHasMore = false;
           } else {
             prods.forEach(p => categoryProductIds.add(p.id));
-            pPage++;
-            if (pPage > 50) pHasMore = false; // limite de segurança
+            if (prods.length < 200) {
+              pHasMore = false; // Prevents 404 Not Found on next page
+            } else {
+              pPage++;
+              if (pPage > 50) pHasMore = false; // limite de segurança
+            }
           }
         } catch (err) {
           console.error(`Erro ao buscar produtos da categoria ${catId}:`, err.message);
@@ -1584,13 +1607,17 @@ app.get('/api/commissions-report', async (req, res) => {
       if (dateMax) params.created_at_max = dateMax;
       
       const response = await client.get('/orders', { params });
-      const orders = response.data;
-      if (!orders || orders.length === 0) {
+      const orders = response.data || [];
+      if (orders.length === 0) {
         oHasMore = false;
       } else {
         allOrders = allOrders.concat(orders);
-        oPage++;
-        if (oPage > 500) oHasMore = false;
+        if (orders.length < 200) {
+          oHasMore = false; // Prevents 404 Not Found on next page
+        } else {
+          oPage++;
+          if (oPage > 500) oHasMore = false;
+        }
       }
     }
 

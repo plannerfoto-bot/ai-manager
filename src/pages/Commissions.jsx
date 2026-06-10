@@ -21,7 +21,22 @@ const Commissions = () => {
   const fetchCategories = async () => {
     try {
       const res = await axios.get(`${API_BASE_URL}/api/categories`);
-      setCategories(res.data);
+      const allCats = res.data || [];
+      const parents = allCats.filter(c => !c.parent || c.parent === 0);
+      const sorted = [];
+      parents.forEach(p => {
+        sorted.push(p);
+        const children = allCats.filter(c => c.parent === p.id);
+        children.forEach(c => {
+          c._isChild = true;
+          sorted.push(c);
+        });
+      });
+      
+      const groupedIds = new Set(sorted.map(c => c.id));
+      const orphans = allCats.filter(c => !groupedIds.has(c.id));
+      
+      setCategories([...sorted, ...orphans]);
     } catch (error) {
       console.error('Erro ao buscar categorias:', error);
       toast.error('Erro ao carregar coleções.');
@@ -149,7 +164,9 @@ const Commissions = () => {
             >
               <option value="">Selecione a Coleção...</option>
               {categories.map(cat => (
-                <option key={cat.id} value={cat.id}>{cat.name.pt || cat.name}</option>
+                <option key={cat.id} value={cat.id}>
+                  {cat._isChild || (cat.parent && cat.parent !== 0) ? '  — ' : ''}{cat.name.pt || cat.name}
+                </option>
               ))}
             </select>
           </div>
