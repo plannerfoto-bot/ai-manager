@@ -293,12 +293,9 @@ const Finance = () => {
   });
 
   // --- Estados do Simulador de Projeção (Simulador 2) ---
-  const [sim2SalesCount, setSim2SalesCount] = useState(100);
-  const [sim2Ticket, setSim2Ticket] = useState(250);
-  const [sim2CardAdoption, setSim2CardAdoption] = useState(100);
+  const [sim2CartCount, setSim2CartCount] = useState(10);
+  const [sim2CartValue, setSim2CartValue] = useState(500);
   const [sim2Installments, setSim2Installments] = useState(3);
-  const [sim2MinOrderValue, setSim2MinOrderValue] = useState(250);
-  const [sim2EligiblePercent, setSim2EligiblePercent] = useState(100);
 
   const calculateSimulation2 = () => {
     let historyMargin = 0.25;
@@ -309,17 +306,14 @@ const Finance = () => {
       }
     }
     
-    const projGross = sim2SalesCount * sim2Ticket;
+    const projGross = sim2CartCount * sim2CartValue;
     const profitScenarioA = projGross * historyMargin;
-    
-    const projCardRevenue = projGross * (sim2CardAdoption / 100);
-    const eligibleCardRevenue = projCardRevenue * (sim2EligiblePercent / 100);
     
     const selectedRatePercent = simRates[sim2Installments] || 4.99;
     const baselineRate = simRates[1] || 4.99;
     const extraRate = Math.max(0, selectedRatePercent - baselineRate);
     
-    const extraFeeCost = eligibleCardRevenue * (extraRate / 100);
+    const extraFeeCost = projGross * (extraRate / 100);
     const profitScenarioB = profitScenarioA - extraFeeCost;
     
     return {
@@ -741,39 +735,21 @@ const Finance = () => {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             {/* Inputs Section */}
             <div className="lg:col-span-4 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-semibold text-[var(--text-muted)] uppercase block mb-1">Qtd de Vendas</label>
-                  <input type="number" min="0" value={sim2SalesCount} onChange={e => setSim2SalesCount(Number(e.target.value))} className="w-full bg-[var(--surface-input)] border border-[var(--border-soft)] rounded-lg p-2 text-white font-bold outline-none" />
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-[var(--text-muted)] uppercase block mb-1">Ticket Médio (R$)</label>
-                  <input type="number" min="0" value={sim2Ticket} onChange={e => setSim2Ticket(Number(e.target.value))} className="w-full bg-[var(--surface-input)] border border-[var(--border-soft)] rounded-lg p-2 text-white font-bold outline-none" />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-semibold text-[var(--text-muted)] uppercase block mb-1">% no Cartão</label>
-                  <input type="number" min="0" max="100" value={sim2CardAdoption} onChange={e => setSim2CardAdoption(Number(e.target.value))} className="w-full bg-[var(--surface-input)] border border-[var(--border-soft)] rounded-lg p-2 text-white font-bold outline-none" />
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-[var(--text-muted)] uppercase block mb-1">Parcelas s/ Juros</label>
-                  <select value={sim2Installments} onChange={e => setSim2Installments(Number(e.target.value))} className="w-full bg-[var(--surface-input)] border border-[var(--border-soft)] rounded-lg p-2 text-white font-bold outline-none">
-                    {[1,2,3,4,5,6,7,8,9,10,11,12].map(n => <option key={n} value={n}>{n}x</option>)}
-                  </select>
-                </div>
+              <div>
+                <label className="text-xs font-semibold text-[var(--text-muted)] uppercase block mb-1">Valor do Carrinho (R$)</label>
+                <input type="number" min="0" value={sim2CartValue} onChange={e => setSim2CartValue(Number(e.target.value))} className="w-full bg-[var(--surface-input)] border border-[var(--border-soft)] rounded-lg p-2 text-white font-bold outline-none" />
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-[var(--text-muted)] uppercase block mb-1">Pedido Mínimo (R$)</label>
-                <input type="number" min="0" value={sim2MinOrderValue} onChange={e => setSim2MinOrderValue(Number(e.target.value))} className="w-full bg-[var(--surface-input)] border border-[var(--border-soft)] rounded-lg p-2 text-white font-bold outline-none" />
+                <label className="text-xs font-semibold text-[var(--text-muted)] uppercase block mb-1">Quantidade de Carrinhos</label>
+                <input type="number" min="0" value={sim2CartCount} onChange={e => setSim2CartCount(Number(e.target.value))} className="w-full bg-[var(--surface-input)] border border-[var(--border-soft)] rounded-lg p-2 text-white font-bold outline-none" />
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-[var(--text-muted)] uppercase block mb-1">% de Clientes que batem o Mínimo</label>
-                <input type="range" min="0" max="100" value={sim2EligiblePercent} onChange={e => setSim2EligiblePercent(Number(e.target.value))} className="w-full mt-2 accent-emerald-500" />
-                <div className="text-right text-xs text-[var(--text-muted)] mt-1">{sim2EligiblePercent}% das vendas elegíveis</div>
+                <label className="text-xs font-semibold text-[var(--text-muted)] uppercase block mb-1">Parcelas s/ Juros</label>
+                <select value={sim2Installments} onChange={e => setSim2Installments(Number(e.target.value))} className="w-full bg-[var(--surface-input)] border border-[var(--border-soft)] rounded-lg p-2 text-white font-bold outline-none">
+                  {[1,2,3,4,5,6,7,8,9,10,11,12].map(n => <option key={n} value={n}>{n}x</option>)}
+                </select>
               </div>
             </div>
 
