@@ -246,7 +246,7 @@ const Finance = () => {
             <MetricCard title="Subsídio de Frete Grátis" value={fmtBRL(profitData?.freeShippingCost)} icon={TrendingDown} color="text-red-500" trend={`Lucro nestas vendas: ${fmtBRL(profitData?.profitFromFreeShipping)}`} />
             <MetricCard title="Taxas Nuvem Pago" value={fmtBRL(profitData?.gatewayFeeTotal)} icon={CreditCard} color="text-amber-400" trend="Pix e Cartão somados" />
             
-            <MetricCard title="Custo Bobina Fornecedor" value={fmtBRL(profitData?.productionCost)} icon={TrendingDown} color="text-slate-300" trend="Metro linear + m²" />
+            <MetricCard title="Custo Bobina Fornecedor" value={fmtBRL(profitData?.productionCost)} icon={TrendingDown} color="text-slate-300" trend={`120g: ${fmtBRL(profitData?.productionCost120g)} | 160g: ${fmtBRL(profitData?.productionCost160g)}`} />
             <MetricCard title="Custo de Costureira" value={fmtBRL(profitData?.sewingCost)} icon={Scissors} color="text-violet-400" trend={`${profitData?.analyzedItems ?? 0} painéis`} />
           </div>
         </div>

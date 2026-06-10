@@ -1320,6 +1320,8 @@ function analyzeLineItem(item) {
   return {
     sewingCost: sewingCostUnit * qty,
     prodCost: prodCostUnit * qty,
+    prodCost120g: gram === '120g' ? prodCostUnit * qty : 0,
+    prodCost160g: gram === '160g' ? prodCostUnit * qty : 0,
     meters120g: meters120g * qty,
     meters160g: meters160g * qty,
     m2120g: m2120g * qty,
@@ -1406,6 +1408,8 @@ app.get('/api/profit-stats', async (req, res) => {
     let totalProfit = 0;
     let totalSewingCost = 0;
     let totalProductionCost = 0;
+    let totalProdCost120g = 0;
+    let totalProdCost160g = 0;
     let totalShippingCustomer = 0;
     let totalShippingOwner = 0;
     let totalFreeShippingCost = 0;
@@ -1427,6 +1431,8 @@ app.get('/api/profit-stats', async (req, res) => {
         if (result) {
           orderProdCost += result.prodCost;
           orderSewingCost += result.sewingCost;
+          totalProdCost120g += result.prodCost120g;
+          totalProdCost160g += result.prodCost160g;
           totalMeters120g += result.meters120g;
           totalMeters160g += result.meters160g;
           totalM2120g += result.m2120g;
@@ -1474,6 +1480,8 @@ app.get('/api/profit-stats', async (req, res) => {
       totalProfit: parseFloat(totalProfit.toFixed(2)),
       sewingCost: parseFloat(totalSewingCost.toFixed(2)),
       productionCost: parseFloat(totalProductionCost.toFixed(2)),
+      productionCost120g: parseFloat(totalProdCost120g.toFixed(2)),
+      productionCost160g: parseFloat(totalProdCost160g.toFixed(2)),
       shippingTotal: parseFloat(totalShippingCustomer.toFixed(2)),
       shippingCustomerTotal: parseFloat(totalShippingCustomer.toFixed(2)),
       shippingOwnerTotal: parseFloat(totalShippingOwner.toFixed(2)),
