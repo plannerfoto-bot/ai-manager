@@ -288,8 +288,8 @@ const Finance = () => {
   const [simMaxInstallments, setSimMaxInstallments] = useState(1);
   const [simIgnoreFreeShipping, setSimIgnoreFreeShipping] = useState(false);
   const [simRates, setSimRates] = useState({
-    1: 4.99, 2: 5.59, 3: 6.29, 4: 6.99, 5: 7.69, 6: 8.39,
-    7: 9.29, 8: 10.19, 9: 11.09, 10: 11.99, 11: 12.89, 12: 13.79
+    1: 4.99, 2: 5.88, 3: 7.26, 4: 8.51, 5: 9.95, 6: 11.05,
+    7: 12.33, 8: 13.59, 9: 14.81, 10: 16.02, 11: 17.21, 12: 18.37
   });
 
   const calculateSimulation = () => {
