@@ -283,6 +283,51 @@ const Finance = () => {
   const [feePixFixed, setFeePixFixed] = useState(0.00);
   const [activeKpi, setActiveKpi] = useState(null);
 
+  // --- Estados do Simulador ---
+  const [simCardAdoption, setSimCardAdoption] = useState(100); // 100% como padrão (editável)
+  const [simMaxInstallments, setSimMaxInstallments] = useState(1);
+  const [simRates, setSimRates] = useState({
+    1: 4.99, 2: 5.59, 3: 6.29, 4: 6.99, 5: 7.69, 6: 8.39,
+    7: 9.29, 8: 10.19, 9: 11.09, 10: 11.99, 11: 12.89, 12: 13.79
+  });
+
+  const calculateSimulation = () => {
+    if (!profitData) return null;
+    // Lucro Limpo Original
+    const originalProfit = profitData.totalProfit;
+    
+    // Receita total que será considerada no cartão no simulador
+    // Pode ser que você venda x bruto, vamos simular que "simCardAdoption" % desse bruto vai pro cartão
+    const grossRevenue = originalProfit + profitData.productionCost + profitData.sewingCost + profitData.gatewayFeeTotal + profitData.shippingOwnerTotal;
+    const simulatedCardRevenue = grossRevenue * (simCardAdoption / 100);
+    
+    // A taxa média será a taxa de parcelamento escolhida pelo lojista (ex: 3x -> 6.29%)
+    const selectedRatePercent = simRates[simMaxInstallments] || 4.99;
+    
+    // Qual era a taxa de cartão original (real) no dashboard?
+    // A gente usa a taxa que já estava embutida no gatewayFeeTotal
+    const originalCardFee = profitData.gatewayFeeCard || 0;
+    
+    // A nova taxa que pagaremos será a % escolhida aplicada sobre a receita simulada do cartão
+    const newSimulatedCardFee = simulatedCardRevenue * (selectedRatePercent / 100);
+    
+    // A diferença de juros que vamos "engolir" ou economizar
+    const extraFeeCost = newSimulatedCardFee - originalCardFee;
+    
+    // Novo lucro
+    const newEstimatedProfit = originalProfit - extraFeeCost;
+    
+    return {
+      originalProfit,
+      newEstimatedProfit,
+      extraFeeCost,
+      grossRevenue,
+      simulatedCardRevenue
+    };
+  };
+
+  const simResults = calculateSimulation();
+
   const fetchProfitStats = useCallback(async (period, start, end, fP, fF, fpP, fpF) => {
     setProfitLoading(true);
     setProfitError(null);
@@ -493,6 +538,123 @@ const Finance = () => {
                 </div>
               </>
             )}
+          </div>
+        </div>
+
+        {/* 🔥 SESSÃO 3: SIMULADOR DE PARCELAMENTO SEM JUROS 🔥 */}
+        <div className="mt-6 rounded-2xl border border-[var(--border-soft)] bg-[var(--surface-glass)]/50 p-6 flex flex-col">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 bg-amber-500/10 rounded-lg">
+              <CreditCard className="w-5 h-5 text-amber-500" />
+            </div>
+            <h3 className="text-[25px] font-extrabold text-[var(--text-primary)]">Simulador: Parcelamento Sem Juros</h3>
+          </div>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-1 space-y-6">
+              <div>
+                <label className="text-sm font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-2 block">
+                  Adesão de Vendas no Cartão (%)
+                </label>
+                <input 
+                  type="number" 
+                  min="0" 
+                  max="100" 
+                  value={simCardAdoption}
+                  onChange={e => setSimCardAdoption(Number(e.target.value))}
+                  className="w-full bg-[var(--surface-input)] border border-[var(--border-soft)] rounded-xl p-3 text-[var(--text-primary)] text-lg font-bold outline-none focus:border-[var(--accent)] transition-colors"
+                />
+                <p className="text-xs text-[var(--text-muted)] mt-2">
+                  Qual porcentagem do seu faturamento bruto virá do cartão de crédito?
+                </p>
+              </div>
+              
+              <div>
+                <label className="text-sm font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-2 block">
+                  Máximo de Parcelas (Sem Juros)
+                </label>
+                <select 
+                  value={simMaxInstallments}
+                  onChange={e => setSimMaxInstallments(Number(e.target.value))}
+                  className="w-full bg-[var(--surface-input)] border border-[var(--border-soft)] rounded-xl p-3 text-[var(--text-primary)] text-lg font-bold outline-none focus:border-[var(--accent)] transition-colors"
+                >
+                  {[1,2,3,4,5,6,7,8,9,10,11,12].map(num => (
+                    <option key={num} value={num}>{num}x sem juros</option>
+                  ))}
+                </select>
+                <p className="text-xs text-[var(--text-muted)] mt-2">
+                  A simulação usará a taxa equivalente a {simMaxInstallments}x da Nuvem Shop: <strong className="text-[var(--text-primary)]">{simRates[simMaxInstallments]}%</strong>.
+                </p>
+              </div>
+            </div>
+
+            <div className="lg:col-span-2">
+              <div className="h-full rounded-2xl glass-panel p-6 flex flex-col justify-center relative overflow-hidden bg-[var(--surface-input)] border border-[var(--border-soft)]">
+                {profitLoading || !simResults ? (
+                  <div className="h-full w-full bg-[var(--surface-glass)]/50 rounded animate-pulse" />
+                ) : (
+                  <>
+                    <h4 className="text-sm font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-6">Resultado do Simulação no Período</h4>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                      <div>
+                        <p className="text-xs text-[var(--text-muted)] mb-1">Lucro Original</p>
+                        <p className="text-2xl font-bold text-[var(--text-primary)]">{fmtBRL(simResults.originalProfit)}</p>
+                      </div>
+                      
+                      <div>
+                        <p className="text-xs text-[var(--text-muted)] mb-1">Custo Extra Absorvido (Juros)</p>
+                        <p className="text-2xl font-bold text-rose-400">-{fmtBRL(Math.max(0, simResults.extraFeeCost))}</p>
+                      </div>
+
+                      <div>
+                        <p className="text-xs text-[var(--text-muted)] mb-1">Novo Lucro Final Líquido</p>
+                        <p className={`text-3xl font-black ${simResults.newEstimatedProfit > 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                          {fmtBRL(simResults.newEstimatedProfit)}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    {simResults.extraFeeCost > 0 && (
+                      <div className="mt-6 p-4 bg-amber-500/10 rounded-xl border border-amber-500/20">
+                        <p className="text-sm text-amber-500/90 font-medium">
+                          Oferecer até {simMaxInstallments}x sem juros e ter {simCardAdoption}% das vendas no cartão 
+                          diminuirá seu lucro limpo em <strong className="text-amber-500">{fmtBRL(simResults.extraFeeCost)}</strong> no período analisado.
+                        </p>
+                      </div>
+                    )}
+                    {simResults.extraFeeCost <= 0 && (
+                      <div className="mt-6 p-4 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
+                        <p className="text-sm text-emerald-500/90 font-medium">
+                          As taxas selecionadas são iguais ou menores do que você já pagou originalmente neste período. Seu lucro não será prejudicado.
+                        </p>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+          
+          {/* Seção colapsável de Taxas */}
+          <div className="mt-6 border-t border-[var(--border-soft)] pt-6">
+            <h4 className="text-sm font-semibold text-[var(--text-primary)] mb-4 flex items-center gap-2">
+              <CreditCard size={16} /> Editar Tabela de Taxas (%) Nuvem Shop
+            </h4>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+              {[1,2,3,4,5,6,7,8,9,10,11,12].map(num => (
+                <div key={num} className="bg-[var(--surface-input)] p-2 rounded-lg border border-[var(--border-soft)]">
+                  <label className="text-xs text-[var(--text-muted)] block mb-1">{num}x</label>
+                  <input 
+                    type="number"
+                    step="0.01"
+                    value={simRates[num]}
+                    onChange={(e) => setSimRates({...simRates, [num]: Number(e.target.value)})}
+                    className="w-full bg-transparent text-[var(--text-primary)] text-sm font-bold outline-none"
+                  />
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
