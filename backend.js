@@ -1278,6 +1278,13 @@ function detectDimensions(variantName) {
 }
 
 function calcLinearMeters(d1, d2) {
+  // Regra de Negócio: Se a largura for maior que 3.14m (mais de 2 bobinas de 1.57m),
+  // força a emenda na horizontal para diminuir a quantidade de emendas no painel,
+  // mesmo que gaste mais material.
+  if (d1 > 3.14) {
+    return Math.ceil(d2 / BOBINA_LARGURA) * d1;
+  }
+
   const optionA = Math.ceil(d1 / BOBINA_LARGURA) * d2;
   const optionB = Math.ceil(d2 / BOBINA_LARGURA) * d1;
   return Math.min(optionA, optionB);
