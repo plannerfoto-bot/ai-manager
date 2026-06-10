@@ -184,9 +184,30 @@ const KPISidebar = ({ activeKpi, onClose, data, extraData }) => {
       case 'bobina':
         return (
           <div className="space-y-6 text-[18px]">
-            <p className="text-[var(--text-muted)] text-[16px]">Custo de material gasto na confecção (120g e 160g).</p>
-            <div className="flex justify-between text-[var(--text-muted)]"><span>Bobina 120g:</span> <span className="font-bold text-[var(--text-primary)]">{fmtBRL(d.productionCost120g || 0)}</span></div>
-            <div className="flex justify-between text-[var(--text-muted)]"><span>Bobina 160g:</span> <span className="font-bold text-[var(--text-primary)]">{fmtBRL(d.productionCost160g || 0)}</span></div>
+            <p className="text-[var(--text-muted)] text-[16px]">Custo de material gasto na confecção (120g e 160g) e consumo em metros.</p>
+            
+            <div className="flex flex-col gap-2 bg-[var(--surface-glass)] p-4 rounded-lg border border-[var(--border-soft)]">
+              <div className="flex justify-between text-[var(--text-muted)]">
+                <span>Bobina 120g:</span>
+                <span className="font-bold text-[var(--text-primary)]">{fmtBRL(d.productionCost120g || 0)}</span>
+              </div>
+              <div className="flex justify-between text-[15px] text-[var(--text-muted)]">
+                <span>Metro Linear:</span>
+                <span className="font-medium text-emerald-500">{d.meters120g || 0} m</span>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2 bg-[var(--surface-glass)] p-4 rounded-lg border border-[var(--border-soft)]">
+              <div className="flex justify-between text-[var(--text-muted)]">
+                <span>Bobina 160g:</span>
+                <span className="font-bold text-[var(--text-primary)]">{fmtBRL(d.productionCost160g || 0)}</span>
+              </div>
+              <div className="flex justify-between text-[15px] text-[var(--text-muted)]">
+                <span>Metro Linear:</span>
+                <span className="font-medium text-emerald-500">{d.meters160g || 0} m</span>
+              </div>
+            </div>
+
             <hr className="border-[var(--border-soft)]" />
             <div className="flex justify-between text-[var(--text-primary)] font-bold text-[22px]"><span>Total Material:</span> <span>{fmtBRL(d.productionCost || 0)}</span></div>
           </div>
