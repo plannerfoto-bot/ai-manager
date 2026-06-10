@@ -1278,16 +1278,134 @@ function detectDimensions(variantName) {
 }
 
 function calcLinearMeters(d1, d2) {
-  // Regra de Negócio: Se a largura for maior que 3.14m (mais de 2 bobinas de 1.57m),
-  // força a emenda na horizontal para diminuir a quantidade de emendas no painel,
-  // mesmo que gaste mais material.
   if (d1 > 3.14) {
     return Math.ceil(d2 / BOBINA_LARGURA) * d1;
   }
-
   const optionA = Math.ceil(d1 / BOBINA_LARGURA) * d2;
   const optionB = Math.ceil(d2 / BOBINA_LARGURA) * d1;
   return Math.min(optionA, optionB);
+}
+
+class SkylinePacker {
+  constructor(binWidth) {
+    this.binWidth = binWidth;
+    this.skyline = [{x: 0, y: 0, w: binWidth}];
+  }
+
+  pack(width, height) {
+    width = Math.round(width * 1000) / 1000;
+    height = Math.round(height * 1000) / 1000;
+
+    let bestY = Infinity;
+    let bestX = -1;
+
+    for (let i = 0; i < this.skyline.length; i++) {
+      let segment = this.skyline[i];
+      let x = segment.x;
+      
+      if (Math.round((x + width)*1000)/1000 > this.binWidth) continue;
+
+      let maxY = segment.y;
+      let j = i;
+      let currentX = x;
+      while (Math.round(currentX * 1000)/1000 < Math.round((x + width)*1000)/1000 && j < this.skyline.length) {
+        let seg = this.skyline[j];
+        if (seg.y > maxY) maxY = seg.y;
+        currentX += seg.w;
+        j++;
+      }
+
+      if (maxY < bestY) {
+        bestY = maxY;
+        bestX = x;
+      }
+    }
+
+    if (bestX === -1) return 0;
+
+    let newSegment = {x: bestX, y: bestY + height, w: width};
+    let newSkyline = [];
+    let inserted = false;
+
+    for (let i = 0; i < this.skyline.length; i++) {
+      let seg = this.skyline[i];
+      
+      if (Math.round((seg.x + seg.w)*1000)/1000 <= Math.round(bestX*1000)/1000) {
+        newSkyline.push(seg);
+      }
+      else if (Math.round(seg.x*1000)/1000 >= Math.round((bestX + width)*1000)/1000) {
+        if (!inserted) {
+          newSkyline.push(newSegment);
+          inserted = true;
+        }
+        newSkyline.push(seg);
+      }
+      else {
+        if (Math.round(seg.x*1000)/1000 < Math.round(bestX*1000)/1000) {
+          newSkyline.push({x: seg.x, y: seg.y, w: bestX - seg.x});
+        }
+        if (!inserted) {
+          newSkyline.push(newSegment);
+          inserted = true;
+        }
+        if (Math.round((seg.x + seg.w)*1000)/1000 > Math.round((bestX + width)*1000)/1000) {
+          newSkyline.push({x: bestX + width, y: seg.y, w: (seg.x + seg.w) - (bestX + width)});
+        }
+      }
+    }
+    
+    if (!inserted) newSkyline.push(newSegment);
+    
+    this.skyline = [];
+    for (let seg of newSkyline) {
+      if (this.skyline.length > 0 && Math.round(this.skyline[this.skyline.length - 1].y*1000)/1000 === Math.round(seg.y*1000)/1000) {
+        this.skyline[this.skyline.length - 1].w += seg.w;
+      } else {
+        this.skyline.push(seg);
+      }
+    }
+
+    return bestY + height;
+  }
+
+  getMaxHeight() {
+    return Math.max(0, ...this.skyline.map(s => s.y));
+  }
+}
+
+function getBestStrips(d1, d2, quantity) {
+  let strips = [];
+  
+  let optionA_strips = [];
+  let wA = d1, hA = d2;
+  let countA = Math.ceil(wA / BOBINA_LARGURA);
+  for(let i=0; i<countA; i++) {
+     let w = (i === countA - 1 && (wA % BOBINA_LARGURA !== 0)) ? (wA % BOBINA_LARGURA) : BOBINA_LARGURA;
+     optionA_strips.push({w: w, h: hA});
+  }
+  let totalHeightA = countA * hA;
+
+  let optionB_strips = [];
+  let wB = d2, hB = d1;
+  let countB = Math.ceil(wB / BOBINA_LARGURA);
+  for(let i=0; i<countB; i++) {
+     let w = (i === countB - 1 && (wB % BOBINA_LARGURA !== 0)) ? (wB % BOBINA_LARGURA) : BOBINA_LARGURA;
+     optionB_strips.push({w: w, h: hB});
+  }
+  let totalHeightB = countB * hB;
+
+  let chosenStrips = [];
+  if (d1 > 3.14) {
+    chosenStrips = optionB_strips; // força emenda horizontal -> h = d1
+  } else {
+    chosenStrips = totalHeightA <= totalHeightB ? optionA_strips : optionB_strips;
+  }
+
+  for (let q = 0; q < quantity; q++) {
+    for (let s of chosenStrips) strips.push(s);
+  }
+  
+  return strips;
 }
 
 function calcProductionCost(gram, d1, d2, settings) {
@@ -1328,37 +1446,35 @@ function analyzeLineItem(item, settings) {
   const inSpecialRange = (d) => d >= 1.70 && d <= 1.75;
   const isSpecial = (inSpecialRange(d1) || inSpecialRange(d2));
   
-  let prodCostUnit = 0;
+  let prodCostEspecial = 0;
   let sewingCostUnit = 0;
   let sewingType = 'overloque';
-  let meters120g = 0;
-  let meters160g = 0;
+  let strips120g = [];
+  let strips160g = [];
   let m2120g = 0;
 
   if (isSpecial && gram === '120g') {
-    prodCostUnit = (d1 * d2) * settings.bobinaEspecial;
+    prodCostEspecial = (d1 * d2) * settings.bobinaEspecial;
     sewingCostUnit = settings.costuraEspecial;
     sewingType = 'overloque';
     m2120g = d1 * d2;
   } else {
-    prodCostUnit = calcProductionCost(gram, d1, d2, settings);
     const sewRes = calcSewingCost(d1, d2, settings);
     sewingCostUnit = sewRes.cost;
     sewingType = sewRes.type;
-    if (gram === '120g') meters120g = calcLinearMeters(d1, d2);
-    if (gram === '160g') meters160g = calcLinearMeters(d1, d2);
+    
+    if (gram === '120g') strips120g = getBestStrips(d1, d2, qty);
+    if (gram === '160g') strips160g = getBestStrips(d1, d2, qty);
   }
 
   return {
     sewingCost: sewingCostUnit * qty,
-    prodCost: prodCostUnit * qty,
-    prodCost120g: gram === '120g' ? prodCostUnit * qty : 0,
-    prodCost160g: gram === '160g' ? prodCostUnit * qty : 0,
-    meters120g: meters120g * qty,
-    meters160g: meters160g * qty,
+    prodCostEspecial: prodCostEspecial * qty,
     m2120g: m2120g * qty,
     overloqueCount: sewingType === 'overloque' ? qty : 0,
-    emendaCount: sewingType === 'emenda' ? qty : 0
+    emendaCount: sewingType === 'emenda' ? qty : 0,
+    strips120g,
+    strips160g
   };
 }
 
@@ -1465,22 +1581,48 @@ app.get('/api/profit-stats', async (req, res) => {
       const lineItems = order.products || order.line_items || [];
       let orderProdCost = 0;
       let orderSewingCost = 0;
+      let orderStrips120g = [];
+      let orderStrips160g = [];
 
       for (const item of lineItems) {
         const result = analyzeLineItem(item, settings);
         if (result) {
-          orderProdCost += result.prodCost;
+          orderProdCost += result.prodCostEspecial || 0;
           orderSewingCost += result.sewingCost;
-          totalProdCost120g += result.prodCost120g;
-          totalProdCost160g += result.prodCost160g;
-          totalMeters120g += result.meters120g;
-          totalMeters160g += result.meters160g;
           totalM2120g += result.m2120g;
           analyzedItems += parseInt(item.quantity || 1);
           totalOverloqueCount += result.overloqueCount;
           totalEmendaCount += result.emendaCount;
+          orderStrips120g.push(...result.strips120g);
+          orderStrips160g.push(...result.strips160g);
         }
       }
+
+      let m120 = 0;
+      if (orderStrips120g.length > 0) {
+        orderStrips120g.sort((a, b) => b.h - a.h || b.w - a.w);
+        let packer120 = new SkylinePacker(BOBINA_LARGURA);
+        for (let s of orderStrips120g) packer120.pack(s.w, s.h);
+        m120 = packer120.getMaxHeight();
+      }
+      
+      let m160 = 0;
+      if (orderStrips160g.length > 0) {
+        orderStrips160g.sort((a, b) => b.h - a.h || b.w - a.w);
+        let packer160 = new SkylinePacker(BOBINA_LARGURA);
+        for (let s of orderStrips160g) packer160.pack(s.w, s.h);
+        m160 = packer160.getMaxHeight();
+      }
+
+      const cost120 = m120 * settings.bobina120g;
+      const cost160 = m160 * settings.bobina160g;
+      
+      orderProdCost += cost120 + cost160;
+
+      totalProdCost120g += cost120;
+      totalProdCost160g += cost160;
+      totalMeters120g += m120;
+      totalMeters160g += m160;
 
       totalProductionCost += orderProdCost;
       totalSewingCost += orderSewingCost;
