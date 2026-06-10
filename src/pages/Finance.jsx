@@ -115,7 +115,7 @@ const MetricCard = ({ title, value, icon: Icon, color, onClick }) => (
   </div>
 );
 
-const KPISidebar = ({ activeKpi, onClose, data }) => {
+const KPISidebar = ({ activeKpi, onClose, data, extraData }) => {
   const d = data || {};
   const renderContent = () => {
     switch (activeKpi) {
@@ -184,27 +184,11 @@ const KPISidebar = ({ activeKpi, onClose, data }) => {
       case 'bobina':
         return (
           <div className="space-y-6 text-[18px]">
-            <p className="text-[var(--text-muted)] text-[16px]">Consumo e custo da matéria prima separados por gramatura.</p>
-            
-            <div className="p-4 bg-[var(--surface-glass)] rounded-xl border border-[var(--border-soft)] space-y-3">
-              <h4 className="font-bold text-[var(--text-primary)] mb-2 text-[20px]">Tecido 120g</h4>
-              <div className="flex justify-between text-[var(--text-muted)]"><span>Metros Lineares:</span> <span>{d.meters120g?.toFixed(2) || 0} m</span></div>
-              <div className="flex justify-between text-[var(--text-muted)]"><span>Metros Quadrados (Especiais):</span> <span>{d.m2120g?.toFixed(2) || 0} m²</span></div>
-              <div className="flex justify-between text-[var(--text-muted)] font-medium pt-3 border-t border-[var(--border-soft)] text-[20px]"><span>Custo Financeiro:</span> <span className="text-[var(--text-primary)]">{fmtBRL(d.productionCost120g || 0)}</span></div>
-            </div>
-
-            <div className="p-4 bg-[var(--surface-glass)] rounded-xl border border-[var(--border-soft)] space-y-3">
-              <h4 className="font-bold text-[var(--text-primary)] mb-2 text-[20px]">Tecido 160g</h4>
-              <div className="flex justify-between text-[var(--text-muted)]"><span>Metros Lineares:</span> <span>{d.meters160g?.toFixed(2) || 0} m</span></div>
-              <div className="flex justify-between text-[var(--text-muted)] font-medium pt-3 border-t border-[var(--border-soft)] text-[20px]"><span>Custo Financeiro:</span> <span className="text-[var(--text-primary)]">{fmtBRL(d.productionCost160g || 0)}</span></div>
-            </div>
-            
-            <div className="mt-6 p-4 bg-rose-500/10 rounded-xl border border-rose-500/20">
-              <div className="flex justify-between font-bold text-rose-400 text-[22px]">
-                <span>Custo Total de Matéria Prima:</span>
-                <span>{fmtBRL(d.productionCost || 0)}</span>
-              </div>
-            </div>
+            <p className="text-[var(--text-muted)] text-[16px]">Custo de material gasto na confecção (120g e 160g).</p>
+            <div className="flex justify-between text-[var(--text-muted)]"><span>Bobina 120g:</span> <span className="font-bold text-[var(--text-primary)]">{fmtBRL(d.productionCost120g || 0)}</span></div>
+            <div className="flex justify-between text-[var(--text-muted)]"><span>Bobina 160g:</span> <span className="font-bold text-[var(--text-primary)]">{fmtBRL(d.productionCost160g || 0)}</span></div>
+            <hr className="border-[var(--border-soft)]" />
+            <div className="flex justify-between text-[var(--text-primary)] font-bold text-[22px]"><span>Total Material:</span> <span>{fmtBRL(d.productionCost || 0)}</span></div>
           </div>
         );
       case 'costura':
@@ -225,6 +209,28 @@ const KPISidebar = ({ activeKpi, onClose, data }) => {
             </div>
           </div>
         );
+      case 'sim_historical_match':
+        const matchedOrders = (d.historicalOrders || []).filter(o => o.total >= (extraData?.sim2CartValue || 0));
+        return (
+          <div className="space-y-6 text-[18px]">
+            <p className="text-[var(--text-muted)] text-[16px]">Lista de pedidos no período atual que atingiram ou ultrapassaram {fmtBRL(extraData?.sim2CartValue || 0)}.</p>
+            <div className="space-y-4 mt-4 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+              {matchedOrders.map(o => (
+                <div key={o.id} className="flex flex-col bg-[var(--surface-input)] p-4 rounded-xl border border-[var(--border-soft)]">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="font-bold text-[var(--text-primary)]">Pedido #{o.number}</span>
+                    <span className="font-bold text-emerald-400">{fmtBRL(o.total)}</span>
+                  </div>
+                  <div className="flex justify-between text-[14px] text-[var(--text-muted)]">
+                    <span className="capitalize">{o.paymentMethod === 'credit_card' ? 'Cartão de Crédito' : o.paymentMethod}</span>
+                    {o.paymentMethod === 'credit_card' && <span>{o.installments}x sem juros</span>}
+                  </div>
+                </div>
+              ))}
+              {matchedOrders.length === 0 && <p className="text-center text-[var(--text-muted)] mt-4">Nenhum pedido encontrado.</p>}
+            </div>
+          </div>
+        );
       default:
         return null;
     }
@@ -237,7 +243,8 @@ const KPISidebar = ({ activeKpi, onClose, data }) => {
     frete_gratis: 'Análise de Subsídio (Frete)',
     taxas: 'Taxas Operacionais (Nuvem Pago)',
     bobina: 'Custos de Matéria Prima',
-    costura: 'Custos de Costura'
+    costura: 'Custos de Costura',
+    sim_historical_match: 'Pedidos Compatíveis'
   };
 
   return (
@@ -749,9 +756,21 @@ const Finance = () => {
               <div>
                 <label className="text-xs font-semibold text-[var(--text-muted)] uppercase block mb-1">Quantidade de Carrinhos</label>
                 <input type="number" min="0" value={sim2CartCount} onChange={e => setSim2CartCount(Number(e.target.value))} className="w-full bg-[var(--surface-input)] border border-[var(--border-soft)] rounded-lg p-2 text-white font-bold outline-none" />
+                
                 {sim2Results && sim2Results.historicalMatchCount !== undefined && (
-                  <div className="text-xs text-[var(--text-muted)] mt-2">
-                    <span className="text-amber-400 font-bold">{sim2Results.historicalMatchCount}</span> carrinhos no período atual atingiram este valor ou mais.
+                  <div 
+                    onClick={() => setActiveKpi('sim_historical_match')} 
+                    className="mt-4 p-4 bg-[var(--surface-input)]/50 border border-[var(--border-soft)] rounded-xl cursor-pointer hover:border-amber-500/50 transition-colors flex items-center justify-between group"
+                  >
+                    <div>
+                      <div className="text-xs font-semibold text-[var(--text-muted)] uppercase mb-1">Base Histórica</div>
+                      <div className="text-[18px] font-bold text-amber-400 group-hover:text-amber-300">
+                        {sim2Results.historicalMatchCount} carrinhos <span className="text-sm text-[var(--text-muted)] font-normal ml-1">acima de {fmtBRL(sim2CartValue)}</span>
+                      </div>
+                    </div>
+                    <div className="w-8 h-8 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500">
+                      <ShoppingBag size={16} />
+                    </div>
                   </div>
                 )}
               </div>
@@ -814,7 +833,7 @@ const Finance = () => {
         </div>
 
         <AnimatePresence>
-          {activeKpi && <KPISidebar activeKpi={activeKpi} onClose={() => setActiveKpi(null)} data={profitData} />}
+          {activeKpi && <KPISidebar activeKpi={activeKpi} onClose={() => setActiveKpi(null)} data={profitData} extraData={{ sim2CartValue }} />}
         </AnimatePresence>
       </div>
   );

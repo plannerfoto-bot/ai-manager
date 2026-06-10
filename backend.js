@@ -1452,7 +1452,7 @@ app.get('/api/profit-stats', async (req, res) => {
     let totalEmendaCount = 0;
     const settings = getSystemSettings().finance;
     let shippingDetails = {};
-    let orderTotals = [];
+    let historicalOrders = [];
 
     for (const order of allOrders) {
       const lineItems = order.products || order.line_items || [];
@@ -1480,7 +1480,16 @@ app.get('/api/profit-stats', async (req, res) => {
 
       // Cálculos financeiros do pedido
       const orderTotal = parseFloat(order.total || 0);
-      orderTotals.push(orderTotal);
+      const paymentMethod = order.payment_details ? order.payment_details.method : 'Desconhecido';
+      const installments = order.payment_details ? order.payment_details.installments : 1;
+      historicalOrders.push({
+        id: order.id,
+        number: order.number,
+        total: orderTotal,
+        paymentMethod: paymentMethod,
+        installments: installments
+      });
+      
       const shippingCustomer = parseFloat(order.shipping_cost_customer || order.shipping || 0);
       const shippingOwner = parseFloat(order.shipping_cost_owner || order.shipping || 0);
       
@@ -1532,7 +1541,7 @@ app.get('/api/profit-stats', async (req, res) => {
       meters160g: parseFloat(totalMeters160g.toFixed(2)),
       m2120g: parseFloat(totalM2120g.toFixed(2)),
       shippingDetails,
-      orderTotals,
+      historicalOrders,
       ordersCount: allOrders.length,
       analyzedItems,
       overloqueCount: totalOverloqueCount,
