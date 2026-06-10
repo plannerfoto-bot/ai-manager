@@ -1425,7 +1425,7 @@ app.get('/api/profit-stats', async (req, res) => {
           totalMeters120g += result.meters120g;
           totalMeters160g += result.meters160g;
           totalM2120g += result.m2120g;
-          analyzedItems++;
+          analyzedItems += parseInt(item.quantity || 1);
         }
       }
 
