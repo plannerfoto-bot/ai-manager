@@ -240,8 +240,12 @@ const Finance = () => {
           </div>
 
           <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <MetricCard title="Custo de Frete Cliente" value={fmtBRL(profitData?.shippingTotal)} icon={Truck} color="text-rose-400" trend="Total repassado" />
+            <MetricCard title="Fretes Pagos pelo Cliente" value={fmtBRL(profitData?.shippingCustomerTotal || profitData?.shippingTotal)} icon={Truck} color="text-rose-400" trend="Valor cobrado na loja" />
+            <MetricCard title="Custo Real Transportadoras" value={fmtBRL(profitData?.shippingOwnerTotal)} icon={Truck} color="text-orange-400" trend="Todos os fretes somados" />
+            
+            <MetricCard title="Subsídio de Frete Grátis" value={fmtBRL(profitData?.freeShippingCost)} icon={TrendingDown} color="text-red-500" trend="Saiu do próprio bolso" />
             <MetricCard title="Taxas Nuvem Pago" value={fmtBRL(profitData?.gatewayFeeTotal)} icon={CreditCard} color="text-amber-400" trend="Pix e Cartão somados" />
+            
             <MetricCard title="Custo Bobina Fornecedor" value={fmtBRL(profitData?.productionCost)} icon={TrendingDown} color="text-slate-300" trend="Metro linear + m²" />
             <MetricCard title="Custo de Costureira" value={fmtBRL(profitData?.sewingCost)} icon={Scissors} color="text-violet-400" trend={`${profitData?.analyzedItems ?? 0} painéis`} />
           </div>

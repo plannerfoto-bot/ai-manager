@@ -1407,6 +1407,8 @@ app.get('/api/profit-stats', async (req, res) => {
     let totalSewingCost = 0;
     let totalProductionCost = 0;
     let totalShippingCustomer = 0;
+    let totalShippingOwner = 0;
+    let totalFreeShippingCost = 0;
     let totalGatewayFee = 0;
     let totalMeters120g = 0;
     let totalMeters160g = 0;
@@ -1437,6 +1439,7 @@ app.get('/api/profit-stats', async (req, res) => {
       // Cálculos financeiros do pedido
       const orderTotal = parseFloat(order.total || 0);
       const shippingCustomer = parseFloat(order.shipping_cost_customer || order.shipping || 0);
+      const shippingOwner = parseFloat(order.shipping_cost_owner || order.shipping || 0);
       
       const isPix = order.payment_details && order.payment_details.method === 'pix';
       let gatewayFee = 0;
@@ -1447,16 +1450,20 @@ app.get('/api/profit-stats', async (req, res) => {
       }
 
       totalShippingCustomer += shippingCustomer;
+      totalShippingOwner += shippingOwner;
+      
+      const outOfPocketShipping = Math.max(0, shippingOwner - shippingCustomer);
+      totalFreeShippingCost += outOfPocketShipping;
+
       totalGatewayFee += gatewayFee;
 
-      const orderNetRevenue = orderTotal - shippingCustomer - gatewayFee;
-      const orderProfit = orderNetRevenue - orderProdCost - orderSewingCost;
+      const orderProfit = orderTotal - gatewayFee - shippingOwner - orderProdCost - orderSewingCost;
 
       totalProfit += orderProfit;
 
-      // Agrupamento de frete
+      // Agrupamento de frete (custo real pago à transportadora)
       const shipOption = order.shipping_option || 'Desconhecido';
-      shippingDetails[shipOption] = (shippingDetails[shipOption] || 0) + shippingCustomer;
+      shippingDetails[shipOption] = (shippingDetails[shipOption] || 0) + shippingOwner;
     }
 
     res.json({
@@ -1464,6 +1471,9 @@ app.get('/api/profit-stats', async (req, res) => {
       sewingCost: parseFloat(totalSewingCost.toFixed(2)),
       productionCost: parseFloat(totalProductionCost.toFixed(2)),
       shippingTotal: parseFloat(totalShippingCustomer.toFixed(2)),
+      shippingCustomerTotal: parseFloat(totalShippingCustomer.toFixed(2)),
+      shippingOwnerTotal: parseFloat(totalShippingOwner.toFixed(2)),
+      freeShippingCost: parseFloat(totalFreeShippingCost.toFixed(2)),
       gatewayFeeTotal: parseFloat(totalGatewayFee.toFixed(2)),
       meters120g: parseFloat(totalMeters120g.toFixed(2)),
       meters160g: parseFloat(totalMeters160g.toFixed(2)),
