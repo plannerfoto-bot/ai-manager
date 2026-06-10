@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import axios from 'axios';
 import { 
   TrendingUp, 
@@ -113,8 +114,6 @@ const MetricCard = ({ title, value, icon: Icon, color, onClick }) => (
 );
 
 const KPISidebar = ({ activeKpi, onClose, data }) => {
-  if (!activeKpi || !data) return null;
-
   const renderContent = () => {
     switch (activeKpi) {
       case 'lucro':
@@ -244,19 +243,32 @@ const KPISidebar = ({ activeKpi, onClose, data }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm transition-opacity" onClick={onClose}>
-      <div className="w-full max-w-md h-full bg-[var(--surface-input)] border-l border-[var(--border-soft)] shadow-2xl flex flex-col transform transition-transform" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between p-6 border-b border-[var(--border-soft)]">
-          <h3 className="text-lg font-bold text-[var(--text-primary)]">{titles[activeKpi]}</h3>
-          <button onClick={onClose} className="p-2 text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-glass)] rounded-lg transition-all">
-            <X size={20} />
-          </button>
-        </div>
-        <div className="p-6 flex-1 overflow-y-auto">
-          {renderContent()}
-        </div>
-      </div>
-    </div>
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm" 
+        onClick={onClose}
+      >
+        <motion.div 
+          initial={{ x: '100%' }}
+          animate={{ x: 0 }}
+          exit={{ x: '100%' }}
+          transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+          className="w-full max-w-md h-full bg-[var(--surface-input)] border-l border-[var(--border-soft)] shadow-2xl flex flex-col" 
+          onClick={e => e.stopPropagation()}
+        >
+          <div className="flex items-center justify-between p-6 border-b border-[var(--border-soft)]">
+            <h3 className="text-lg font-bold text-[var(--text-primary)]">{titles[activeKpi]}</h3>
+            <button onClick={onClose} className="p-2 text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-glass)] rounded-lg transition-all">
+              <X size={20} />
+            </button>
+          </div>
+          <div className="p-6 flex-1 overflow-y-auto">
+            {renderContent()}
+          </div>
+        </motion.div>
+      </motion.div>
   );
 };
 
@@ -487,9 +499,11 @@ const Finance = () => {
           </div>
         </div>
 
+        </div>
+        <AnimatePresence>
+          {activeKpi && <KPISidebar activeKpi={activeKpi} onClose={() => setActiveKpi(null)} data={profitData} />}
+        </AnimatePresence>
       </div>
-      <KPISidebar activeKpi={activeKpi} onClose={() => setActiveKpi(null)} data={profitData} />
-    </div>
   );
 };
 

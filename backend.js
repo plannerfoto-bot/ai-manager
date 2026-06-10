@@ -1532,6 +1532,8 @@ app.get('/api/profit-stats', async (req, res) => {
       shippingDetails,
       ordersCount: allOrders.length,
       analyzedItems,
+      overloqueCount: totalOverloqueCount,
+      emendaCount: totalEmendaCount,
       period,
       startDate,
       endDate,
