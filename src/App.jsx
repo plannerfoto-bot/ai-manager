@@ -13,6 +13,7 @@ import Marketing from './pages/Marketing';
 import AbandonedCart from './components/organisms/AbandonedCart';
 import UnitaryRegistration from './pages/UnitaryRegistration';
 import Commissions from './pages/Commissions';
+import Finance from './pages/Finance';
 
 // ─── Componentes Auxiliares Fora da Função Principal ───────────────────
 class ErrorBoundary extends React.Component {
@@ -181,6 +182,8 @@ const App = () => {
     switch (activeTab) {
       case 'dashboard':
         return <Dashboard stats={stats} />;
+      case 'finance':
+        return <Finance />;
       case 'inventory':
         return (
           <Inventory 

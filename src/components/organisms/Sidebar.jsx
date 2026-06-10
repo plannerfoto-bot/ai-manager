@@ -18,6 +18,7 @@ import {
 const Sidebar = ({ activeTab, setActiveTab }) => {
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'finance', label: 'Financeiro', icon: DollarSign },
     { id: 'orders', label: 'Vendas', icon: ShoppingBag },
     { id: 'inventory', label: 'Produtos', icon: Package },
     { id: 'unitary-registration', label: 'Cadastro Unitário', icon: PackagePlus },
