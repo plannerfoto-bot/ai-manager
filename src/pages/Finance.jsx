@@ -867,55 +867,53 @@ const Finance = () => {
                       </div>
                     </div>
                   </div>
-
-                </div>
-
-                {/* Impacto / Diferença vs Realidade */}
-                <div className="mt-6">
-                  <div className="relative overflow-hidden bg-gradient-to-br from-[var(--surface-sunken)] to-[var(--surface-card)] p-6 rounded-2xl border border-[var(--border-soft)] shadow-xl">
-                    
-                    {/* Decorative Background */}
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl -mr-20 -mt-20"></div>
-
-                    <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center gap-6">
-                      
-                      {/* Text Section */}
-                      <div className="flex-1">
-                        <h4 className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider mb-3 flex items-center gap-2">
-                          <TrendingUp size={16} className="text-emerald-500" />
-                          Projeção vs Realidade
-                        </h4>
-                        <p className="text-[15px] text-[var(--text-secondary)] leading-relaxed">
-                          Se você vender <strong className="text-white bg-[var(--surface-input)] border border-[var(--border-soft)] px-2 py-0.5 rounded-md mx-1">{sim2CartCount}</strong> carrinhos no <strong className="text-white bg-[var(--surface-input)] border border-[var(--border-soft)] px-2 py-0.5 rounded-md mx-1">{sim2Installments}x sem juros</strong> em vez dos <strong className="text-white bg-[var(--surface-input)] border border-[var(--border-soft)] px-2 py-0.5 rounded-md mx-1">{sim2Results?.historicalMatchCount || 0}</strong> carrinhos reais:
-                        </p>
-                      </div>
-
-                      {/* Divider for Desktop */}
-                      <div className="hidden md:block w-px h-16 bg-[var(--border-soft)]"></div>
-
-                      {/* Divider for Mobile */}
-                      <div className="block md:hidden w-full h-px bg-[var(--border-soft)]"></div>
-
-                      {/* Metrics Section */}
-                      <div className="flex w-full md:w-auto gap-8 justify-between md:justify-end shrink-0">
-                        <div className="flex flex-col justify-center">
-                          <p className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-1">Novo Lucro Líquido</p>
-                          <p className="text-2xl font-black text-white">{fmtBRL(sim2Results?.projectedTotalProfit || 0)}</p>
-                        </div>
-                        <div className="flex flex-col justify-center text-right">
-                          <p className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-1">Lucro Adicional</p>
-                          <p className={`text-2xl font-black ${(sim2Results?.profitDifference || 0) >= 0 ? 'text-emerald-500 drop-shadow-[0_0_8px_rgba(16,185,129,0.3)]' : 'text-rose-500'}`}>
-                            {(sim2Results?.profitDifference || 0) >= 0 ? '+' : ''}{fmtBRL(sim2Results?.profitDifference || 0)}
-                          </p>
-                        </div>
-                      </div>
-
-                    </div>
-                  </div>
-                </div>
               </div>
             </div>
 
+          </div>
+
+          {/* Impacto / Diferença vs Realidade - NOW FULL WIDTH */}
+          <div className="mt-6 w-full">
+            <div className="relative overflow-hidden bg-gradient-to-br from-[var(--surface-sunken)] to-[var(--surface-card)] p-6 rounded-2xl border border-[var(--border-soft)] shadow-xl">
+              
+              {/* Decorative Background */}
+              <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl -mr-20 -mt-20"></div>
+
+              <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center gap-6">
+                
+                {/* Text Section */}
+                <div className="flex-1">
+                  <h4 className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider mb-3 flex items-center gap-2">
+                    <TrendingUp size={16} className="text-emerald-500" />
+                    Projeção vs Realidade
+                  </h4>
+                  <p className="text-[15px] text-[var(--text-secondary)] leading-relaxed">
+                    Se você vender <strong className="text-white bg-[var(--surface-input)] border border-[var(--border-soft)] px-2 py-0.5 rounded-md mx-1">{sim2CartCount}</strong> carrinhos no <strong className="text-white bg-[var(--surface-input)] border border-[var(--border-soft)] px-2 py-0.5 rounded-md mx-1">{sim2Installments}x sem juros</strong> em vez dos <strong className="text-white bg-[var(--surface-input)] border border-[var(--border-soft)] px-2 py-0.5 rounded-md mx-1">{sim2Results?.historicalMatchCount || 0}</strong> carrinhos reais:
+                  </p>
+                </div>
+
+                {/* Divider for Desktop */}
+                <div className="hidden md:block w-px h-16 bg-[var(--border-soft)]"></div>
+
+                {/* Divider for Mobile */}
+                <div className="block md:hidden w-full h-px bg-[var(--border-soft)]"></div>
+
+                {/* Metrics Section */}
+                <div className="flex w-full md:w-auto gap-8 justify-between md:justify-end shrink-0">
+                  <div className="flex flex-col justify-center">
+                    <p className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-1">Novo Lucro Líquido</p>
+                    <p className="text-2xl font-black text-white">{fmtBRL(sim2Results?.projectedTotalProfit || 0)}</p>
+                  </div>
+                  <div className="flex flex-col justify-center text-right">
+                    <p className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-1">Lucro Adicional</p>
+                    <p className={`text-2xl font-black ${(sim2Results?.profitDifference || 0) >= 0 ? 'text-emerald-500 drop-shadow-[0_0_8px_rgba(16,185,129,0.3)]' : 'text-rose-500'}`}>
+                      {(sim2Results?.profitDifference || 0) >= 0 ? '+' : ''}{fmtBRL(sim2Results?.profitDifference || 0)}
+                    </p>
+                  </div>
+                </div>
+
+              </div>
+            </div>
           </div>
         </div>
 
