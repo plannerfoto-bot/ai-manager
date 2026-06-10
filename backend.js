@@ -1529,18 +1529,45 @@ app.get('/api/commissions-report', async (req, res) => {
     const { categoryId, dateMin, dateMax } = req.query;
     if (!categoryId) return res.status(400).json({ error: 'categoryId é obrigatório' });
 
+    // 1. Mapear árvore de categorias para incluir subcategorias
+    const catsRes = await client.get('/categories');
+    const allCats = catsRes.data;
+    
+    let targetCategoryIds = new Set([parseInt(categoryId, 10)]);
+    const addSubcats = (parentId) => {
+      const parent = allCats.find(c => c.id === parentId);
+      if (parent && parent.subcategories && Array.isArray(parent.subcategories)) {
+        parent.subcategories.forEach(subId => {
+          if (!targetCategoryIds.has(subId)) {
+            targetCategoryIds.add(subId);
+            addSubcats(subId);
+          }
+        });
+      }
+    };
+    addSubcats(parseInt(categoryId, 10));
+
+    // 2. Extrair os produtos pertencentes à categoria pai e todas as suas filhas
     let categoryProductIds = new Set();
-    let pPage = 1;
-    let pHasMore = true;
-    while(pHasMore) {
-      const pRes = await client.get('/products', { params: { categories: categoryId, per_page: 200, page: pPage } });
-      const prods = pRes.data;
-      if (!prods || prods.length === 0) {
-        pHasMore = false;
-      } else {
-        prods.forEach(p => categoryProductIds.add(p.id));
-        pPage++;
-        if (pPage > 100) pHasMore = false;
+    
+    for (const catId of targetCategoryIds) {
+      let pPage = 1;
+      let pHasMore = true;
+      while(pHasMore) {
+        try {
+          const pRes = await client.get('/products', { params: { category_id: catId, per_page: 200, page: pPage } });
+          const prods = pRes.data;
+          if (!prods || prods.length === 0) {
+            pHasMore = false;
+          } else {
+            prods.forEach(p => categoryProductIds.add(p.id));
+            pPage++;
+            if (pPage > 50) pHasMore = false; // limite de segurança
+          }
+        } catch (err) {
+          console.error(`Erro ao buscar produtos da categoria ${catId}:`, err.message);
+          pHasMore = false;
+        }
       }
     }
 
