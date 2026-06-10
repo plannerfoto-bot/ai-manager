@@ -292,6 +292,46 @@ const Finance = () => {
     7: 12.33, 8: 13.59, 9: 14.81, 10: 16.02, 11: 17.21, 12: 18.37
   });
 
+  // --- Estados do Simulador de Projeção (Simulador 2) ---
+  const [sim2SalesCount, setSim2SalesCount] = useState(100);
+  const [sim2Ticket, setSim2Ticket] = useState(250);
+  const [sim2CardAdoption, setSim2CardAdoption] = useState(100);
+  const [sim2Installments, setSim2Installments] = useState(3);
+  const [sim2MinOrderValue, setSim2MinOrderValue] = useState(250);
+  const [sim2EligiblePercent, setSim2EligiblePercent] = useState(100);
+
+  const calculateSimulation2 = () => {
+    let historyMargin = 0.25;
+    if (profitData && profitData.totalProfit) {
+      const historyGross = profitData.totalProfit + profitData.productionCost + profitData.sewingCost + profitData.gatewayFeeTotal + profitData.shippingOwnerTotal;
+      if (historyGross > 0) {
+        historyMargin = profitData.totalProfit / historyGross;
+      }
+    }
+    
+    const projGross = sim2SalesCount * sim2Ticket;
+    const profitScenarioA = projGross * historyMargin;
+    
+    const projCardRevenue = projGross * (sim2CardAdoption / 100);
+    const eligibleCardRevenue = projCardRevenue * (sim2EligiblePercent / 100);
+    
+    const selectedRatePercent = simRates[sim2Installments] || 4.99;
+    const baselineRate = simRates[1] || 4.99;
+    const extraRate = Math.max(0, selectedRatePercent - baselineRate);
+    
+    const extraFeeCost = eligibleCardRevenue * (extraRate / 100);
+    const profitScenarioB = profitScenarioA - extraFeeCost;
+    
+    return {
+      projGross,
+      profitScenarioA,
+      extraFeeCost,
+      profitScenarioB
+    };
+  };
+
+  const sim2Results = calculateSimulation2();
+
   const calculateSimulation = () => {
     if (!profitData) return null;
     
@@ -683,6 +723,106 @@ const Finance = () => {
                 </div>
               ))}
             </div>
+          </div>
+        </div>
+
+        {/* 🔥 SESSÃO 4: SIMULADOR DE CENÁRIOS FICTÍCIOS 🔥 */}
+        <div className="mt-6 rounded-2xl border border-[var(--border-soft)] bg-[var(--surface-glass)]/50 p-6 flex flex-col">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 bg-emerald-500/10 rounded-lg">
+              <CreditCard className="w-5 h-5 text-emerald-500" />
+            </div>
+            <div>
+              <h3 className="text-[25px] font-extrabold text-[var(--text-primary)]">Simulador de Cenários: Projeção</h3>
+              <p className="text-sm text-[var(--text-muted)]">Crie vendas fictícias e simule o lucro usando sua margem histórica.</p>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* Inputs Section */}
+            <div className="lg:col-span-4 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-semibold text-[var(--text-muted)] uppercase block mb-1">Qtd de Vendas</label>
+                  <input type="number" min="0" value={sim2SalesCount} onChange={e => setSim2SalesCount(Number(e.target.value))} className="w-full bg-[var(--surface-input)] border border-[var(--border-soft)] rounded-lg p-2 text-white font-bold outline-none" />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-[var(--text-muted)] uppercase block mb-1">Ticket Médio (R$)</label>
+                  <input type="number" min="0" value={sim2Ticket} onChange={e => setSim2Ticket(Number(e.target.value))} className="w-full bg-[var(--surface-input)] border border-[var(--border-soft)] rounded-lg p-2 text-white font-bold outline-none" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-semibold text-[var(--text-muted)] uppercase block mb-1">% no Cartão</label>
+                  <input type="number" min="0" max="100" value={sim2CardAdoption} onChange={e => setSim2CardAdoption(Number(e.target.value))} className="w-full bg-[var(--surface-input)] border border-[var(--border-soft)] rounded-lg p-2 text-white font-bold outline-none" />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-[var(--text-muted)] uppercase block mb-1">Parcelas s/ Juros</label>
+                  <select value={sim2Installments} onChange={e => setSim2Installments(Number(e.target.value))} className="w-full bg-[var(--surface-input)] border border-[var(--border-soft)] rounded-lg p-2 text-white font-bold outline-none">
+                    {[1,2,3,4,5,6,7,8,9,10,11,12].map(n => <option key={n} value={n}>{n}x</option>)}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-[var(--text-muted)] uppercase block mb-1">Pedido Mínimo (R$)</label>
+                <input type="number" min="0" value={sim2MinOrderValue} onChange={e => setSim2MinOrderValue(Number(e.target.value))} className="w-full bg-[var(--surface-input)] border border-[var(--border-soft)] rounded-lg p-2 text-white font-bold outline-none" />
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-[var(--text-muted)] uppercase block mb-1">% de Clientes que batem o Mínimo</label>
+                <input type="range" min="0" max="100" value={sim2EligiblePercent} onChange={e => setSim2EligiblePercent(Number(e.target.value))} className="w-full mt-2 accent-emerald-500" />
+                <div className="text-right text-xs text-[var(--text-muted)] mt-1">{sim2EligiblePercent}% das vendas elegíveis</div>
+              </div>
+            </div>
+
+            {/* Results Section */}
+            <div className="lg:col-span-8">
+              <div className="h-full rounded-2xl bg-[var(--surface-input)] border border-[var(--border-soft)] p-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 h-full">
+                  
+                  {/* Cenario A */}
+                  <div className="flex flex-col h-full border-r border-[var(--border-soft)] pr-8">
+                    <h4 className="text-sm font-bold text-[var(--text-muted)] uppercase mb-4">Cenário A: Sem Juros Repassado</h4>
+                    <div className="space-y-4 flex-1">
+                      <div>
+                        <p className="text-xs text-[var(--text-muted)]">Faturamento Bruto</p>
+                        <p className="text-lg font-semibold text-white">{fmtBRL(sim2Results?.projGross || 0)}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-[var(--text-muted)]">Lucro Líquido</p>
+                        <p className="text-3xl font-black text-emerald-500/80">{fmtBRL(sim2Results?.profitScenarioA || 0)}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Cenario B */}
+                  <div className="flex flex-col h-full pl-2">
+                    <h4 className="text-sm font-bold text-[var(--text-muted)] uppercase mb-4 flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                      Cenário B: Absorvendo {sim2Installments}x
+                    </h4>
+                    <div className="space-y-4 flex-1">
+                      <div>
+                        <p className="text-xs text-[var(--text-muted)]">Faturamento Bruto</p>
+                        <p className="text-lg font-semibold text-white">{fmtBRL(sim2Results?.projGross || 0)}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-[var(--text-muted)]">Custo Extra dos Juros</p>
+                        <p className="text-lg font-semibold text-rose-400">-{fmtBRL(sim2Results?.extraFeeCost || 0)}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-[var(--text-muted)]">Lucro Líquido</p>
+                        <p className="text-3xl font-black text-emerald-500">{fmtBRL(sim2Results?.profitScenarioB || 0)}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+            </div>
+
           </div>
         </div>
 
