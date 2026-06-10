@@ -802,7 +802,7 @@ export default function AbandonedCart({ storeId }) {
                     >
                       <td style={{ padding: '12px 16px', color: '#f1f5f9', fontSize: 13 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <User className="w-3 h-3 text-[#8A8F98]" />
+                          <User className="w-3 h-3 text-[var(--text-muted)]" />
                           {c.customer_name || 'Sem nome'}
                         </div>
                         {willFire && <span style={{ marginLeft: 6, fontSize: 10, background: '#f59e0b22', color: '#f59e0b', padding: '2px 6px', borderRadius: 6 }}>Pronto p/ envio</span>}
@@ -845,7 +845,7 @@ export default function AbandonedCart({ storeId }) {
               <div style={{ background: '#1e293b', borderRadius: 16, padding: 24, border: '1px solid #334155' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
                   <div style={{ width: 48, height: 48, borderRadius: 12, background: '#6366f122', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <User className="w-6 h-6 text-indigo-400" />
+                    <User className="w-6 h-6 text-[var(--accent)]" />
                   </div>
                   <div>
                     <h3 style={{ margin: 0, color: '#f1f5f9', fontSize: 18 }}>{selectedCart.customer_name}</h3>
@@ -887,7 +887,7 @@ export default function AbandonedCart({ storeId }) {
 
               <div style={{ background: '#1e293b', borderRadius: 16, padding: 24, border: '1px solid #334155' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-                  <Package className="w-5 h-5 text-indigo-400" />
+                  <Package className="w-5 h-5 text-[var(--accent)]" />
                   <h3 style={{ margin: 0, color: '#f1f5f9', fontSize: 16 }}>Produtos no Carrinho</h3>
                 </div>
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>

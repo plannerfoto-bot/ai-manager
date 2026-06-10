@@ -60,18 +60,18 @@ const ScriptManager = ({ storeId, apiBase }) => {
   return (
     <div className="space-y-8 max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700">
       {/* 1. Status Connection Card */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white/5/50 p-8 rounded-[2rem] border border-white/10 shadow-2xl overflow-hidden relative group">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-[var(--surface-glass)]/50 p-8 rounded-[2rem] border border-[var(--border-soft)] shadow-2xl overflow-hidden relative group">
         <div className="absolute top-0 right-0 w-64 h-64 btn-primary/5 blur-[120px] rounded-full -mr-32 -mt-32"></div>
         
         <div className="flex items-center gap-6 relative z-10">
           <div className="w-20 h-20 btn-primary/10 rounded-3xl flex items-center justify-center border border-indigo-500/20 shadow-inner">
-            <Zap className="w-10 h-10 text-indigo-400" />
+            <Zap className="w-10 h-10 text-[var(--accent)]" />
           </div>
           <div>
-            <h1 className="text-3xl font-black text-[#EDEDEF] tracking-tight">Conexão Nativa</h1>
+            <h1 className="text-3xl font-black text-[var(--text-primary)] tracking-tight">Conexão Nativa</h1>
             <div className="flex items-center gap-2 mt-2">
               <span className={`flex h-2 w-2 rounded-full ${storeId ? 'bg-emerald-500' : 'btn-primary animate-pulse'}`}></span>
-              <p className="text-[#8A8F98] font-medium">
+              <p className="text-[var(--text-muted)] font-medium">
                 {storeId ? `Conectado à Loja ${storeId}` : 'Aguardando Instalação Profissional'}
               </p>
             </div>
@@ -80,7 +80,7 @@ const ScriptManager = ({ storeId, apiBase }) => {
 
         <button
           onClick={handleConnectApp}
-          className="px-8 py-5 btn-primary hover:btn-primary text-[#EDEDEF] font-black rounded-2xl shadow-lg shadow-blue-500/20 transition-all flex items-center gap-3 group active:scale-95 relative z-10"
+          className="px-8 py-5 btn-primary hover:btn-primary text-[var(--text-primary)] font-black rounded-2xl shadow-lg shadow-blue-500/20 transition-all flex items-center gap-3 group active:scale-95 relative z-10"
         >
           <ExternalLink className="w-5 h-5 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
           {storeId ? 'REINSTALAR / ATUALIZAR' : 'INSTALAR NA MINHA LOJA'}
@@ -92,29 +92,29 @@ const ScriptManager = ({ storeId, apiBase }) => {
         
         {/* Painel de Controle */}
         <div className="md:col-span-1 space-y-6">
-          <div className="bg-slate-950 p-6 rounded-3xl border border-white/10 space-y-6">
+          <div className="bg-slate-950 p-6 rounded-3xl border border-[var(--border-soft)] space-y-6">
             <div>
-              <label className="text-xs text-[#8A8F98] uppercase font-black mb-3 block">Calculadora Ativa</label>
+              <label className="text-xs text-[var(--text-muted)] uppercase font-black mb-3 block">Calculadora Ativa</label>
               <button
                 onClick={() => setEnabled(!enabled)}
                 className={`w-full flex items-center justify-between p-4 rounded-2xl border transition-all ${
-                  enabled ? 'btn-primary/10 border-indigo-500/30 text-blue-300' : 'bg-white/5 border-white/10 text-[#8A8F98]'
+                  enabled ? 'btn-primary/10 border-indigo-500/30 text-blue-300' : 'bg-[var(--surface-glass)] border-[var(--border-soft)] text-[var(--text-muted)]'
                 }`}
               >
                 <span className="font-bold">{enabled ? 'ATIVADA' : 'DESATIVADA'}</span>
-                <Calculator className={`w-5 h-5 ${enabled ? 'text-indigo-400' : 'text-slate-700'}`} />
+                <Calculator className={`w-5 h-5 ${enabled ? 'text-[var(--accent)]' : 'text-slate-700'}`} />
               </button>
             </div>
 
             <div>
-              <label className="text-xs text-[#8A8F98] uppercase font-black mb-3 block">WhatsApp de Vendas</label>
+              <label className="text-xs text-[var(--text-muted)] uppercase font-black mb-3 block">WhatsApp de Vendas</label>
               <div className="relative">
                 <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600" />
                 <input
                   type="text"
                   value={whatsapp}
                   onChange={(e) => setWhatsapp(e.target.value.replace(/\D/g, ''))}
-                  className="w-full bg-white/5 border border-white/10 rounded-2xl pl-12 pr-4 py-4 text-[#EDEDEF] font-medium focus:outline-none focus:border-indigo-500 transition-all"
+                  className="w-full bg-[var(--surface-glass)] border border-[var(--border-soft)] rounded-2xl pl-12 pr-4 py-4 text-[var(--text-primary)] font-medium focus:outline-none focus:border-indigo-500 transition-all"
                   placeholder="5511999999999"
                 />
               </div>
@@ -123,7 +123,7 @@ const ScriptManager = ({ storeId, apiBase }) => {
             <button
               onClick={handleSaveSettings}
               disabled={loading || activating}
-              className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-[#EDEDEF] font-black rounded-2xl transition-all shadow-lg shadow-emerald-900/20"
+              className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-[var(--text-primary)] font-black rounded-2xl transition-all shadow-lg shadow-emerald-900/20"
             >
               {loading ? 'SALVANDO...' : 'SALVAR NA NUVEM'}
             </button>
@@ -132,7 +132,7 @@ const ScriptManager = ({ storeId, apiBase }) => {
             <button
               onClick={handleActivateOnStore}
               disabled={loading || activating}
-              className="w-full py-4 bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-500 hover:to-violet-500 disabled:opacity-40 text-[#EDEDEF] font-black rounded-2xl transition-all shadow-lg shadow-blue-900/30 flex items-center justify-center gap-2"
+              className="w-full py-4 bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-500 hover:to-violet-500 disabled:opacity-40 text-[var(--text-primary)] font-black rounded-2xl transition-all shadow-lg shadow-blue-900/30 flex items-center justify-center gap-2"
             >
               <Rocket className="w-5 h-5" />
               {activating ? 'ATIVANDO...' : 'ATIVAR NA LOJA'}
@@ -152,7 +152,7 @@ const ScriptManager = ({ storeId, apiBase }) => {
                       <span>Calculadora ativa na sua loja!</span>
                     </div>
                     <a href={scriptStatus.scriptUrl} target="_blank" rel="noopener noreferrer"
-                      className="flex items-center gap-1 text-indigo-400 underline text-xs break-all">
+                      className="flex items-center gap-1 text-[var(--accent)] underline text-xs break-all">
                       <Globe className="w-3 h-3 flex-shrink-0" />
                       {scriptStatus.scriptUrl}
                     </a>
@@ -170,28 +170,28 @@ const ScriptManager = ({ storeId, apiBase }) => {
 
         {/* Benefícios Cloud */}
         <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="bg-white/5/40 p-8 rounded-[2rem] border border-white/10 hover:border-indigo-500/20 transition-all group">
+          <div className="bg-[var(--surface-glass)]/40 p-8 rounded-[2rem] border border-[var(--border-soft)] hover:border-indigo-500/20 transition-all group">
             <div className="w-12 h-12 bg-emerald-500/10 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
               <ShieldCheck className="w-6 h-6 text-emerald-400" />
             </div>
-            <h3 className="text-lg font-black text-[#EDEDEF] mb-2">Segurança OAuth</h3>
-            <p className="text-sm text-[#8A8F98] leading-relaxed font-medium">
+            <h3 className="text-lg font-black text-[var(--text-primary)] mb-2">Segurança OAuth</h3>
+            <p className="text-sm text-[var(--text-muted)] leading-relaxed font-medium">
               Conexão oficial aprovada pela Nuvemshop. Sem necessidade de compartilhar senhas ou chaves privadas.
             </p>
           </div>
 
-          <div className="bg-white/5/40 p-8 rounded-[2rem] border border-white/10 hover:border-indigo-500/20 transition-all group">
+          <div className="bg-[var(--surface-glass)]/40 p-8 rounded-[2rem] border border-[var(--border-soft)] hover:border-indigo-500/20 transition-all group">
             <div className="w-12 h-12 btn-primary/10 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-              <Zap className="w-6 h-6 text-indigo-400" />
+              <Zap className="w-6 h-6 text-[var(--accent)]" />
             </div>
-            <h3 className="text-lg font-black text-[#EDEDEF] mb-2">Zero Manutenção</h3>
-            <p className="text-sm text-[#8A8F98] leading-relaxed font-medium">
+            <h3 className="text-lg font-black text-[var(--text-primary)] mb-2">Zero Manutenção</h3>
+            <p className="text-sm text-[var(--text-muted)] leading-relaxed font-medium">
               O script se atualiza sozinho. Quando lançarmos novas funções, elas aparecem na sua loja sem você fazer nada.
             </p>
           </div>
 
           <div className="sm:col-span-2 bg-gradient-to-r from-blue-600/10 to-transparent p-8 rounded-[2rem] border border-indigo-500/10">
-            <h3 className="text-sm font-black text-indigo-400 uppercase tracking-widest mb-2">Como funciona o Novo Modelo</h3>
+            <h3 className="text-sm font-black text-[var(--accent)] uppercase tracking-widest mb-2">Como funciona o Novo Modelo</h3>
             <p className="text-sm text-slate-300 leading-relaxed font-medium">
               Diferente do método antigo (FTP), o <b>Modelo Nativo</b> injeta uma ponte inteligente. 
               Isso significa que você tem controle total aqui no painel e estabilidade total na sua loja.

@@ -170,30 +170,30 @@ const Commissions = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-[#EDEDEF] tracking-tight flex items-center gap-3">
+          <h1 className="text-3xl font-bold text-[var(--text-primary)] tracking-tight flex items-center gap-3">
             <DollarSign className="w-8 h-8 text-emerald-400" />
             Comissões & Financeiro
           </h1>
-          <p className="text-[#8A8F98] mt-1">Gerenciamento de comissões fixas para parceiros por coleção</p>
+          <p className="text-[var(--text-muted)] mt-1">Gerenciamento de comissões fixas para parceiros por coleção</p>
         </div>
         {report && (
-          <button onClick={downloadPDF} className="px-5 py-2.5 btn-primary text-[#EDEDEF] font-semibold rounded-lg hover:bg-blue-700 transition-all flex items-center gap-2 shadow-lg shadow-blue-500/20">
+          <button onClick={downloadPDF} className="px-5 py-2.5 btn-primary text-[var(--text-primary)] font-semibold rounded-lg hover:bg-blue-700 transition-all flex items-center gap-2 shadow-lg shadow-blue-500/20">
             <Download className="w-5 h-5" /> Exportar Relatório em PDF
           </button>
         )}
       </div>
 
-      <div className="glass p-6 rounded-xl border border-white/10">
-        <h2 className="text-lg font-bold text-[#EDEDEF] mb-4 flex items-center gap-2">
+      <div className="glass p-6 rounded-xl border border-[var(--border-soft)]">
+        <h2 className="text-lg font-bold text-[var(--text-primary)] mb-4 flex items-center gap-2">
           <Filter className="w-5 h-5 text-primary" /> Filtros do Relatório
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div>
-            <label className="block text-sm font-medium text-[#8A8F98] mb-2">Coleção (Categoria)</label>
+            <label className="block text-sm font-medium text-[var(--text-muted)] mb-2">Coleção (Categoria)</label>
             <select 
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-[#EDEDEF] focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+              className="w-full bg-[var(--surface-glass)] border border-[var(--border-soft)] rounded-lg p-3 text-[var(--text-primary)] focus:border-primary focus:ring-1 focus:ring-primary outline-none"
             >
               <option value="">Selecione a Coleção...</option>
               {categories.map(cat => (
@@ -204,11 +204,11 @@ const Commissions = () => {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-[#8A8F98] mb-2">Período de Vendas</label>
+            <label className="block text-sm font-medium text-[var(--text-muted)] mb-2">Período de Vendas</label>
             <select 
               value={selectedPeriod}
               onChange={(e) => setSelectedPeriod(e.target.value)}
-              className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-[#EDEDEF] focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+              className="w-full bg-[var(--surface-glass)] border border-[var(--border-soft)] rounded-lg p-3 text-[var(--text-primary)] focus:border-primary focus:ring-1 focus:ring-primary outline-none"
             >
               <option value="">Todo o Período</option>
               <option value="semana">Última Semana</option>
@@ -223,7 +223,7 @@ const Commissions = () => {
             <button 
               onClick={handleGenerateReport}
               disabled={loading}
-              className="w-full py-3 bg-primary text-[#EDEDEF] font-bold rounded-lg hover:btn-primary transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+              className="w-full py-3 bg-primary text-[var(--text-primary)] font-bold rounded-lg hover:btn-primary transition-all flex items-center justify-center gap-2 disabled:opacity-50"
             >
               {loading ? (
                 <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-white"></div>
@@ -239,9 +239,9 @@ const Commissions = () => {
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
           {/* Métricas */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="glass p-6 rounded-xl border border-white/10 bg-gradient-to-br from-slate-900 to-slate-800/50">
-              <p className="text-[#8A8F98] text-sm font-bold uppercase mb-1">Faturamento Bruto (Coleção)</p>
-              <p className="text-3xl font-black text-[#EDEDEF]">R$ {report.summary.grossRevenue.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</p>
+            <div className="glass p-6 rounded-xl border border-[var(--border-soft)] bg-gradient-to-br from-slate-900 to-slate-800/50">
+              <p className="text-[var(--text-muted)] text-sm font-bold uppercase mb-1">Faturamento Bruto (Coleção)</p>
+              <p className="text-3xl font-black text-[var(--text-primary)]">R$ {report.summary.grossRevenue.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</p>
             </div>
             <div className="glass p-6 rounded-xl border border-emerald-900/30 bg-gradient-to-br from-emerald-950/20 to-slate-900">
               <p className="text-emerald-400/80 text-sm font-bold uppercase mb-1">Valor da Comissão Parceiro</p>
@@ -249,15 +249,15 @@ const Commissions = () => {
               <p className="text-xs text-emerald-500/50 mt-1">R$ 50 por unidade vendida</p>
             </div>
             <div className="glass p-6 rounded-xl border border-blue-900/30 bg-gradient-to-br from-blue-950/20 to-slate-900">
-              <p className="text-indigo-400/80 text-sm font-bold uppercase mb-1">Faturamento Líquido</p>
-              <p className="text-3xl font-black text-indigo-400">R$ {report.summary.netRevenue.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</p>
+              <p className="text-[var(--accent)]/80 text-sm font-bold uppercase mb-1">Faturamento Líquido</p>
+              <p className="text-3xl font-black text-[var(--accent)]">R$ {report.summary.netRevenue.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</p>
             </div>
           </div>
 
           {/* Tabela de Pedidos */}
-          <div className="glass rounded-xl border border-white/10 overflow-hidden">
-            <div className="p-4 border-b border-white/10 flex items-center justify-between bg-white/5/50">
-              <h3 className="font-bold text-[#EDEDEF] flex items-center gap-2">
+          <div className="glass rounded-xl border border-[var(--border-soft)] overflow-hidden">
+            <div className="p-4 border-b border-[var(--border-soft)] flex items-center justify-between bg-[var(--surface-glass)]/50">
+              <h3 className="font-bold text-[var(--text-primary)] flex items-center gap-2">
                 <FileText className="w-5 h-5 text-primary" />
                 Vendas Relacionadas ({report.orders.length})
               </h3>
@@ -265,12 +265,12 @@ const Commissions = () => {
             
             <div className="overflow-x-auto">
               {report.orders.length === 0 ? (
-                <div className="p-12 text-center text-[#8A8F98]">
+                <div className="p-12 text-center text-[var(--text-muted)]">
                   Nenhuma venda contendo produtos desta coleção foi encontrada no período.
                 </div>
               ) : (
                 <table className="w-full text-left text-sm">
-                  <thead className="bg-white/5 text-[#8A8F98] uppercase text-xs font-semibold">
+                  <thead className="bg-[var(--surface-glass)] text-[var(--text-muted)] uppercase text-xs font-semibold">
                     <tr>
                       <th className="px-6 py-4">Pedido</th>
                       <th className="px-6 py-4">Data</th>
@@ -282,16 +282,16 @@ const Commissions = () => {
                   </thead>
                   <tbody className="divide-y divide-slate-800/50">
                     {report.orders.map((o) => (
-                      <tr key={o.orderId} className="hover:bg-white/5/30 transition-all">
-                        <td className="px-6 py-4 font-medium text-[#EDEDEF]">#{o.orderNumber}</td>
-                        <td className="px-6 py-4 text-[#8A8F98]">
+                      <tr key={o.orderId} className="hover:bg-[var(--surface-glass)]/30 transition-all">
+                        <td className="px-6 py-4 font-medium text-[var(--text-primary)]">#{o.orderNumber}</td>
+                        <td className="px-6 py-4 text-[var(--text-muted)]">
                           <div className="flex items-center gap-2">
                             <Calendar className="w-4 h-4" />
                             {new Date(o.createdAt).toLocaleDateString('pt-BR')}
                           </div>
                         </td>
                         <td className="px-6 py-4 text-slate-300">{o.customerName}</td>
-                        <td className="px-6 py-4 text-center text-indigo-400 font-bold">{o.collectionItemsSold} un.</td>
+                        <td className="px-6 py-4 text-center text-[var(--accent)] font-bold">{o.collectionItemsSold} un.</td>
                         <td className="px-6 py-4 text-right text-slate-300">
                           R$ {o.collectionRevenue.toLocaleString('pt-BR', {minimumFractionDigits:2})}
                         </td>

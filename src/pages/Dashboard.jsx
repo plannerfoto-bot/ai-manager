@@ -42,7 +42,7 @@ const Dashboard = ({ stats }) => {
       value: stats.ordersCount || 0,
       icon: ShoppingBag,
       trend: '+8.2%',
-      color: 'text-indigo-400'
+      color: 'text-[var(--accent)]'
     },
     {
       title: 'Produtos',
@@ -66,8 +66,8 @@ const Dashboard = ({ stats }) => {
     <div className="space-y-8">
       {/* ── Cabeçalho ── */}
       <div>
-        <h2 className="text-3xl font-bold text-[#EDEDEF]">Painel de Controle</h2>
-        <p className="text-[#8A8F98]">Visão geral do desempenho da Cloth Sublimação</p>
+        <h2 className="text-3xl font-bold text-[var(--text-primary)]">Painel de Controle</h2>
+        <p className="text-[var(--text-muted)]">Visão geral do desempenho da Cloth Sublimação</p>
       </div>
 
       {/* ── Cards de Estatísticas Gerais ── */}
@@ -77,7 +77,7 @@ const Dashboard = ({ stats }) => {
           return (
             <Card key={index} className="flex flex-col">
               <div className="flex justify-between items-start mb-4">
-                <div className={`p-3 bg-white/5 rounded-xl ${card.color}`}>
+                <div className={`p-3 bg-[var(--surface-glass)] rounded-xl ${card.color}`}>
                   <Icon size={24} />
                 </div>
                 <div className="flex items-center gap-1 text-xs font-bold text-green-500 bg-green-500/10 px-2 py-1 rounded-full">
@@ -85,8 +85,8 @@ const Dashboard = ({ stats }) => {
                   {card.trend}
                 </div>
               </div>
-              <p className="text-[#8A8F98] text-sm font-medium">{card.title}</p>
-              <h4 className="text-2xl font-bold text-[#EDEDEF] mt-1">{card.value}</h4>
+              <p className="text-[var(--text-muted)] text-sm font-medium">{card.title}</p>
+              <h4 className="text-2xl font-bold text-[var(--text-primary)] mt-1">{card.value}</h4>
             </Card>
           );
         })}
@@ -103,24 +103,24 @@ const Dashboard = ({ stats }) => {
                 <div className="flex items-center gap-4">
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
                     log.status === 'Success' ? 'bg-green-500/10 text-green-500' : 
-                    log.status === 'Error' ? 'bg-rose-500/10 text-rose-500' : 'btn-primary/20 text-indigo-400'
+                    log.status === 'Error' ? 'bg-rose-500/10 text-rose-500' : 'btn-primary/20 text-[var(--accent)]'
                   }`}>
                     <Share2 size={16} />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-[#EDEDEF]">{log.productName}</p>
-                    <p className="text-xs text-[#8A8F98]">
+                    <p className="text-sm font-medium text-[var(--text-primary)]">{log.productName}</p>
+                    <p className="text-xs text-[var(--text-muted)]">
                       {log.status === 'Success' ? 'Postado com sucesso' : 
                        log.status === 'Processing' ? 'Agendado na fila' : log.error || 'Falha no processamento'}
                     </p>
                   </div>
                 </div>
-                <span className="text-xs text-[#8A8F98]">
+                <span className="text-xs text-[var(--text-muted)]">
                   {new Date(log.ts).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                 </span>
               </div>
             )) : (
-              <div className="py-8 text-center text-[#8A8F98] text-sm">Nenhuma atividade recente.</div>
+              <div className="py-8 text-center text-[var(--text-muted)] text-sm">Nenhuma atividade recente.</div>
             )}
           </div>
         </Card>
@@ -128,16 +128,16 @@ const Dashboard = ({ stats }) => {
         <Card title="Top Produtos" subtitle="Produtos mais vendidos este mês">
           <div className="space-y-4">
             {['Camiseta Branca', 'Caneca Gamer', 'Almofada Personalizada'].map((name, i) => (
-              <div key={i} className="flex items-center justify-between py-3 border-b border-white/10 last:border-0">
+              <div key={i} className="flex items-center justify-between py-3 border-b border-[var(--border-soft)] last:border-0">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-white/5 rounded-lg flex items-center justify-center text-xs font-bold text-[#8A8F98]">
+                  <div className="w-10 h-10 bg-[var(--surface-glass)] rounded-lg flex items-center justify-center text-xs font-bold text-[var(--text-muted)]">
                     IMG
                   </div>
-                  <p className="text-sm font-medium text-[#EDEDEF]">{name}</p>
+                  <p className="text-sm font-medium text-[var(--text-primary)]">{name}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-bold text-[#EDEDEF]">{25 - (i * 5)} vendas</p>
-                  <div className="w-24 h-1.5 bg-white/5 rounded-full mt-1">
+                  <p className="text-sm font-bold text-[var(--text-primary)]">{25 - (i * 5)} vendas</p>
+                  <div className="w-24 h-1.5 bg-[var(--surface-glass)] rounded-full mt-1">
                     <div className="h-full btn-primary rounded-full" style={{ width: `${100 - (i * 30)}%` }} />
                   </div>
                 </div>

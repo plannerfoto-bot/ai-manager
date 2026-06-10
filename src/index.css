@@ -1,62 +1,86 @@
 @import "tailwindcss";
 
 @theme {
-  --color-cinematic-deep: #020203;
-  --color-cinematic-base: #050506;
-  --color-cinematic-elevated: #0a0a0c;
-  --color-cinematic-surface: rgba(255, 255, 255, 0.05);
-  --color-cinematic-accent: #5E6AD2;
-  --color-cinematic-fg: #EDEDEF;
-  --color-cinematic-muted: #8A8F98;
-  --color-cinematic-border: rgba(255, 255, 255, 0.08);
+  --color-primary: var(--text-primary);
+  --color-muted: var(--text-muted);
+  --color-accent: var(--accent);
+  --color-surface: var(--surface-glass);
+  --color-border-soft: var(--border-soft);
 }
 
 :root {
-  color-scheme: dark;
-  --accent-glow: rgba(94, 106, 210, 0.2);
+  /* Apple-inspired Light Mode */
+  color-scheme: light;
+  --bg-main: #F5F5F7;
+  --surface-glass: rgba(255, 255, 255, 0.65);
+  --border-soft: rgba(0, 0, 0, 0.06);
+  --text-primary: #1D1D1F;
+  --text-muted: #86868B;
+  --accent: #0066CC;
+  --accent-glow: rgba(0, 102, 204, 0.15);
   --easing-smooth: cubic-bezier(0.16, 1, 0.3, 1);
+  --shadow-glass: 0 8px 32px rgba(0, 0, 0, 0.04);
+}
+
+html.dark {
+  /* Cinematic Dark Mode */
+  color-scheme: dark;
+  --bg-main: #050506;
+  --surface-glass: rgba(255, 255, 255, 0.04);
+  --border-soft: rgba(255, 255, 255, 0.08);
+  --text-primary: #EDEDEF;
+  --text-muted: #8A8F98;
+  --accent: #5E6AD2;
+  --accent-glow: rgba(94, 106, 210, 0.2);
+  --shadow-glass: 0 8px 32px rgba(0, 0, 0, 0.3);
 }
 
 body {
-  background: linear-gradient(to bottom, #0a0a0f, #020203);
-  color: #EDEDEF;
+  background-color: var(--bg-main);
+  color: var(--text-primary);
   min-height: 100vh;
   margin: 0;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
+  transition: background-color 0.4s var(--easing-smooth), color 0.4s var(--easing-smooth);
 }
 
-/* UI/UX Pro Max - Cinematic Glass */
-.glass {
-  background-color: var(--color-cinematic-surface);
-  backdrop-filter: blur(20px);
-  border: 1px solid var(--color-cinematic-border);
+.dark body {
+  background: linear-gradient(to bottom, #0a0a0f, #020203);
+  background-attachment: fixed;
+}
+
+/* Base utilities for seamless component injection */
+.glass-panel {
+  background-color: var(--surface-glass);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--border-soft);
   border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-glass);
+  transition: background-color 0.4s var(--easing-smooth), border-color 0.4s var(--easing-smooth);
 }
 
 .btn-primary {
-  background-color: var(--color-cinematic-accent);
+  background-color: var(--accent);
   color: #FFFFFF;
   border-radius: 16px;
   font-weight: 600;
-  transition: transform 0.2s var(--easing-smooth), box-shadow 0.2s var(--easing-smooth);
+  transition: transform 0.2s var(--easing-smooth), box-shadow 0.2s var(--easing-smooth), background-color 0.4s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .btn-primary:active {
-  transform: scale(0.97);
+  transform: scale(0.96);
 }
 
 .btn-primary:hover {
-  box-shadow: 0 0 20px var(--accent-glow);
+  box-shadow: 0 0 24px var(--accent-glow);
 }
 
-/* Animations */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.animate-in {
-  animation: fadeIn 0.5s var(--easing-smooth) forwards;
+/* Tailwind util resets (to replace old ones) */
+* {
+  border-color: var(--border-soft);
 }

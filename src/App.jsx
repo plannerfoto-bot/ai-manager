@@ -15,6 +15,8 @@ import UnitaryRegistration from './pages/UnitaryRegistration';
 import Commissions from './pages/Commissions';
 import Finance from './pages/Finance';
 import Settings from './pages/Settings';
+import { AnimatePresence, motion } from 'framer-motion';
+import BackgroundBlobs from './components/atoms/BackgroundBlobs';
 
 // ─── Componentes Auxiliares Fora da Função Principal ───────────────────
 class ErrorBoundary extends React.Component {
@@ -221,7 +223,8 @@ const App = () => {
   };
 
   return (
-    <div className="min-h-screen bg-transparent text-[#EDEDEF]">
+    <div className="min-h-screen text-[var(--text-primary)] relative">
+      <BackgroundBlobs />
       <Toaster position="top-right" />
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
       
@@ -233,26 +236,36 @@ const App = () => {
             onClick={toggleCalculator}
             className={`flex items-center gap-3 px-5 py-3 rounded-2xl border font-bold text-sm transition-all duration-300 shadow-lg ${
               calculatorEnabled
-                ? 'bg-indigo-500/20 border-indigo-500/40 text-indigo-300 hover:bg-indigo-500/30 shadow-indigo-900/20'
-                : 'bg-white/5 border-white/10 text-[#8A8F98] hover:bg-white/10 shadow-black/20'
+                ? 'bg-[var(--accent-glow)] border-[var(--accent)] text-[var(--accent)] hover:shadow-[0_0_20px_var(--accent-glow)]'
+                : 'glass-panel text-[var(--text-muted)] hover:bg-[var(--border-soft)] hover:text-[var(--text-primary)]'
             }`}
           >
             <Calculator className="w-4 h-4" />
             Calculadora de Medidas
             {calculatorEnabled
-              ? <ToggleRight className="w-6 h-6 text-indigo-400" />
-              : <ToggleLeft className="w-6 h-6 text-slate-600" />}
+              ? <ToggleRight className="w-6 h-6 text-[var(--accent)]" />
+              : <ToggleLeft className="w-6 h-6 text-[var(--text-muted)]" />}
             <span className={`text-xs px-2 py-0.5 rounded-full font-black tracking-wider uppercase ${
-              calculatorEnabled ? 'bg-indigo-500/20 text-indigo-300' : 'bg-white/10 text-slate-500'
+              calculatorEnabled ? 'bg-[var(--accent-glow)] text-[var(--accent)]' : 'bg-[var(--border-soft)] text-[var(--text-muted)]'
             }`}>
               {calculatorEnabled ? 'ON' : 'OFF'}
             </span>
           </button>
         </div>
 
-        <div className="max-w-7xl mx-auto animate-in fade-in duration-700">
+        <div className="max-w-7xl mx-auto relative z-10">
           <ErrorBoundary>
-            {renderContent()}
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeTab}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+              >
+                {renderContent()}
+              </motion.div>
+            </AnimatePresence>
           </ErrorBoundary>
         </div>
       </main>

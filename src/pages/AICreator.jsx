@@ -25,12 +25,12 @@ const AICreator = ({ onGenerate, onSave, status }) => {
   return (
     <div className="space-y-8 max-w-4xl mx-auto">
       <div className="text-center space-y-2">
-        <div className="inline-flex items-center gap-2 px-3 py-1 btn-primary/10 text-indigo-400 rounded-full text-xs font-bold uppercase tracking-wider">
+        <div className="inline-flex items-center gap-2 px-3 py-1 btn-primary/10 text-[var(--accent)] rounded-full text-xs font-bold uppercase tracking-wider">
           <Sparkles size={12} />
           Tecnologia AIOX 5.0
         </div>
-        <h2 className="text-4xl font-bold text-[#EDEDEF] tracking-tight">IA Creator</h2>
-        <p className="text-[#8A8F98]">Gere SEO e descrições irresistíveis usando inteligência artificial</p>
+        <h2 className="text-4xl font-bold text-[var(--text-primary)] tracking-tight">IA Creator</h2>
+        <p className="text-[var(--text-muted)]">Gere SEO e descrições irresistíveis usando inteligência artificial</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -43,9 +43,9 @@ const AICreator = ({ onGenerate, onSave, status }) => {
               onChange={(e) => setConcept(e.target.value)}
             />
             <div className="space-y-2">
-              <label className="text-sm font-medium text-[#8A8F98]">Análise Visual (IA Vision)</label>
+              <label className="text-sm font-medium text-[var(--text-muted)]">Análise Visual (IA Vision)</label>
               <textarea 
-                className="w-full bg-white/5/50 border border-white/10 rounded-lg p-3 text-[#EDEDEF] placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-indigo-500 min-h-[120px]"
+                className="w-full bg-[var(--surface-glass)]/50 border border-[var(--border-soft)] rounded-lg p-3 text-[var(--text-primary)] placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-indigo-500 min-h-[120px]"
                 placeholder="Descreva a imagem ou arraste um arquivo... (IA analisará o padrão visual)"
                 value={visualAnalysis}
                 onChange={(e) => setVisualAnalysis(e.target.value)}
@@ -66,12 +66,12 @@ const AICreator = ({ onGenerate, onSave, status }) => {
           {aiResult ? (
             <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
               <div className="p-4 btn-primary/5 border border-indigo-500/20 rounded-xl">
-                <p className="text-xs text-indigo-400 font-bold uppercase mb-1">Título SEO</p>
-                <p className="text-[#EDEDEF] font-semibold">{aiResult.name}</p>
+                <p className="text-xs text-[var(--accent)] font-bold uppercase mb-1">Título SEO</p>
+                <p className="text-[var(--text-primary)] font-semibold">{aiResult.name}</p>
               </div>
-              <div className="p-4 bg-white/5/50 border border-white/10 rounded-xl">
-                <p className="text-xs text-[#8A8F98] font-bold uppercase mb-1">Descrição Profissional</p>
-                <p className="text-[#EDEDEF] text-sm leading-relaxed">{aiResult.description}</p>
+              <div className="p-4 bg-[var(--surface-glass)]/50 border border-[var(--border-soft)] rounded-xl">
+                <p className="text-xs text-[var(--text-muted)] font-bold uppercase mb-1">Descrição Profissional</p>
+                <p className="text-[var(--text-primary)] text-sm leading-relaxed">{aiResult.description}</p>
               </div>
               <Button 
                 variant="primary" 

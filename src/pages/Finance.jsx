@@ -70,13 +70,13 @@ const PeriodSelector = ({ period, onChangePeriod, customStart, customEnd, onChan
   };
 
   const btnBase = 'px-4 py-2 rounded-lg text-xs font-bold transition-all duration-200';
-  const btnActive = 'btn-primary/20 text-indigo-400 border border-indigo-500/40';
-  const btnInactive = 'bg-white/5/60 text-[#8A8F98] border border-white/10 hover:bg-white/5';
+  const btnActive = 'btn-primary/20 text-[var(--accent)] border border-[var(--accent)]';
+  const btnInactive = 'bg-[var(--surface-glass)]/60 text-[var(--text-muted)] border border-[var(--border-soft)] hover:bg-[var(--surface-glass)]';
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <div className="p-2 bg-white/5 rounded-lg border border-white/10 hidden md:block">
-        <Calendar className="w-4 h-4 text-[#8A8F98]" />
+      <div className="p-2 bg-[var(--surface-glass)] rounded-lg border border-[var(--border-soft)] hidden md:block">
+        <Calendar className="w-4 h-4 text-[var(--text-muted)]" />
       </div>
       <button onClick={() => handlePeriod('current_month')} className={`${btnBase} ${period === 'current_month' ? btnActive : btnInactive}`}>Mês Atual</button>
       <button onClick={() => handlePeriod('last_month')} className={`${btnBase} ${period === 'last_month' ? btnActive : btnInactive}`}>Mês Passado</button>
@@ -88,10 +88,10 @@ const PeriodSelector = ({ period, onChangePeriod, customStart, customEnd, onChan
 
       {showCustom && (
         <div className="flex items-center gap-2 mt-2 w-full md:w-auto md:mt-0">
-          <input type="date" value={customStart} onChange={(e) => onChangeCustom(e.target.value, customEnd)} className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-[#EDEDEF] focus:outline-none focus:border-indigo-500" />
-          <span className="text-[#8A8F98] text-xs">até</span>
-          <input type="date" value={customEnd} onChange={(e) => onChangeCustom(customStart, e.target.value)} className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-[#EDEDEF] focus:outline-none focus:border-indigo-500" />
-          <button onClick={applyCustom} disabled={!customStart || !customEnd} className="px-4 py-2 rounded-lg text-xs font-bold btn-primary text-[#EDEDEF] disabled:opacity-40 hover:btn-primary transition-all">Filtrar</button>
+          <input type="date" value={customStart} onChange={(e) => onChangeCustom(e.target.value, customEnd)} className="bg-[var(--surface-glass)] border border-[var(--border-soft)] rounded-lg px-3 py-2 text-xs text-[var(--text-primary)] focus:outline-none focus:border-indigo-500" />
+          <span className="text-[var(--text-muted)] text-xs">até</span>
+          <input type="date" value={customEnd} onChange={(e) => onChangeCustom(customStart, e.target.value)} className="bg-[var(--surface-glass)] border border-[var(--border-soft)] rounded-lg px-3 py-2 text-xs text-[var(--text-primary)] focus:outline-none focus:border-indigo-500" />
+          <button onClick={applyCustom} disabled={!customStart || !customEnd} className="px-4 py-2 rounded-lg text-xs font-bold btn-primary text-[var(--text-primary)] disabled:opacity-40 hover:btn-primary transition-all">Filtrar</button>
         </div>
       )}
     </div>
@@ -99,14 +99,14 @@ const PeriodSelector = ({ period, onChangePeriod, customStart, customEnd, onChan
 };
 
 const MetricCard = ({ title, value, icon: Icon, color, onClick }) => (
-  <div onClick={onClick} className="p-5 rounded-2xl bg-white/5/50 border border-white/10 flex items-center gap-4 cursor-pointer hover:bg-white/5/80 hover:border-white/10 transition-all duration-300 hover:scale-[1.02]">
-    <div className={`p-3 rounded-xl bg-slate-950 border border-white/10/50 ${color}`}>
+  <div onClick={onClick} className="p-5 rounded-2xl bg-[var(--surface-glass)]/50 border border-[var(--border-soft)] flex items-center gap-4 cursor-pointer hover:bg-[var(--surface-glass)]/80 hover:border-[var(--border-soft)] transition-all duration-300 hover:scale-[1.02]">
+    <div className={`p-3 rounded-xl bg-slate-950 border border-[var(--border-soft)]/50 ${color}`}>
       <Icon size={24} />
     </div>
     <div>
-      <p className="text-sm font-medium text-[#8A8F98]">{title}</p>
+      <p className="text-sm font-medium text-[var(--text-muted)]">{title}</p>
       <div className="flex items-end gap-2">
-        <h4 className="text-2xl font-bold text-[#EDEDEF] tracking-tight">{value}</h4>
+        <h4 className="text-2xl font-bold text-[var(--text-primary)] tracking-tight">{value}</h4>
       </div>
     </div>
   </div>
@@ -125,15 +125,15 @@ const KPISidebar = ({ activeKpi, onClose, data }) => {
             <div className="flex justify-between text-violet-400"><span>- Custo Costura:</span> <span>{fmtBRL(data.sewingCost)}</span></div>
             <div className="flex justify-between text-orange-400"><span>- Transportadoras:</span> <span>{fmtBRL(data.shippingOwnerTotal)}</span></div>
             <div className="flex justify-between text-amber-400"><span>- Taxas Nuvem Pago:</span> <span>{fmtBRL(data.gatewayFeeTotal)}</span></div>
-            <hr className="border-white/10" />
+            <hr className="border-[var(--border-soft)]" />
             <div className="flex justify-between text-emerald-400 font-bold text-base"><span>Lucro Líquido Real:</span> <span>{fmtBRL(data.totalProfit)}</span></div>
           </div>
         );
       case 'frete_cliente':
         return (
           <div className="space-y-4 text-sm">
-            <p className="text-[#8A8F98]">Este é o valor total exato que os seus clientes pagaram de frete no checkout da loja.</p>
-            <div className="p-4 bg-white/5 rounded-lg border border-white/10 text-center">
+            <p className="text-[var(--text-muted)]">Este é o valor total exato que os seus clientes pagaram de frete no checkout da loja.</p>
+            <div className="p-4 bg-[var(--surface-glass)] rounded-lg border border-[var(--border-soft)] text-center">
               <span className="text-2xl font-bold text-rose-400">{fmtBRL(data.shippingCustomerTotal)}</span>
             </div>
           </div>
@@ -141,79 +141,79 @@ const KPISidebar = ({ activeKpi, onClose, data }) => {
       case 'frete_real':
         return (
           <div className="space-y-4 text-sm">
-            <p className="text-[#8A8F98]">Custo real pago para as transportadoras (inclui fretes grátis que saíram do seu bolso).</p>
+            <p className="text-[var(--text-muted)]">Custo real pago para as transportadoras (inclui fretes grátis que saíram do seu bolso).</p>
             <div className="space-y-2 mt-4">
               {Object.entries(data.shippingDetails || {}).map(([name, val]) => (
-                <div key={name} className="flex justify-between text-slate-300 bg-white/5 p-2 rounded border border-white/10">
+                <div key={name} className="flex justify-between text-slate-300 bg-[var(--surface-glass)] p-2 rounded border border-[var(--border-soft)]">
                   <span>{name}</span>
                   <span className="font-medium text-orange-400">{fmtBRL(val)}</span>
                 </div>
               ))}
             </div>
-            <hr className="border-white/10" />
+            <hr className="border-[var(--border-soft)]" />
             <div className="flex justify-between text-orange-400 font-bold text-base"><span>Total Pago:</span> <span>{fmtBRL(data.shippingOwnerTotal)}</span></div>
           </div>
         );
       case 'frete_gratis':
         return (
           <div className="space-y-4 text-sm">
-            <p className="text-[#8A8F98]">Análise de ROI sobre o subsídio de Frete Grátis.</p>
+            <p className="text-[var(--text-muted)]">Análise de ROI sobre o subsídio de Frete Grátis.</p>
             <div className="flex justify-between text-slate-300"><span>Prejuízo bancado (Bolso):</span> <span className="text-red-500 font-medium">-{fmtBRL(data.freeShippingCost)}</span></div>
             <div className="flex justify-between text-slate-300"><span>Lucro Líquido nestas vendas:</span> <span className="text-emerald-400 font-medium">{fmtBRL(data.profitFromFreeShipping)}</span></div>
-            <div className="mt-4 p-3 bg-white/5 rounded border border-white/10">
-              <p className="text-xs text-[#8A8F98]">O retorno final (Lucro - Prejuízo) nestas vendas específicas foi de <strong className="text-[#EDEDEF]">{fmtBRL(data.profitFromFreeShipping - data.freeShippingCost)}</strong>.</p>
+            <div className="mt-4 p-3 bg-[var(--surface-glass)] rounded border border-[var(--border-soft)]">
+              <p className="text-xs text-[var(--text-muted)]">O retorno final (Lucro - Prejuízo) nestas vendas específicas foi de <strong className="text-[var(--text-primary)]">{fmtBRL(data.profitFromFreeShipping - data.freeShippingCost)}</strong>.</p>
             </div>
           </div>
         );
       case 'taxas':
         return (
           <div className="space-y-4 text-sm">
-            <p className="text-[#8A8F98]">Divisão dos custos cobrados pelo Nuvem Pago.</p>
-            <div className="flex justify-between text-slate-300 bg-white/5 p-3 rounded border border-white/10">
+            <p className="text-[var(--text-muted)]">Divisão dos custos cobrados pelo Nuvem Pago.</p>
+            <div className="flex justify-between text-slate-300 bg-[var(--surface-glass)] p-3 rounded border border-[var(--border-soft)]">
               <span>Cartão de Crédito</span>
               <span className="text-amber-400 font-medium">{fmtBRL(data.gatewayFeeCard)}</span>
             </div>
-            <div className="flex justify-between text-slate-300 bg-white/5 p-3 rounded border border-white/10">
+            <div className="flex justify-between text-slate-300 bg-[var(--surface-glass)] p-3 rounded border border-[var(--border-soft)]">
               <span>Pix</span>
               <span className="text-amber-400 font-medium">{fmtBRL(data.gatewayFeePix)}</span>
             </div>
-            <hr className="border-white/10" />
+            <hr className="border-[var(--border-soft)]" />
             <div className="flex justify-between text-amber-400 font-bold text-base"><span>Total de Taxas:</span> <span>{fmtBRL(data.gatewayFeeTotal)}</span></div>
           </div>
         );
       case 'bobina':
         return (
           <div className="space-y-4 text-sm">
-            <p className="text-[#8A8F98]">Consumo e custo da matéria prima separados por gramatura.</p>
+            <p className="text-[var(--text-muted)]">Consumo e custo da matéria prima separados por gramatura.</p>
             
-            <div className="p-3 bg-white/5 rounded-lg border border-white/10 space-y-2">
-              <h4 className="font-bold text-[#EDEDEF] mb-2">Tecido 120g</h4>
+            <div className="p-3 bg-[var(--surface-glass)] rounded-lg border border-[var(--border-soft)] space-y-2">
+              <h4 className="font-bold text-[var(--text-primary)] mb-2">Tecido 120g</h4>
               <div className="flex justify-between text-slate-300"><span>Metros Lineares:</span> <span>{data.meters120g?.toFixed(2)} m</span></div>
               <div className="flex justify-between text-slate-300"><span>Metros Quadrados (Especiais):</span> <span>{data.m2120g?.toFixed(2)} m²</span></div>
-              <div className="flex justify-between text-slate-300 font-medium pt-2 border-t border-white/10"><span>Custo Financeiro:</span> <span className="text-slate-300">{fmtBRL(data.productionCost120g)}</span></div>
+              <div className="flex justify-between text-slate-300 font-medium pt-2 border-t border-[var(--border-soft)]"><span>Custo Financeiro:</span> <span className="text-slate-300">{fmtBRL(data.productionCost120g)}</span></div>
             </div>
 
-            <div className="p-3 bg-white/5 rounded-lg border border-white/10 space-y-2">
-              <h4 className="font-bold text-[#EDEDEF] mb-2">Tecido 160g</h4>
+            <div className="p-3 bg-[var(--surface-glass)] rounded-lg border border-[var(--border-soft)] space-y-2">
+              <h4 className="font-bold text-[var(--text-primary)] mb-2">Tecido 160g</h4>
               <div className="flex justify-between text-slate-300"><span>Metros Lineares:</span> <span>{data.meters160g?.toFixed(2)} m</span></div>
-              <div className="flex justify-between text-slate-300 font-medium pt-2 border-t border-white/10"><span>Custo Financeiro:</span> <span className="text-slate-300">{fmtBRL(data.productionCost160g)}</span></div>
+              <div className="flex justify-between text-slate-300 font-medium pt-2 border-t border-[var(--border-soft)]"><span>Custo Financeiro:</span> <span className="text-slate-300">{fmtBRL(data.productionCost160g)}</span></div>
             </div>
 
-            <hr className="border-white/10" />
-            <div className="flex justify-between text-[#EDEDEF] font-bold text-base"><span>Custo Total:</span> <span>{fmtBRL(data.productionCost)}</span></div>
+            <hr className="border-[var(--border-soft)]" />
+            <div className="flex justify-between text-[var(--text-primary)] font-bold text-base"><span>Custo Total:</span> <span>{fmtBRL(data.productionCost)}</span></div>
           </div>
         );
       case 'costura':
         return (
           <div className="space-y-4 text-sm">
-            <p className="text-[#8A8F98]">Total repassado para a costureira baseado nos painéis analisados.</p>
-            <div className="flex justify-between text-slate-300 bg-white/5 p-3 rounded border border-white/10">
+            <p className="text-[var(--text-muted)]">Total repassado para a costureira baseado nos painéis analisados.</p>
+            <div className="flex justify-between text-slate-300 bg-[var(--surface-glass)] p-3 rounded border border-[var(--border-soft)]">
               <span>Painéis / Unidades Produzidas:</span>
               <span className="text-violet-400 font-bold">{data.analyzedItems} unidades</span>
             </div>
             
-            <div className="p-3 bg-white/5 rounded-lg border border-white/10 space-y-2">
-              <h4 className="font-bold text-[#EDEDEF] mb-2">Detalhamento por Tipo</h4>
+            <div className="p-3 bg-[var(--surface-glass)] rounded-lg border border-[var(--border-soft)] space-y-2">
+              <h4 className="font-bold text-[var(--text-primary)] mb-2">Detalhamento por Tipo</h4>
               <div className="flex justify-between text-slate-300">
                 <span>Overloque (Padrão):</span> 
                 <span className="text-violet-400">{data.overloqueCount || 0} unidades</span>
@@ -224,7 +224,7 @@ const KPISidebar = ({ activeKpi, onClose, data }) => {
               </div>
             </div>
 
-            <hr className="border-white/10" />
+            <hr className="border-[var(--border-soft)]" />
             <div className="flex justify-between text-violet-400 font-bold text-base"><span>Custo Total Costura:</span> <span>{fmtBRL(data.sewingCost)}</span></div>
           </div>
         );
@@ -245,10 +245,10 @@ const KPISidebar = ({ activeKpi, onClose, data }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm transition-opacity" onClick={onClose}>
-      <div className="w-full max-w-md h-full bg-slate-950 border-l border-white/10 shadow-2xl flex flex-col transform transition-transform" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between p-6 border-b border-white/10">
-          <h3 className="text-lg font-bold text-[#EDEDEF]">{titles[activeKpi]}</h3>
-          <button onClick={onClose} className="p-2 text-[#8A8F98] hover:text-[#EDEDEF] hover:bg-white/5 rounded-lg transition-all">
+      <div className="w-full max-w-md h-full bg-slate-950 border-l border-[var(--border-soft)] shadow-2xl flex flex-col transform transition-transform" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between p-6 border-b border-[var(--border-soft)]">
+          <h3 className="text-lg font-bold text-[var(--text-primary)]">{titles[activeKpi]}</h3>
+          <button onClick={onClose} className="p-2 text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-glass)] rounded-lg transition-all">
             <X size={20} />
           </button>
         </div>
@@ -309,29 +309,29 @@ const Finance = () => {
       {/* ── HEADER FINANCEIRO ── */}
       <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
         <div>
-          <h2 className="text-3xl font-bold text-[#EDEDEF] tracking-tight">Análise Financeira</h2>
-          <p className="text-[#8A8F98] mt-1">Controle de lucros, taxas operacionais e custos de produção.</p>
+          <h2 className="text-3xl font-bold text-[var(--text-primary)] tracking-tight">Análise Financeira</h2>
+          <p className="text-[var(--text-muted)] mt-1">Controle de lucros, taxas operacionais e custos de produção.</p>
         </div>
         
         <div className="flex flex-col sm:flex-row gap-4 items-end">
           
           {/* TAXA PIX */}
           <div className="flex flex-col gap-1 w-full sm:w-auto">
-            <label className="text-xs font-semibold text-[#8A8F98] uppercase tracking-wider ml-1">Taxa Pix</label>
-            <div className="flex items-center gap-1 bg-white/5 border border-white/10 rounded-xl p-1.5 h-10">
-              <input type="number" step="0.01" value={feePixPercent} onChange={e => setFeePixPercent(e.target.value)} className="bg-transparent text-[#EDEDEF] px-1 w-12 text-sm font-medium outline-none text-right" />
-              <span className="text-[#8A8F98] text-xs">% + R$</span>
-              <input type="number" step="0.01" value={feePixFixed} onChange={e => setFeePixFixed(e.target.value)} className="bg-transparent text-[#EDEDEF] px-1 w-12 text-sm font-medium outline-none text-right" />
+            <label className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider ml-1">Taxa Pix</label>
+            <div className="flex items-center gap-1 bg-[var(--surface-glass)] border border-[var(--border-soft)] rounded-xl p-1.5 h-10">
+              <input type="number" step="0.01" value={feePixPercent} onChange={e => setFeePixPercent(e.target.value)} className="bg-transparent text-[var(--text-primary)] px-1 w-12 text-sm font-medium outline-none text-right" />
+              <span className="text-[var(--text-muted)] text-xs">% + R$</span>
+              <input type="number" step="0.01" value={feePixFixed} onChange={e => setFeePixFixed(e.target.value)} className="bg-transparent text-[var(--text-primary)] px-1 w-12 text-sm font-medium outline-none text-right" />
             </div>
           </div>
 
           {/* TAXA CARTÃO */}
           <div className="flex flex-col gap-1 w-full sm:w-auto">
-            <label className="text-xs font-semibold text-[#8A8F98] uppercase tracking-wider ml-1">Taxa Cartão</label>
-            <div className="flex items-center gap-1 bg-white/5 border border-white/10 rounded-xl p-1.5 h-10">
-              <input type="number" step="0.01" value={feePercent} onChange={e => setFeePercent(e.target.value)} className="bg-transparent text-[#EDEDEF] px-1 w-12 text-sm font-medium outline-none text-right" />
-              <span className="text-[#8A8F98] text-xs">% + R$</span>
-              <input type="number" step="0.01" value={feeFixed} onChange={e => setFeeFixed(e.target.value)} className="bg-transparent text-[#EDEDEF] px-1 w-12 text-sm font-medium outline-none text-right" />
+            <label className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider ml-1">Taxa Cartão</label>
+            <div className="flex items-center gap-1 bg-[var(--surface-glass)] border border-[var(--border-soft)] rounded-xl p-1.5 h-10">
+              <input type="number" step="0.01" value={feePercent} onChange={e => setFeePercent(e.target.value)} className="bg-transparent text-[var(--text-primary)] px-1 w-12 text-sm font-medium outline-none text-right" />
+              <span className="text-[var(--text-muted)] text-xs">% + R$</span>
+              <input type="number" step="0.01" value={feeFixed} onChange={e => setFeeFixed(e.target.value)} className="bg-transparent text-[var(--text-primary)] px-1 w-12 text-sm font-medium outline-none text-right" />
             </div>
           </div>
           
@@ -339,16 +339,16 @@ const Finance = () => {
             <button
               onClick={() => fetchProfitStats(profitPeriod, profitCustomStart, profitCustomEnd, feePercent, feeFixed, feePixPercent, feePixFixed)}
               disabled={profitLoading}
-              className="h-10 px-4 rounded-xl bg-white/5 hover:bg-slate-700 text-[#EDEDEF] font-medium transition-all flex items-center gap-2 disabled:opacity-50"
+              className="h-10 px-4 rounded-xl bg-[var(--surface-glass)] hover:bg-slate-700 text-[var(--text-primary)] font-medium transition-all flex items-center gap-2 disabled:opacity-50"
             >
-              <RefreshCw className={`w-4 h-4 ${profitLoading ? 'animate-spin text-indigo-400' : ''}`} />
+              <RefreshCw className={`w-4 h-4 ${profitLoading ? 'animate-spin text-[var(--accent)]' : ''}`} />
               Atualizar
             </button>
           </div>
         </div>
       </div>
 
-      <div className="bg-white/5/40 p-4 rounded-2xl border border-white/10/60 backdrop-blur-sm">
+      <div className="bg-[var(--surface-glass)]/40 p-4 rounded-2xl border border-[var(--border-soft)]/60 backdrop-blur-sm">
         <PeriodSelector
           period={profitPeriod}
           onChangePeriod={handleChangePeriod}
@@ -367,8 +367,8 @@ const Finance = () => {
 
       {/* ── SESSÃO 1: RECEITA E LUCRO ── */}
       <div className="space-y-4">
-        <h3 className="text-lg font-bold text-[#EDEDEF] flex items-center gap-2">
-          <Activity className="w-5 h-5 text-indigo-400" /> Visão Geral ({periodLabel})
+        <h3 className="text-lg font-bold text-[var(--text-primary)] flex items-center gap-2">
+          <Activity className="w-5 h-5 text-[var(--accent)]" /> Visão Geral ({periodLabel})
         </h3>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -381,9 +381,9 @@ const Finance = () => {
               </div>
               <p className="text-sm font-semibold text-emerald-400/80 uppercase tracking-wider mb-2">Lucro Líquido Real</p>
               {profitLoading ? (
-                <div className="h-10 w-40 bg-white/5/50 rounded animate-pulse" />
+                <div className="h-10 w-40 bg-[var(--surface-glass)]/50 rounded animate-pulse" />
               ) : (
-                <h3 className="text-4xl font-black text-[#EDEDEF] tracking-tight">{fmtBRL(profitData?.totalProfit)}</h3>
+                <h3 className="text-4xl font-black text-[var(--text-primary)] tracking-tight">{fmtBRL(profitData?.totalProfit)}</h3>
               )}
             </div>
             <div className="mt-6 flex items-center justify-between opacity-50 group-hover:opacity-100 transition-opacity">
@@ -411,51 +411,51 @@ const Finance = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-4">
         
         {/* Fretes por Transportadora */}
-        <div className="rounded-2xl border border-white/10 bg-white/5/50 p-6 flex flex-col">
+        <div className="rounded-2xl border border-[var(--border-soft)] bg-[var(--surface-glass)]/50 p-6 flex flex-col">
           <div className="flex items-center gap-3 mb-6">
             <div className="p-2 btn-primary/10 rounded-lg">
-              <Truck className="w-5 h-5 text-indigo-400" />
+              <Truck className="w-5 h-5 text-[var(--accent)]" />
             </div>
-            <h3 className="text-lg font-bold text-[#EDEDEF]">Detalhamento de Fretes</h3>
+            <h3 className="text-lg font-bold text-[var(--text-primary)]">Detalhamento de Fretes</h3>
           </div>
           
           <div className="space-y-4 flex-1">
             {profitLoading ? (
-               <div className="h-20 bg-white/5/50 rounded-xl animate-pulse" />
+               <div className="h-20 bg-[var(--surface-glass)]/50 rounded-xl animate-pulse" />
             ) : Object.keys(profitData?.shippingDetails || {}).length > 0 ? (
               Object.entries(profitData.shippingDetails).map(([method, amount], i) => (
-                <div key={i} className="flex items-center justify-between p-4 rounded-xl bg-slate-950/50 border border-white/10/50">
+                <div key={i} className="flex items-center justify-between p-4 rounded-xl bg-slate-950/50 border border-[var(--border-soft)]/50">
                   <div className="flex items-center gap-3">
                     <span className="w-2 h-2 rounded-full btn-primary" />
                     <span className="text-sm font-medium text-slate-300">{method.toUpperCase()}</span>
                   </div>
-                  <span className="text-sm font-bold text-[#EDEDEF]">{fmtBRL(amount)}</span>
+                  <span className="text-sm font-bold text-[var(--text-primary)]">{fmtBRL(amount)}</span>
                 </div>
               ))
             ) : (
-              <div className="h-full flex items-center justify-center text-[#8A8F98] text-sm">Nenhum custo de frete registrado.</div>
+              <div className="h-full flex items-center justify-center text-[var(--text-muted)] text-sm">Nenhum custo de frete registrado.</div>
             )}
           </div>
         </div>
 
         {/* Consumo de Tecido */}
-        <div className="rounded-2xl border border-white/10 bg-white/5/50 p-6 flex flex-col">
+        <div className="rounded-2xl border border-[var(--border-soft)] bg-[var(--surface-glass)]/50 p-6 flex flex-col">
           <div className="flex items-center gap-3 mb-6">
             <div className="p-2 bg-emerald-500/10 rounded-lg">
               <ShoppingBag className="w-5 h-5 text-emerald-400" />
             </div>
-            <h3 className="text-lg font-bold text-[#EDEDEF]">Consumo de Insumos</h3>
+            <h3 className="text-lg font-bold text-[var(--text-primary)]">Consumo de Insumos</h3>
           </div>
           
           <div className="space-y-6 flex-1">
             {profitLoading ? (
-               <div className="h-20 bg-white/5/50 rounded-xl animate-pulse" />
+               <div className="h-20 bg-[var(--surface-glass)]/50 rounded-xl animate-pulse" />
             ) : (
               <>
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span className="text-[#8A8F98] font-medium">Metro Linear (120g)</span>
-                    <span className="text-[#EDEDEF] font-bold">{profitData?.meters120g || 0} m</span>
+                    <span className="text-[var(--text-muted)] font-medium">Metro Linear (120g)</span>
+                    <span className="text-[var(--text-primary)] font-bold">{profitData?.meters120g || 0} m</span>
                   </div>
                   <div className="h-2 w-full bg-slate-950 rounded-full overflow-hidden">
                     <div className="h-full btn-primary rounded-full" style={{ width: '60%' }} />
@@ -464,8 +464,8 @@ const Finance = () => {
                 
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span className="text-[#8A8F98] font-medium">Metro Linear (160g)</span>
-                    <span className="text-[#EDEDEF] font-bold">{profitData?.meters160g || 0} m</span>
+                    <span className="text-[var(--text-muted)] font-medium">Metro Linear (160g)</span>
+                    <span className="text-[var(--text-primary)] font-bold">{profitData?.meters160g || 0} m</span>
                   </div>
                   <div className="h-2 w-full bg-slate-950 rounded-full overflow-hidden">
                     <div className="h-full bg-emerald-500 rounded-full" style={{ width: '40%' }} />
@@ -474,13 +474,13 @@ const Finance = () => {
 
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span className="text-[#8A8F98] font-medium">Painéis Especiais (120g ≥ 1.70m)</span>
+                    <span className="text-[var(--text-muted)] font-medium">Painéis Especiais (120g ≥ 1.70m)</span>
                     <span className="text-amber-400 font-bold">{profitData?.m2120g || 0} m²</span>
                   </div>
                   <div className="h-2 w-full bg-slate-950 rounded-full overflow-hidden">
                     <div className="h-full bg-amber-500 rounded-full" style={{ width: '25%' }} />
                   </div>
-                  <p className="text-xs text-[#8A8F98] pt-1">Custo unitário m²: R$ 24,90</p>
+                  <p className="text-xs text-[var(--text-muted)] pt-1">Custo unitário m²: R$ 24,90</p>
                 </div>
               </>
             )}

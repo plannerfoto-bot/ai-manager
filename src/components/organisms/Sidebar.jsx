@@ -12,10 +12,15 @@ import {
   Share2,
   ShoppingCart,
   PackagePlus,
-  DollarSign
+  DollarSign,
+  Sun,
+  Moon
 } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { useTheme } from '../../contexts/ThemeProvider';
 
 const Sidebar = ({ activeTab, setActiveTab }) => {
+  const { isDark, toggleTheme } = useTheme();
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'finance', label: 'Financeiro', icon: DollarSign },
@@ -32,15 +37,20 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
   ];
 
   return (
-    <div className="w-64 h-screen bg-white/5 border-r border-white/10 backdrop-blur-xl flex flex-col fixed left-0 top-0 z-50 animate-in fade-in slide-in-from-left duration-700">
+    <motion.div 
+      initial={{ x: -100, opacity: 0 }}
+      animate={{ x: 0, opacity: 1 }}
+      transition={{ type: 'spring', stiffness: 200, damping: 25 }}
+      className="w-64 h-screen bg-[var(--surface-glass)] border-r border-[var(--border-soft)] backdrop-blur-xl flex flex-col fixed left-0 top-0 z-50 shadow-[var(--shadow-glass)]"
+    >
       <div className="p-6">
         <div className="flex items-center gap-3 mb-8">
-          <div className="w-10 h-10 btn-primary rounded-xl flex items-center justify-center shadow-lg shadow-indigo-900/40">
-            <Sparkles className="text-[#EDEDEF]" size={24} />
+          <div className="w-10 h-10 btn-primary flex items-center justify-center shadow-lg shadow-[var(--accent-glow)]">
+            <Sparkles size={24} />
           </div>
           <div>
-            <h1 className="text-[#EDEDEF] font-bold text-lg leading-tight">AI Manager</h1>
-            <p className="text-[#8A8F98] text-xs">Cloth Sublimação</p>
+            <h1 className="text-[var(--text-primary)] font-bold text-lg leading-tight">AI Manager</h1>
+            <p className="text-[var(--text-muted)] text-xs">Cloth Sublimação</p>
           </div>
         </div>
 
@@ -53,30 +63,39 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
               <button
                 key={item.id}
                 onClick={() => setActiveTab(item.id)}
-                className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200 group ${
+                className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-300 group ${
                   isActive 
-                    ? 'btn-primary/10 text-indigo-400' 
-                    : 'text-[#8A8F98] hover:bg-white/5 hover:text-[#EDEDEF]'
+                    ? 'bg-[var(--accent-glow)] text-[var(--accent)]' 
+                    : 'text-[var(--text-muted)] hover:bg-[var(--border-soft)] hover:text-[var(--text-primary)]'
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <Icon size={20} className={isActive ? 'text-indigo-400' : 'text-[#8A8F98] group-hover:text-[#EDEDEF]'} />
+                  <Icon size={20} className={isActive ? 'text-[var(--accent)]' : 'text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors'} />
                   <span className="font-medium text-sm">{item.label}</span>
                 </div>
-                {isActive && <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full shadow-[0_0_8px_rgba(94,106,210,0.8)]" />}
+                {isActive && <div className="w-1.5 h-1.5 bg-[var(--accent)] rounded-full shadow-[0_0_8px_var(--accent-glow)]" />}
               </button>
             );
           })}
         </nav>
       </div>
 
-      <div className="mt-auto p-6 border-t border-white/10">
-        <button className="w-full flex items-center gap-3 px-4 py-3 text-[#8A8F98] hover:text-red-400 transition-all">
+      <div className="mt-auto p-6 border-t border-[var(--border-soft)] space-y-4">
+        {/* Toggle Theme Button */}
+        <button 
+          onClick={toggleTheme}
+          className="w-full flex items-center gap-3 px-4 py-3 text-[var(--text-muted)] hover:bg-[var(--border-soft)] hover:text-[var(--text-primary)] rounded-xl transition-all"
+        >
+          {isDark ? <Sun size={20} /> : <Moon size={20} />}
+          <span className="font-medium text-sm">{isDark ? 'Light Mode' : 'Dark Mode'}</span>
+        </button>
+
+        <button className="w-full flex items-center gap-3 px-4 py-3 text-[var(--text-muted)] hover:bg-red-500/10 hover:text-red-500 rounded-xl transition-all">
           <LogOut size={20} />
           <span className="font-medium text-sm">Sair</span>
         </button>
       </div>
-    </div>
+    </motion.div>
   );
 };
 
