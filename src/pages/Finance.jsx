@@ -18,6 +18,9 @@ import {
   Activity,
   X
 } from 'lucide-react';
+import Tooltip from '../components/Tooltip';
+import AiAssistant from '../components/AiAssistant';
+
 
 const API_BASE_URL = window.location.hostname === 'localhost'
   ? 'http://localhost:3001'
@@ -101,13 +104,16 @@ const PeriodSelector = ({ period, onChangePeriod, customStart, customEnd }) => {
   );
 };
 
-const MetricCard = ({ title, value, icon: Icon, color, onClick }) => (
+const MetricCard = ({ title, value, icon: Icon, color, onClick, tooltip }) => (
   <div onClick={onClick} className="p-5 rounded-2xl bg-[var(--surface-glass)]/50 border border-[var(--border-soft)] flex items-center gap-4 cursor-pointer hover:bg-[var(--surface-glass)]/80 hover:border-[var(--border-soft)] transition-all duration-300 hover:scale-[1.02]">
     <div className={`p-3 rounded-xl bg-[var(--surface-input)] border border-[var(--border-soft)]/50 ${color}`}>
       <Icon size={24} />
     </div>
     <div>
-      <p className="text-sm font-medium text-[var(--text-muted)]">{title}</p>
+      <div className="flex items-center">
+        <p className="text-sm font-medium text-[var(--text-muted)]">{title}</p>
+        {tooltip && <Tooltip text={tooltip} />}
+      </div>
       <div className="flex items-end gap-2">
         <h4 className="text-2xl font-bold text-[var(--text-primary)] tracking-tight">{value}</h4>
       </div>
@@ -548,7 +554,10 @@ const Finance = () => {
               <div className="w-12 h-12 bg-emerald-500/10 rounded-2xl flex items-center justify-center mb-6">
                 <TrendingUp className="text-emerald-500" size={24} />
               </div>
-              <p className="text-sm font-semibold text-emerald-500/80 uppercase tracking-wider mb-2">Lucro Líquido Real</p>
+              <div className="flex items-center gap-1 mb-2 justify-center lg:justify-start">
+                <p className="text-sm font-semibold text-emerald-500/80 uppercase tracking-wider">Lucro Líquido Real</p>
+                <Tooltip text="Este é o dinheiro limpo que sobrou no seu bolso após abater: Taxas do Nuvem Pago, Custo de Tecido, Custo de Costura e Subsídios de Frete." />
+              </div>
               {profitLoading ? (
                 <div className="h-10 w-40 bg-[var(--surface-glass)]/50 rounded animate-pulse" />
               ) : (
@@ -564,14 +573,14 @@ const Finance = () => {
           </div>
 
           <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <MetricCard title="Fretes Pagos pelo Cliente" value={fmtBRL(profitData?.shippingCustomerTotal || profitData?.shippingTotal)} icon={Truck} color="text-rose-400" onClick={() => setActiveKpi('frete_cliente')} />
-            <MetricCard title="Custo Real Transportadoras" value={fmtBRL(profitData?.shippingOwnerTotal)} icon={Truck} color="text-orange-400" onClick={() => setActiveKpi('frete_real')} />
+            <MetricCard title="Fretes Pagos pelo Cliente" value={fmtBRL(profitData?.shippingCustomerTotal || profitData?.shippingTotal)} icon={Truck} color="text-rose-400" onClick={() => setActiveKpi('frete_cliente')} tooltip="Valor total pago pelos clientes no checkout. Use isso para comparar se os Correios/Transportadoras estão te cobrando mais caro do que você está repassando." />
+            <MetricCard title="Custo Real Transportadoras" value={fmtBRL(profitData?.shippingOwnerTotal)} icon={Truck} color="text-orange-400" onClick={() => setActiveKpi('frete_real')} tooltip="O valor final exato que saiu do seu bolso para pagar os envios. Já inclui os custos dos fretes grátis que você ofereceu." />
             
-            <MetricCard title="Subsídio de Frete Grátis" value={fmtBRL(profitData?.freeShippingCost)} icon={TrendingDown} color="text-red-500" onClick={() => setActiveKpi('frete_gratis')} />
-            <MetricCard title="Taxas Nuvem Pago" value={fmtBRL(profitData?.gatewayFeeTotal)} icon={CreditCard} color="text-amber-500" onClick={() => setActiveKpi('taxas')} />
+            <MetricCard title="Subsídio de Frete Grátis" value={fmtBRL(profitData?.freeShippingCost)} icon={TrendingDown} color="text-red-500" onClick={() => setActiveKpi('frete_gratis')} tooltip="A diferença negativa entre o que você pagou de frete e o que o cliente pagou. Basicamente, o quanto você investiu em promoções de frete grátis." />
+            <MetricCard title="Taxas Nuvem Pago" value={fmtBRL(profitData?.gatewayFeeTotal)} icon={CreditCard} color="text-amber-500" onClick={() => setActiveKpi('taxas')} tooltip="A soma de todas as taxas descontadas pelo Nuvem Pago (Cartão e Pix) para todas as transações deste período." />
             
-            <MetricCard title="Custo Bobina Fornecedor" value={fmtBRL(profitData?.productionCost)} icon={TrendingDown} color="text-[var(--text-muted)]" onClick={() => setActiveKpi('bobina')} />
-            <MetricCard title="Custo de Costureira" value={fmtBRL(profitData?.sewingCost)} icon={Scissors} color="text-violet-400" onClick={() => setActiveKpi('costura')} />
+            <MetricCard title="Custo Bobina Fornecedor" value={fmtBRL(profitData?.productionCost)} icon={TrendingDown} color="text-[var(--text-muted)]" onClick={() => setActiveKpi('bobina')} tooltip="Estimativa do custo de tecido gasto, calculado pelo metro linear consumido pelos produtos vendidos nesse período." />
+            <MetricCard title="Custo de Costureira" value={fmtBRL(profitData?.sewingCost)} icon={Scissors} color="text-violet-400" onClick={() => setActiveKpi('costura')} tooltip="O custo total de mão de obra (costureiras) referente à produção de todas as peças vendidas neste período." />
           </div>
         </div>
       </div>
@@ -942,8 +951,14 @@ const Finance = () => {
         </div>
 
         <AnimatePresence>
-          {activeKpi && <KPISidebar activeKpi={activeKpi} onClose={() => setActiveKpi(null)} data={profitData} extraData={{ sim2CartValue }} />}
+          {activeKpi && <KPISidebar activeKpi={activeKpi} onClose={() => setActiveKpi(null)} data={profitData} extraData={{ sim2CartValue: sim2MinCartValue }} />}
         </AnimatePresence>
+        
+        <AiAssistant 
+          profitData={profitData} 
+          sim2Results={sim2Results} 
+          sim2CartValue={sim2MinCartValue} 
+        />
       </div>
   );
 };
