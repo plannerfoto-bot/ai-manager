@@ -142,7 +142,7 @@ const Marketing = () => {
                     <span className="text-xs opacity-90">{res.data.error}</span>
                     <button 
                       onClick={() => setShowGuide(true)}
-                      className="text-[10px] underline text-left mt-1 hover:text-white"
+                      className="text-[10px] underline text-left mt-1 hover:text-[#EDEDEF]"
                     >
                       Como resolver isso?
                     </button>
@@ -195,8 +195,8 @@ const Marketing = () => {
             onClick={() => setActiveTab(id)}
             className={`flex items-center gap-2 px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all ${
                 activeTab === id 
-                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/40 ring-1 ring-white/20' 
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                    ? 'btn-primary text-[#EDEDEF] shadow-lg shadow-blue-500/40 ring-1 ring-white/20' 
+                    : 'text-[#8A8F98] hover:text-[#EDEDEF] hover:bg-white/5'
             }`}
         >
             <Icon size={14} />
@@ -207,20 +207,20 @@ const Marketing = () => {
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
             {/* Header Reduzido */}
-            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 border border-slate-800 p-6 shadow-xl">
+            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 border border-white/10 p-6 shadow-xl">
                 <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div className="flex items-center gap-4">
                         <div className="w-12 h-12 bg-pink-600/20 rounded-2xl flex items-center justify-center border border-pink-500/20">
                             <Zap size={24} className="text-pink-500 fill-pink-500/20" />
                         </div>
                         <div>
-                            <h1 className="text-xl font-black text-white tracking-tight">Postagem Automática no Instagram</h1>
-                            <p className="text-slate-500 text-xs">Gestão autônoma de redes sociais para Nuvemshop</p>
+                            <h1 className="text-xl font-black text-[#EDEDEF] tracking-tight">Postagem Automática no Instagram</h1>
+                            <p className="text-[#8A8F98] text-xs">Gestão autônoma de redes sociais para Nuvemshop</p>
                         </div>
                     </div>
                     
                     {/* Navegação por Abas */}
-                    <div className="flex bg-slate-950/50 p-1 rounded-2xl border border-slate-800/50">
+                    <div className="flex bg-slate-950/50 p-1 rounded-2xl border border-white/10/50">
                         <TabButton id="activity" label="Atividade" icon={Monitor} />
                         <TabButton id="config" label="Configurações" icon={Settings} />
                         <TabButton id="guide" label="Guia de Ajuda" icon={HelpCircle} />
@@ -234,33 +234,33 @@ const Marketing = () => {
                     {/* Coluna Esquerda: Fila e Resumo */}
                     <div className="lg:col-span-8 space-y-6">
                         {/* Status da Fila */}
-                        <div className="bg-slate-900/50 border border-slate-800 rounded-3xl p-6 shadow-xl relative overflow-hidden">
+                        <div className="bg-white/5/50 border border-white/10 rounded-3xl p-6 shadow-xl relative overflow-hidden">
                             <div className="flex items-center justify-between mb-6">
                                 <div>
-                                    <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                                    <h3 className="text-lg font-bold text-[#EDEDEF] flex items-center gap-2">
                                         <Activity size={20} className="text-yellow-400" />
                                         Fila de Postagem
                                     </h3>
-                                    <p className="text-xs text-slate-500 mt-1">Produtos aguardando o momento ideal de postagem (Drip Feed)</p>
+                                    <p className="text-xs text-[#8A8F98] mt-1">Produtos aguardando o momento ideal de postagem (Drip Feed)</p>
                                 </div>
                                 <div className="flex flex-col items-end">
-                                    <span className="text-[10px] text-slate-500 font-mono uppercase tracking-widest">Capacidade</span>
+                                    <span className="text-[10px] text-[#8A8F98] font-mono uppercase tracking-widest">Capacidade</span>
                                     <span className="text-xs font-bold text-slate-300">25 posts / 24h</span>
                                 </div>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {queue.length === 0 ? (
-                                    <div className="md:col-span-2 py-12 flex flex-col items-center justify-center bg-slate-950/20 rounded-2xl border border-dashed border-slate-800">
-                                        <div className="w-12 h-12 bg-slate-900 rounded-full flex items-center justify-center mb-3">
+                                    <div className="md:col-span-2 py-12 flex flex-col items-center justify-center bg-slate-950/20 rounded-2xl border border-dashed border-white/10">
+                                        <div className="w-12 h-12 bg-white/5 rounded-full flex items-center justify-center mb-3">
                                             <CheckCircle2 size={24} className="text-slate-700" />
                                         </div>
-                                        <p className="text-sm text-slate-500 italic">Tudo limpo! Fila vazia no momento.</p>
+                                        <p className="text-sm text-[#8A8F98] italic">Tudo limpo! Fila vazia no momento.</p>
                                     </div>
                                 ) : (
                                     queue.map((job, i) => (
                                         <div key={i} className={`p-4 rounded-2xl border transition-all ${
-                                            job.status === 'failed' ? 'bg-rose-500/5 border-rose-500/20' : 'bg-slate-950/80 border-slate-800 group hover:border-slate-700'
+                                            job.status === 'failed' ? 'bg-rose-500/5 border-rose-500/20' : 'bg-slate-950/80 border-white/10 group hover:border-white/10'
                                         }`}>
                                             <div className="flex gap-4">
                                                 {/* Imagem do Produto */}
@@ -268,19 +268,19 @@ const Marketing = () => {
                                                     {job.image_url ? (
                                                         <img src={job.image_url} alt={job.product_name} className="w-full h-full object-cover" />
                                                     ) : (
-                                                        <ImageIcon className="text-white/20 w-6 h-6" />
+                                                        <ImageIcon className="text-[#EDEDEF]/20 w-6 h-6" />
                                                     )}
                                                 </div>
                                                 
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex justify-between items-start mb-1">
-                                                        <span className="text-xs font-bold text-white truncate pr-2">
+                                                        <span className="text-xs font-bold text-[#EDEDEF] truncate pr-2">
                                                             {job.product_name || `Novo Produto (#${job.product_id})`}
                                                         </span>
                                                         <div className="flex items-center gap-2">
                                                             <span className={`px-2 py-0.5 rounded-full text-[10px] uppercase font-black tracking-tighter ${
                                                                 job.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/40' :
-                                                                job.status === 'processing' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/40' :
+                                                                job.status === 'processing' ? 'btn-primary/20 text-indigo-400 border border-indigo-500/40' :
                                                                 'bg-red-500/20 text-red-400 border border-red-500/40'
                                                             }`}>
                                                                 {job.status}
@@ -290,7 +290,7 @@ const Marketing = () => {
                                                                     e.stopPropagation();
                                                                     handleRemoveFromQueue(job.id);
                                                                 }}
-                                                                className="p-1.5 hover:bg-rose-500/10 text-slate-500 hover:text-rose-500 rounded-lg transition-all"
+                                                                className="p-1.5 hover:bg-rose-500/10 text-[#8A8F98] hover:text-rose-500 rounded-lg transition-all"
                                                                 title="Remover da fila"
                                                             >
                                                                 <Trash2 size={12} />
@@ -298,7 +298,7 @@ const Marketing = () => {
                                                         </div>
                                                     </div>
                                                     
-                                                    <div className="flex items-center gap-3 text-[10px] text-white/40 mb-2">
+                                                    <div className="flex items-center gap-3 text-[10px] text-[#EDEDEF]/40 mb-2">
                                                         <div className="flex items-center gap-1">
                                                             <Clock className="w-3 h-3" />
                                                             <span>Posta em: {new Date(job.scheduled_for).toLocaleTimeString()}</span>
@@ -306,13 +306,13 @@ const Marketing = () => {
                                                         <div className="flex items-center gap-1">
                                                             <Circle className={`w-1.5 h-1.5 fill-current ${
                                                                 job.status === 'pending' ? 'animate-pulse text-yellow-400' : 
-                                                                job.status === 'processing' ? 'animate-spin text-blue-400' : 'text-red-400'
+                                                                job.status === 'processing' ? 'animate-spin text-indigo-400' : 'text-red-400'
                                                             }`} />
                                                         </div>
                                                     </div>
 
                                                     {(() => {
-                                                        if (job.status !== 'pending') return <p className="text-[10px] text-slate-500 italic">Processando...</p>;
+                                                        if (job.status !== 'pending') return <p className="text-[10px] text-[#8A8F98] italic">Processando...</p>;
                                                         const scheduledDate = new Date(job.scheduled_for);
                                                         const now = new Date();
                                                         const isPast = scheduledDate < now;
@@ -332,7 +332,7 @@ const Marketing = () => {
                                                                 {isPast ? (
                                                                     <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-400 tracking-wider">Atrasado</span>
                                                                 ) : null}
-                                                                <p className={`text-[10px] italic ${isPast ? 'text-rose-400/70' : 'text-slate-400'}`}>
+                                                                <p className={`text-[10px] italic ${isPast ? 'text-rose-400/70' : 'text-[#8A8F98]'}`}>
                                                                     🕐 {dateLabel} às {timeStr}
                                                                 </p>
                                                             </div>
@@ -352,12 +352,12 @@ const Marketing = () => {
                             </div>
 
                             {queue.length > 0 && (
-                                <div className="mt-6 flex items-center justify-between pt-6 border-t border-slate-800/50">
-                                    <p className="text-[11px] text-slate-500">Deseja ignorar o agendamento e postar agora?</p>
+                                <div className="mt-6 flex items-center justify-between pt-6 border-t border-white/10/50">
+                                    <p className="text-[11px] text-[#8A8F98]">Deseja ignorar o agendamento e postar agora?</p>
                                     <button
                                         onClick={handleForceProcess}
                                         disabled={processingQueue}
-                                        className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-xl transition-all flex items-center gap-2 shadow-lg shadow-blue-500/20"
+                                        className="btn-primary hover:btn-primary disabled:opacity-50 text-[#EDEDEF] text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-xl transition-all flex items-center gap-2 shadow-lg shadow-blue-500/20"
                                     >
                                         {processingQueue ? <RefreshCw size={12} className="animate-spin" /> : <Zap size={12} />}
                                         Forçar Processamento
@@ -367,20 +367,20 @@ const Marketing = () => {
                         </div>
 
                         {/* Preview Realista */}
-                        <div className="bg-slate-900/40 border border-slate-800 rounded-3xl p-8">
-                            <h3 className="text-sm font-black text-slate-500 uppercase tracking-widest mb-6 flex items-center gap-2">
+                        <div className="bg-white/5/40 border border-white/10 rounded-3xl p-8">
+                            <h3 className="text-sm font-black text-[#8A8F98] uppercase tracking-widest mb-6 flex items-center gap-2">
                                 <Monitor size={16} />
                                 Visão da Bio / Feed
                             </h3>
-                            <div className="max-w-md mx-auto aspect-square rounded-2xl bg-slate-950 border border-slate-800 flex items-center justify-center relative group shadow-2xl overflow-hidden ring-1 ring-white/5">
+                            <div className="max-w-md mx-auto aspect-square rounded-2xl bg-slate-950 border border-white/10 flex items-center justify-center relative group shadow-2xl overflow-hidden ring-1 ring-white/5">
                                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-60 z-10" />
-                                <Sparkles className="text-slate-800 group-hover:text-pink-500/20 transition-colors" size={100} />
+                                <Sparkles className="text-slate-800 group-hover:text-pink-500/20 transition-all" size={100} />
                                 <div className="absolute bottom-0 left-0 right-0 p-6 z-20 space-y-2">
                                     <div className="flex items-center gap-2 text-[10px] font-bold text-pink-400">
-                                        <div className="w-6 h-6 rounded-full bg-slate-800 border border-slate-700" />
+                                        <div className="w-6 h-6 rounded-full bg-white/5 border border-white/10" />
                                         @seu_instagram • Agora
                                     </div>
-                                    <p className="text-xs text-white leading-relaxed line-clamp-3 font-medium">
+                                    <p className="text-xs text-[#EDEDEF] leading-relaxed line-clamp-3 font-medium">
                                         {captionPreview}
                                     </p>
                                 </div>
@@ -390,10 +390,10 @@ const Marketing = () => {
 
                     {/* Coluna Direita: Histórico */}
                     <div className="lg:col-span-4 space-y-6">
-                        <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-6 h-full shadow-2xl flex flex-col">
+                        <div className="bg-white/5/80 border border-white/10 rounded-3xl p-6 h-full shadow-2xl flex flex-col">
                             <div className="flex items-center justify-between mb-6">
-                                <h3 className="text-sm font-black text-slate-500 uppercase tracking-widest">Logs de Automação de Marketing</h3>
-                                <button onClick={fetchData} className="p-2 hover:bg-slate-800 rounded-xl text-blue-400 transition-all">
+                                <h3 className="text-sm font-black text-[#8A8F98] uppercase tracking-widest">Logs de Automação de Marketing</h3>
+                                <button onClick={fetchData} className="p-2 hover:bg-white/5 rounded-xl text-indigo-400 transition-all">
                                     <RefreshCw size={16} className={loadingHistory ? 'animate-spin' : ''} />
                                 </button>
                             </div>
@@ -405,12 +405,12 @@ const Marketing = () => {
                                     </div>
                                 ) : (
                                     history.map((log, i) => (
-                                        <div key={i} className="bg-slate-950/60 border border-slate-800/60 rounded-2xl p-4 group hover:border-slate-700 transition-all">
+                                        <div key={i} className="bg-slate-950/60 border border-white/10/60 rounded-2xl p-4 group hover:border-white/10 transition-all">
                                             <div className="flex items-center justify-between mb-3">
                                                 <div className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md ${
                                                     log.status === 'Success' ? 'bg-green-500/10 text-green-500' : 
                                                     log.status === 'Warning' ? 'bg-yellow-500/10 text-yellow-500' :
-                                                    log.status === 'Processing' ? 'bg-blue-500/10 text-blue-400' : 
+                                                    log.status === 'Processing' ? 'btn-primary/10 text-indigo-400' : 
                                                     'bg-rose-500/10 text-rose-500'
                                                 }`}>
                                                     {log.status === 'Success' ? 'Postado' : 
@@ -429,19 +429,19 @@ const Marketing = () => {
                                                     {log.image_url ? (
                                                         <img src={log.image_url} alt={log.productName} className="w-full h-full object-cover" />
                                                     ) : (
-                                                        <ImageIcon className="text-white/20 w-4 h-4" />
+                                                        <ImageIcon className="text-[#EDEDEF]/20 w-4 h-4" />
                                                     )}
                                                 </div>
 
                                                 <div className="flex-1 min-w-0">
-                                                    <p className="text-xs text-white font-bold truncate mb-1">{log.productName || `Prod ID: ${log.productId}`}</p>
+                                                    <p className="text-xs text-[#EDEDEF] font-bold truncate mb-1">{log.productName || `Prod ID: ${log.productId}`}</p>
                                                     <div className="flex items-center gap-2">
                                                         <span className={`px-1.5 py-0.5 rounded text-[8px] uppercase font-bold ${
                                                             log.status === 'Success' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
                                                         }`}>
                                                             {log.status}
                                                         </span>
-                                                        <span className="text-[10px] text-white/30 truncate">{log.details}</span>
+                                                        <span className="text-[10px] text-[#EDEDEF]/30 truncate">{log.details}</span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -464,21 +464,21 @@ const Marketing = () => {
             {activeTab === 'config' && (
                 <div className="max-w-4xl mx-auto space-y-8 pb-20 fade-in duration-500">
                     {/* Credenciais Deep Config */}
-                    <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl">
+                    <div className="bg-white/5 border border-white/10 rounded-3xl p-8 shadow-2xl">
                         <header className="flex items-center justify-between mb-10">
                             <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 bg-blue-600/20 rounded-2xl flex items-center justify-center border border-blue-500/30">
-                                    <Key className="text-blue-400" size={24} />
+                                <div className="w-12 h-12 btn-primary/20 rounded-2xl flex items-center justify-center border border-indigo-500/30">
+                                    <Key className="text-indigo-400" size={24} />
                                 </div>
                                 <div>
-                                    <h2 className="text-xl font-bold text-white tracking-tight">Backend de Integração</h2>
-                                    <p className="text-slate-500 text-xs mt-1">Configure os tokens de acesso da Graph API da Meta</p>
+                                    <h2 className="text-xl font-bold text-[#EDEDEF] tracking-tight">Backend de Integração</h2>
+                                    <p className="text-[#8A8F98] text-xs mt-1">Configure os tokens de acesso da Graph API da Meta</p>
                                 </div>
                             </div>
                             <button
                                 onClick={handleValidate}
                                 disabled={validating || !settings.meta_token}
-                                className="bg-slate-950 hover:bg-slate-800 text-blue-400 border border-slate-800 px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all disabled:opacity-30 shadow-lg flex items-center gap-3"
+                                className="bg-slate-950 hover:bg-white/5 text-indigo-400 border border-white/10 px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all disabled:opacity-30 shadow-lg flex items-center gap-3"
                             >
                                 {validating ? <RefreshCw className="animate-spin" size={14} /> : <Globe size={14} />}
                                 Testar Conexão
@@ -488,9 +488,9 @@ const Marketing = () => {
                         <form onSubmit={handleSave} className="space-y-8">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 <div className="space-y-3">
-                                    <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">Token de Acesso da Meta</label>
+                                    <label className="text-xs font-black text-[#8A8F98] uppercase tracking-widest ml-1">Token de Acesso da Meta</label>
                                     <div className="relative group">
-                                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-600 group-focus-within:text-blue-400 transition-colors">
+                                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-600 group-focus-within:text-indigo-400 transition-all">
                                             <Key size={18} />
                                         </div>
                                         <input 
@@ -498,16 +498,16 @@ const Marketing = () => {
                                             value={settings.meta_token}
                                             onChange={(e) => setSettings({...settings, meta_token: e.target.value})}
                                             placeholder="Token de longa duração..."
-                                            className="w-full bg-slate-950 border border-slate-800 focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 rounded-2xl py-4 pl-12 pr-4 text-white placeholder:text-slate-700 transition-all outline-none font-mono text-sm"
+                                            className="w-full bg-slate-950 border border-white/10 focus:border-indigo-500/50 focus:ring-4 focus:ring-blue-500/10 rounded-2xl py-4 pl-12 pr-4 text-[#EDEDEF] placeholder:text-slate-700 transition-all outline-none font-mono text-sm"
                                         />
                                     </div>
                                     <p className="text-[10px] text-slate-600 italic">Dê preferência a tokens de "System User" para estabilidade.</p>
                                 </div>
 
                                 <div className="space-y-3">
-                                    <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">ID da Página do Facebook</label>
+                                    <label className="text-xs font-black text-[#8A8F98] uppercase tracking-widest ml-1">ID da Página do Facebook</label>
                                     <div className="relative group">
-                                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-600 group-focus-within:text-blue-400 transition-colors">
+                                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-600 group-focus-within:text-indigo-400 transition-all">
                                             <Globe size={18} />
                                         </div>
                                         <input 
@@ -515,25 +515,25 @@ const Marketing = () => {
                                             value={settings.fb_page_id}
                                             onChange={(e) => setSettings({...settings, fb_page_id: e.target.value})}
                                             placeholder="Ex: 1239980869347062"
-                                            className="w-full bg-slate-950 border border-slate-800 focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 rounded-2xl py-4 pl-12 pr-4 text-white placeholder:text-slate-700 transition-all outline-none text-sm"
+                                            className="w-full bg-slate-950 border border-white/10 focus:border-indigo-500/50 focus:ring-4 focus:ring-blue-500/10 rounded-2xl py-4 pl-12 pr-4 text-[#EDEDEF] placeholder:text-slate-700 transition-all outline-none text-sm"
                                         />
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="pt-8 border-t border-slate-800 space-y-6">
+                            <div className="pt-8 border-t border-white/10 space-y-6">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-3">
                                         <FileText className="text-pink-400" size={20} />
-                                        <h3 className="text-lg font-bold text-white">Template de Legenda</h3>
+                                        <h3 className="text-lg font-bold text-[#EDEDEF]">Template de Legenda</h3>
                                     </div>
                                     <span className="text-[10px] font-mono text-slate-600">Suporta Markdown e Emojis</span>
                                 </div>
-                                <div className="relative bg-slate-950 rounded-2xl border border-slate-800 overflow-hidden">
-                                    <div className="flex gap-2 p-2 bg-slate-900/50 border-b border-slate-800 flex-wrap">
-                                        <div className="px-2 py-1 bg-slate-800 rounded-md text-[9px] font-bold text-pink-400">{'{{product_name}}'}</div>
-                                        <div className="px-2 py-1 bg-slate-800 rounded-md text-[9px] font-bold text-pink-400">{'{{product_price}}'}</div>
-                                        <div className="px-2 py-1 bg-slate-800 rounded-md text-[9px] font-bold text-pink-400">{'{{product_link}}'}</div>
+                                <div className="relative bg-slate-950 rounded-2xl border border-white/10 overflow-hidden">
+                                    <div className="flex gap-2 p-2 bg-white/5/50 border-b border-white/10 flex-wrap">
+                                        <div className="px-2 py-1 bg-white/5 rounded-md text-[9px] font-bold text-pink-400">{'{{product_name}}'}</div>
+                                        <div className="px-2 py-1 bg-white/5 rounded-md text-[9px] font-bold text-pink-400">{'{{product_price}}'}</div>
+                                        <div className="px-2 py-1 bg-white/5 rounded-md text-[9px] font-bold text-pink-400">{'{{product_link}}'}</div>
                                     </div>
 
                                     <textarea
@@ -541,13 +541,13 @@ const Marketing = () => {
                                         onChange={(e) => setSettings({...settings, feed_caption_template: e.target.value})}
                                         rows={8}
                                         placeholder={defaultCaption}
-                                        className="w-full bg-transparent py-4 px-5 text-white placeholder:text-slate-700 transition-all outline-none font-mono text-sm resize-none leading-relaxed"
+                                        className="w-full bg-transparent py-4 px-5 text-[#EDEDEF] placeholder:text-slate-700 transition-all outline-none font-mono text-sm resize-none leading-relaxed"
                                     />
                                     {settings.feed_caption_template && (
                                         <button
                                             type="button"
                                             onClick={() => setSettings({...settings, feed_caption_template: ''})}
-                                            className="absolute top-12 right-4 text-[9px] font-black text-rose-500 hover:text-white transition-colors"
+                                            className="absolute top-12 right-4 text-[9px] font-black text-rose-500 hover:text-[#EDEDEF] transition-all"
                                         >
                                             RESETAR PARA PADRÃO
                                         </button>
@@ -557,9 +557,9 @@ const Marketing = () => {
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
                                 {/* Webhooks Check */}
-                                <div className="bg-slate-950 border border-slate-800 rounded-2xl p-6 space-y-4">
+                                <div className="bg-slate-950 border border-white/10 rounded-2xl p-6 space-y-4">
                                     <div className="flex items-center justify-between">
-                                        <h4 className="text-xs font-black text-slate-500 uppercase tracking-widest">Gatilhos Nuvemshop</h4>
+                                        <h4 className="text-xs font-black text-[#8A8F98] uppercase tracking-widest">Gatilhos Nuvemshop</h4>
                                         <div className={`w-2 h-2 rounded-full ${webhooks.some(wh => wh.event === 'product/created') ? 'bg-green-500 animate-pulse' : 'bg-slate-700'}`} />
                                     </div>
                                     {webhooks.some(wh => wh.event === 'product/created') ? (
@@ -570,7 +570,7 @@ const Marketing = () => {
                                         <button
                                             onClick={handleRegisterWebhook}
                                             disabled={registering}
-                                            className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all border border-slate-800"
+                                            className="w-full py-3 bg-white/5 hover:bg-white/5 text-[#EDEDEF] text-[10px] font-black uppercase tracking-widest rounded-xl transition-all border border-white/10"
                                         >
                                             {registering ? <RefreshCw className="animate-spin" size={12} /> : 'Ativar Gatilho Automático'}
                                         </button>
@@ -583,8 +583,8 @@ const Marketing = () => {
                                         <Monitor className="text-purple-400" size={18} />
                                     </div>
                                     <div className="space-y-1">
-                                        <p className="text-xs font-bold text-white">Lógica de Stories</p>
-                                        <p className="text-[10px] text-slate-400 leading-tight">Stories são postados sem legenda, usando um sticker de link automático para o produto.</p>
+                                        <p className="text-xs font-bold text-[#EDEDEF]">Lógica de Stories</p>
+                                        <p className="text-[10px] text-[#8A8F98] leading-tight">Stories são postados sem legenda, usando um sticker de link automático para o produto.</p>
                                     </div>
                                 </div>
                             </div>
@@ -592,7 +592,7 @@ const Marketing = () => {
                             <button 
                                 type="submit"
                                 disabled={saving}
-                                className="w-full py-5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-black uppercase tracking-widest rounded-2xl transition-all shadow-2xl flex items-center justify-center gap-3 group"
+                                className="w-full py-5 btn-primary hover:btn-primary disabled:opacity-50 text-[#EDEDEF] font-black uppercase tracking-widest rounded-2xl transition-all shadow-2xl flex items-center justify-center gap-3 group"
                             >
                                 {saving ? <RefreshCw className="animate-spin" size={20} /> : <Save size={20} className="group-hover:scale-110 transition-transform" />}
                                 Salvar Configurações Mestres
@@ -605,13 +605,13 @@ const Marketing = () => {
             {/* Aba: GUIA / AJUDA */}
             {activeTab === 'guide' && (
                 <div className="max-w-3xl mx-auto pb-20 fade-in duration-500">
-                    <div className="bg-slate-900 border border-slate-800 rounded-[32px] p-10 shadow-2xl space-y-12">
+                    <div className="bg-white/5 border border-white/10 rounded-[32px] p-10 shadow-2xl space-y-12">
                         <header className="text-center space-y-4">
-                            <div className="w-20 h-20 bg-blue-600/10 rounded-3xl flex items-center justify-center mx-auto border border-blue-500/20 shadow-inner">
-                                <Info className="text-blue-400" size={40} />
+                            <div className="w-20 h-20 btn-primary/10 rounded-3xl flex items-center justify-center mx-auto border border-indigo-500/20 shadow-inner">
+                                <Info className="text-indigo-400" size={40} />
                             </div>
-                            <h2 className="text-3xl font-black text-white tracking-tighter">Guia de Integração Profissional</h2>
-                            <p className="text-slate-500 text-sm max-w-md mx-auto">Siga estes passos para configurar sua automação no Instagram em menos de 10 minutos.</p>
+                            <h2 className="text-3xl font-black text-[#EDEDEF] tracking-tighter">Guia de Integração Profissional</h2>
+                            <p className="text-[#8A8F98] text-sm max-w-md mx-auto">Siga estes passos para configurar sua automação no Instagram em menos de 10 minutos.</p>
                         </header>
 
                         <div className="space-y-12">
@@ -628,7 +628,7 @@ const Marketing = () => {
                                     t: 'Meta for Developers', 
                                     c: 'Crie um App tipo "Empresa" no portal de desenvolvedores do Meta e adicione o produto "Instagram Graph API".',
                                     icon: Globe,
-                                    color: 'text-blue-400'
+                                    color: 'text-indigo-400'
                                 },
                                 { 
                                     step: '3', 
@@ -647,20 +647,20 @@ const Marketing = () => {
                                 }
                             ].map((item, idx) => (
                                 <div key={idx} className="flex gap-8 relative">
-                                    {idx < 3 && <div className="absolute top-16 left-8 w-px h-full bg-slate-800" />}
-                                    <div className={`w-16 h-16 rounded-3xl bg-slate-950 border border-slate-800 flex items-center justify-center shrink-0 z-10 ${item.color}`}>
+                                    {idx < 3 && <div className="absolute top-16 left-8 w-px h-full bg-white/5" />}
+                                    <div className={`w-16 h-16 rounded-3xl bg-slate-950 border border-white/10 flex items-center justify-center shrink-0 z-10 ${item.color}`}>
                                         <item.icon size={28} />
                                     </div>
                                     <div className="space-y-3 pt-2">
-                                        <h4 className="text-lg font-bold text-white flex items-center gap-3">
-                                            <span className="text-xs bg-slate-800 text-slate-500 px-2 py-0.5 rounded-lg border border-slate-700">Passo {item.step}</span>
+                                        <h4 className="text-lg font-bold text-[#EDEDEF] flex items-center gap-3">
+                                            <span className="text-xs bg-white/5 text-[#8A8F98] px-2 py-0.5 rounded-lg border border-white/10">Passo {item.step}</span>
                                             {item.t}
                                         </h4>
-                                        <p className="text-slate-400 text-sm leading-relaxed">{item.c}</p>
+                                        <p className="text-[#8A8F98] text-sm leading-relaxed">{item.c}</p>
                                         {item.extra && (
                                             <div className="flex flex-wrap gap-2 pt-2">
                                                 {item.extra.map(p => (
-                                                    <span key={p} className="text-[9px] font-mono bg-slate-950 text-slate-600 border border-slate-800 px-2 py-0.5 rounded">{p}</span>
+                                                    <span key={p} className="text-[9px] font-mono bg-slate-950 text-slate-600 border border-white/10 px-2 py-0.5 rounded">{p}</span>
                                                 ))}
                                             </div>
                                         )}
@@ -669,9 +669,9 @@ const Marketing = () => {
                             ))}
                         </div>
 
-                        <div className="p-8 bg-blue-600/5 border border-blue-500/10 rounded-2xl flex items-center gap-6">
-                            <Info className="text-blue-400 shrink-0" size={24} />
-                            <p className="text-xs text-slate-400 leading-relaxed italic">
+                        <div className="p-8 btn-primary/5 border border-indigo-500/10 rounded-2xl flex items-center gap-6">
+                            <Info className="text-indigo-400 shrink-0" size={24} />
+                            <p className="text-xs text-[#8A8F98] leading-relaxed italic">
                                 Dica Sênior: Para evitar que o token expire a cada 60 dias, use um <b>System User</b> direto do seu Business Manager. Isso garantirá automação infinita.
                             </p>
                         </div>

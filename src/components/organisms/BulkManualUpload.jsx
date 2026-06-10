@@ -90,8 +90,8 @@ const BulkManualUpload = ({ onComplete, initialData = null }) => {
           <Upload className="w-8 h-8 text-primary" />
         </div>
         <div>
-          <h2 className="text-2xl font-bold text-white">Cadastro Manual em Lote</h2>
-          <p className="text-slate-400">
+          <h2 className="text-2xl font-bold text-[#EDEDEF]">Cadastro Manual em Lote</h2>
+          <p className="text-[#8A8F98]">
             {initialData 
               ? "Suba as fotos e defina os nomes individuais. O restante das informações será clonado do produto original!" 
               : "Suba as fotos e defina os dados comuns para todos os produtos."}
@@ -116,40 +116,40 @@ const BulkManualUpload = ({ onComplete, initialData = null }) => {
       <form onSubmit={handleSubmit} className="space-y-8">
         {/* Adição e Edição de Itens (Fotos + Nomes) */}
         <div className="space-y-4">
-          <label className="block text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">
+          <label className="block text-sm font-bold text-[#8A8F98] uppercase tracking-wider mb-4">
             Imagens & Identificação ({items.length})
           </label>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             
             {items.map((item) => (
-              <div key={item.id} className="relative rounded-2xl overflow-hidden border border-slate-700 bg-slate-900/50 group flex flex-col focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/50 transition-all shadow-lg">
-                <div className="aspect-square relative flex-shrink-0 bg-slate-800 border-b border-slate-800">
+              <div key={item.id} className="relative rounded-2xl overflow-hidden border border-white/10 bg-white/5/50 group flex flex-col focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/50 transition-all shadow-lg">
+                <div className="aspect-square relative flex-shrink-0 bg-white/5 border-b border-white/10">
                   <img src={item.dataUrl} alt="Preview" className="w-full h-full object-cover" />
                   <button 
                     type="button"
                     onClick={() => removeItem(item.id)}
-                    className="absolute top-3 right-3 p-2 bg-rose-500/90 hover:bg-rose-500 text-white rounded-full transition-colors shadow-lg"
+                    className="absolute top-3 right-3 p-2 bg-rose-500/90 hover:bg-rose-500 text-[#EDEDEF] rounded-full transition-all shadow-lg"
                   >
                     <X className="w-4 h-4" />
                   </button>
                 </div>
                 <div className="p-4 flex-1 flex flex-col">
-                  <label className="text-xs text-slate-500 font-bold uppercase mb-2">Nome deste produto</label>
+                  <label className="text-xs text-[#8A8F98] font-bold uppercase mb-2">Nome deste produto</label>
                   <input
                     type="text"
                     required
                     value={item.name}
                     onChange={(e) => updateItemName(item.id, e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:border-primary outline-none transition-all"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-[#EDEDEF] focus:border-primary outline-none transition-all"
                     placeholder="Nome específico da imagem..."
                   />
                 </div>
               </div>
             ))}
 
-            <label className="aspect-[4/5] rounded-2xl border-2 border-dashed border-slate-700 flex flex-col items-center justify-center cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-all group min-h-[300px]">
-              <Upload className="w-10 h-10 text-slate-500 group-hover:text-primary transition-colors duration-300" />
-              <span className="text-sm text-slate-400 mt-4 font-bold uppercase tracking-wide group-hover:text-primary transition-colors">Mais Fotos</span>
+            <label className="aspect-[4/5] rounded-2xl border-2 border-dashed border-white/10 flex flex-col items-center justify-center cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-all group min-h-[300px]">
+              <Upload className="w-10 h-10 text-[#8A8F98] group-hover:text-primary transition-all duration-300" />
+              <span className="text-sm text-[#8A8F98] mt-4 font-bold uppercase tracking-wide group-hover:text-primary transition-all">Mais Fotos</span>
               <input type="file" multiple accept="image/*" onChange={handleImageUpload} className="hidden" />
             </label>
             
@@ -158,11 +158,11 @@ const BulkManualUpload = ({ onComplete, initialData = null }) => {
 
         {/* Inputs genéricos SÓ APARECEM SE NÃO FOR MODO REPLICAÇÃO */}
         {!initialData && (
-          <div className="pt-8 border-t border-slate-800 space-y-6">
-            <h3 className="text-lg font-bold text-white mb-4">Informações Genéricas do Lote</h3>
+          <div className="pt-8 border-t border-white/10 space-y-6">
+            <h3 className="text-lg font-bold text-[#EDEDEF] mb-4">Informações Genéricas do Lote</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-400 uppercase tracking-wider">Preço Genérico (R$)</label>
+                <label className="text-sm font-bold text-[#8A8F98] uppercase tracking-wider">Preço Genérico (R$)</label>
                 <input 
                   required
                   type="number" 
@@ -170,45 +170,45 @@ const BulkManualUpload = ({ onComplete, initialData = null }) => {
                   value={commonData.price}
                   onChange={e => setCommonData({...commonData, price: e.target.value})}
                   placeholder="0.00"
-                  className="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-3 text-white focus:border-primary outline-none transition-all"
+                  className="w-full bg-white/5/50 border border-white/10 rounded-xl px-4 py-3 text-[#EDEDEF] focus:border-primary outline-none transition-all"
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-400 uppercase tracking-wider">Estoque Padrão</label>
+                <label className="text-sm font-bold text-[#8A8F98] uppercase tracking-wider">Estoque Padrão</label>
                 <input 
                   type="number" 
                   value={commonData.stock}
                   onChange={e => setCommonData({...commonData, stock: e.target.value})}
-                  className="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-3 text-white focus:border-primary outline-none transition-all"
+                  className="w-full bg-white/5/50 border border-white/10 rounded-xl px-4 py-3 text-[#EDEDEF] focus:border-primary outline-none transition-all"
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-400 uppercase tracking-wider">Peso Padrão (kg)</label>
+                <label className="text-sm font-bold text-[#8A8F98] uppercase tracking-wider">Peso Padrão (kg)</label>
                 <input 
                   type="number" 
                   step="0.1"
                   value={commonData.weight}
                   onChange={e => setCommonData({...commonData, weight: e.target.value})}
-                  className="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-3 text-white focus:border-primary outline-none transition-all"
+                  className="w-full bg-white/5/50 border border-white/10 rounded-xl px-4 py-3 text-[#EDEDEF] focus:border-primary outline-none transition-all"
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-bold text-slate-400 uppercase tracking-wider">Descrição Genérica (Opcional)</label>
+              <label className="text-sm font-bold text-[#8A8F98] uppercase tracking-wider">Descrição Genérica (Opcional)</label>
               <textarea 
                 rows="3"
                 value={commonData.description}
                 onChange={e => setCommonData({...commonData, description: e.target.value})}
                 placeholder="Essa descrição será aplicada a todos os produtos criados nesta sessão."
-                className="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-3 text-white focus:border-primary outline-none transition-all resize-none"
+                className="w-full bg-white/5/50 border border-white/10 rounded-xl px-4 py-3 text-[#EDEDEF] focus:border-primary outline-none transition-all resize-none"
               />
             </div>
           </div>
         )}
 
         {/* Status e Ação */}
-        <div className="flex flex-col gap-4 pt-6 border-t border-slate-800">
+        <div className="flex flex-col gap-4 pt-6 border-t border-white/10">
           {status === 'success' && (
             <div className="flex items-center gap-2 text-emerald-400 animate-in zoom-in-95 duration-300">
               <CheckCircle2 className="w-5 h-5" />
@@ -233,7 +233,7 @@ const BulkManualUpload = ({ onComplete, initialData = null }) => {
             <button 
               type="submit"
               disabled={loading || items.length === 0}
-              className={`px-8 py-4 bg-primary text-white font-black rounded-2xl flex items-center gap-3 transition-all hover:scale-105 active:scale-95 shadow-lg shadow-primary/20 disabled:grayscale disabled:opacity-50`}
+              className={`px-8 py-4 bg-primary text-[#EDEDEF] font-black rounded-2xl flex items-center gap-3 transition-all hover:scale-105 active:scale-95 shadow-lg shadow-primary/20 disabled:grayscale disabled:opacity-50`}
             >
               {loading ? (
                 <Loader2 className="w-5 h-5 animate-spin" />

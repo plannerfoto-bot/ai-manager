@@ -31,7 +31,7 @@ class ErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="p-8 text-red-500 font-mono text-sm bg-slate-950 h-screen overflow-auto">
+        <div className="p-8 text-red-500 font-mono text-sm bg-transparent h-screen overflow-auto">
           <h2 className="text-xl font-bold mb-4">CRASH DO REACT</h2>
           <div className="bg-red-950/30 p-4 border border-red-900 rounded-lg">
             <p className="font-bold mb-2">{this.state.error?.toString()}</p>
@@ -221,7 +221,7 @@ const App = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-200">
+    <div className="min-h-screen bg-transparent text-[#EDEDEF]">
       <Toaster position="top-right" />
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
       
@@ -233,17 +233,17 @@ const App = () => {
             onClick={toggleCalculator}
             className={`flex items-center gap-3 px-5 py-3 rounded-2xl border font-bold text-sm transition-all duration-300 shadow-lg ${
               calculatorEnabled
-                ? 'bg-blue-600/20 border-blue-500/40 text-blue-300 hover:bg-blue-600/30 shadow-blue-900/20'
-                : 'bg-slate-800/50 border-slate-700/40 text-slate-400 hover:bg-slate-800 shadow-slate-900/20'
+                ? 'bg-indigo-500/20 border-indigo-500/40 text-indigo-300 hover:bg-indigo-500/30 shadow-indigo-900/20'
+                : 'bg-white/5 border-white/10 text-[#8A8F98] hover:bg-white/10 shadow-black/20'
             }`}
           >
             <Calculator className="w-4 h-4" />
             Calculadora de Medidas
             {calculatorEnabled
-              ? <ToggleRight className="w-6 h-6 text-blue-400" />
+              ? <ToggleRight className="w-6 h-6 text-indigo-400" />
               : <ToggleLeft className="w-6 h-6 text-slate-600" />}
             <span className={`text-xs px-2 py-0.5 rounded-full font-black tracking-wider uppercase ${
-              calculatorEnabled ? 'bg-blue-500/20 text-blue-300' : 'bg-slate-700 text-slate-500'
+              calculatorEnabled ? 'bg-indigo-500/20 text-indigo-300' : 'bg-white/10 text-slate-500'
             }`}>
               {calculatorEnabled ? 'ON' : 'OFF'}
             </span>

@@ -107,13 +107,13 @@ const Inventory = ({ products = [], total = 0, page = 1, loading, onDelete, onRe
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center bg-slate-900/40 p-6 rounded-3xl border border-slate-800/50 backdrop-blur-xl">
+      <div className="flex justify-between items-center bg-white/5/40 p-6 rounded-3xl border border-white/10/50 backdrop-blur-xl">
         <div>
-          <h1 className="text-3xl font-bold text-white tracking-tight flex items-center gap-3">
+          <h1 className="text-3xl font-bold text-[#EDEDEF] tracking-tight flex items-center gap-3">
             <Package className="text-primary w-8 h-8" />
             Produtos & Catálogo
           </h1>
-          <p className="text-slate-400 mt-1">Gerencie seu inventário e crie novos itens com agilidade.</p>
+          <p className="text-[#8A8F98] mt-1">Gerencie seu inventário e crie novos itens com agilidade.</p>
         </div>
         
         <div className="flex flex-col md:flex-row gap-3 items-center">
@@ -123,14 +123,14 @@ const Inventory = ({ products = [], total = 0, page = 1, loading, onDelete, onRe
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Buscar por nome ou SKU..."
-              className="bg-slate-900/50 border border-slate-700/50 rounded-2xl px-5 py-3 text-sm text-white w-64 focus:border-primary outline-none transition-all group-hover:bg-slate-800"
+              className="bg-white/5/50 border border-white/10/50 rounded-2xl px-5 py-3 text-sm text-[#EDEDEF] w-64 focus:border-primary outline-none transition-all group-hover:bg-white/5"
             />
           </form>
 
           {viewMode === 'list' && (
             <button 
               onClick={handleCreateNew}
-              className="px-6 py-3 bg-primary text-white font-black rounded-2xl flex items-center gap-2 hover:scale-105 active:scale-95 transition-all shadow-lg shadow-primary/20"
+              className="px-6 py-3 bg-primary text-[#EDEDEF] font-black rounded-2xl flex items-center gap-2 hover:scale-105 active:scale-95 transition-all shadow-lg shadow-primary/20"
             >
               <PlusCircle className="w-5 h-5" /> CADASTRAR EM LOTE
             </button>
@@ -138,7 +138,7 @@ const Inventory = ({ products = [], total = 0, page = 1, loading, onDelete, onRe
           {viewMode === 'create' && (
             <button 
               onClick={() => setViewMode('list')}
-              className="px-6 py-3 bg-slate-800 text-white font-black rounded-2xl flex items-center gap-2 hover:bg-slate-700 transition-all"
+              className="px-6 py-3 bg-white/5 text-[#EDEDEF] font-black rounded-2xl flex items-center gap-2 hover:bg-slate-700 transition-all"
             >
               <LayoutGrid className="w-5 h-5" /> VOLTAR PARA LISTA
             </button>
@@ -151,15 +151,15 @@ const Inventory = ({ products = [], total = 0, page = 1, loading, onDelete, onRe
       ) : (
         <>
           {products.length === 0 && !loading ? (
-            <div className="glass p-20 rounded-[40px] flex flex-col items-center justify-center text-center space-y-6 border-dashed border-2 border-slate-800 bg-slate-900/20">
-              <div className="p-6 bg-slate-800/50 rounded-full">
+            <div className="glass p-20 rounded-[40px] flex flex-col items-center justify-center text-center space-y-6 border-dashed border-2 border-white/10 bg-white/5/20">
+              <div className="p-6 bg-white/5/50 rounded-full">
                 <Package className="w-16 h-16 text-slate-600" />
               </div>
               <div className="max-w-md">
-                <h2 className="text-2xl font-bold text-white">
+                <h2 className="text-2xl font-bold text-[#EDEDEF]">
                   {searchQuery ? 'Nenhum resultado para sua busca' : 'Nenhum produto encontrado'}
                 </h2>
-                <p className="text-slate-400 mt-2 leading-relaxed">
+                <p className="text-[#8A8F98] mt-2 leading-relaxed">
                   {searchQuery ? 'Tente buscar por termos mais genéricos ou verifique o SKU.' : 'Sua conta Nuvemshop ainda não possui produtos ativos. Comece cadastrando seus primeiros itens agora!'}
                 </p>
               </div>
@@ -177,7 +177,7 @@ const Inventory = ({ products = [], total = 0, page = 1, loading, onDelete, onRe
                 {loading ? (
                   <div className="flex flex-col items-center justify-center h-64 space-y-4">
                     <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-primary"></div>
-                    <p className="text-slate-500">Buscando catálogo...</p>
+                    <p className="text-[#8A8F98]">Buscando catálogo...</p>
                   </div>
                 ) : (
                   <>
@@ -186,10 +186,10 @@ const Inventory = ({ products = [], total = 0, page = 1, loading, onDelete, onRe
                         <div 
                           key={product.id} 
                           onClick={() => setSelectedProduct(product)}
-                          className={`glass p-4 rounded-2xl border-slate-800 hover:border-primary/50 transition-all cursor-pointer group ${selectedProduct?.id === product.id ? 'border-primary ring-1 ring-primary/30 bg-primary/5' : ''}`}
+                          className={`glass p-4 rounded-2xl border-white/10 hover:border-primary/50 transition-all cursor-pointer group ${selectedProduct?.id === product.id ? 'border-primary ring-1 ring-primary/30 bg-primary/5' : ''}`}
                         >
                           <div className="flex gap-4 text-left">
-                            <div className="w-20 h-20 rounded-xl bg-slate-900 overflow-hidden flex-shrink-0 border border-slate-800">
+                            <div className="w-20 h-20 rounded-xl bg-white/5 overflow-hidden flex-shrink-0 border border-white/10">
                               {product.images?.[0]?.src ? (
                                 <img src={product.images[0].src} alt={getText(product.name)} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                               ) : (
@@ -199,12 +199,12 @@ const Inventory = ({ products = [], total = 0, page = 1, loading, onDelete, onRe
                               )}
                             </div>
                             <div className="flex-1 min-w-0">
-                              <h3 className="text-white font-bold truncate group-hover:text-primary transition-colors">{getText(product.name)}</h3>
+                              <h3 className="text-[#EDEDEF] font-bold truncate group-hover:text-primary transition-all">{getText(product.name)}</h3>
                               <p className="text-primary font-bold mt-1">
                                 R$ {parseFloat(product.variants?.[0]?.price || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                               </p>
                               <div className="flex items-center gap-2 mt-2">
-                                <span className="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                                <span className="text-[10px] bg-white/5 text-[#8A8F98] px-2 py-0.5 rounded-full uppercase tracking-wider">
                                   Estoque: {product.variants?.[0]?.stock || 0}
                                 </span>
                               </div>
@@ -216,21 +216,21 @@ const Inventory = ({ products = [], total = 0, page = 1, loading, onDelete, onRe
 
                     {/* Paginação */}
                     <div className="flex items-center justify-between p-4 glass rounded-2xl">
-                      <p className="text-sm text-slate-500">
+                      <p className="text-sm text-[#8A8F98]">
                         Mostrando <b>{products.length}</b> de <b>{total}</b> produtos
                       </p>
                       <div className="flex gap-2">
                         <button 
                           disabled={page <= 1 || loading}
                           onClick={() => handlePageChange(page - 1)}
-                          className="px-4 py-2 bg-slate-800 text-white rounded-lg disabled:opacity-30 hover:bg-slate-700 transition-all"
+                          className="px-4 py-2 bg-white/5 text-[#EDEDEF] rounded-lg disabled:opacity-30 hover:bg-slate-700 transition-all"
                         >
                           Anterior
                         </button>
                         <button 
                           disabled={products.length < 24 || page * 24 >= total || loading}
                           onClick={() => handlePageChange(page + 1)}
-                          className="px-4 py-2 bg-slate-800 text-white rounded-lg disabled:opacity-30 hover:bg-slate-700 transition-all"
+                          className="px-4 py-2 bg-white/5 text-[#EDEDEF] rounded-lg disabled:opacity-30 hover:bg-slate-700 transition-all"
                         >
                           Próximo
                         </button>
@@ -245,17 +245,17 @@ const Inventory = ({ products = [], total = 0, page = 1, loading, onDelete, onRe
                 {selectedProduct ? (
                   <div className="glass p-6 rounded-2xl border-primary sticky top-8 animate-in fade-in slide-in-from-right-8 duration-500 shadow-2xl shadow-primary/10">
                     <div className="flex justify-between items-start mb-6">
-                      <h2 className="text-xl font-bold text-white">Ficha Técnica</h2>
+                      <h2 className="text-xl font-bold text-[#EDEDEF]">Ficha Técnica</h2>
                       <button 
                         onClick={() => setSelectedProduct(null)}
-                        className="p-1 hover:bg-slate-800 rounded-full text-slate-500"
+                        className="p-1 hover:bg-white/5 rounded-full text-[#8A8F98]"
                       >
                         <X className="w-5 h-5" />
                       </button>
                     </div>
 
                     <div className="space-y-6">
-                      <div className="aspect-video rounded-xl bg-slate-900 border border-slate-800 overflow-hidden shadow-inner flex items-center justify-center">
+                      <div className="aspect-video rounded-xl bg-white/5 border border-white/10 overflow-hidden shadow-inner flex items-center justify-center">
                         {selectedProduct.images && selectedProduct.images[0] ? (
                           <img src={selectedProduct.images[0].src} alt={getText(selectedProduct.name)} className="w-full h-full object-contain" />
                         ) : (
@@ -264,39 +264,39 @@ const Inventory = ({ products = [], total = 0, page = 1, loading, onDelete, onRe
                       </div>
 
                       <div className="space-y-4">
-                        <div className="p-4 rounded-xl bg-slate-900/50 border border-slate-800">
-                          <p className="text-xs text-slate-500 uppercase font-bold mb-1 flex items-center gap-2">
+                        <div className="p-4 rounded-xl bg-white/5/50 border border-white/10">
+                          <p className="text-xs text-[#8A8F98] uppercase font-bold mb-1 flex items-center gap-2">
                             <Tag className="w-3 h-3 text-primary" /> SEO & Tags
                           </p>
-                          <p className="text-white text-sm font-medium">{getText(selectedProduct.seo_title) || getText(selectedProduct.name)}</p>
+                          <p className="text-[#EDEDEF] text-sm font-medium">{getText(selectedProduct.seo_title) || getText(selectedProduct.name)}</p>
                           <div className="flex flex-wrap gap-2 mt-2">
                             {getText(selectedProduct.tags) ? getText(selectedProduct.tags).split(',').map(tag => (
-                              <span key={tag} className="text-[10px] bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded border border-blue-500/20 font-bold uppercase">{tag.trim()}</span>
+                              <span key={tag} className="text-[10px] btn-primary/10 text-indigo-400 px-2 py-0.5 rounded border border-indigo-500/20 font-bold uppercase">{tag.trim()}</span>
                             )) : <span className="text-xs text-slate-600 italic">Sem tags</span>}
                           </div>
                         </div>
 
-                        <div className="p-4 rounded-xl bg-slate-900/50 border border-slate-800">
-                          <p className="text-xs text-slate-500 uppercase font-bold mb-1 flex items-center gap-2">
+                        <div className="p-4 rounded-xl bg-white/5/50 border border-white/10">
+                          <p className="text-xs text-[#8A8F98] uppercase font-bold mb-1 flex items-center gap-2">
                             <Info className="w-3 h-3 text-primary" /> Descrição Estruturada
                           </p>
-                          <p className="text-slate-400 text-xs leading-relaxed">
+                          <p className="text-[#8A8F98] text-xs leading-relaxed">
                             {getText(selectedProduct.description) ? getText(selectedProduct.description).replace(/<[^>]*>?/gm, '') : 'Sem descrição disponível.'}
                           </p>
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
-                          <div className="p-3 rounded-xl bg-slate-900/50 border border-slate-800">
-                            <p className="text-[10px] text-slate-500 uppercase font-bold mb-1 flex items-center gap-2">
+                          <div className="p-3 rounded-xl bg-white/5/50 border border-white/10">
+                            <p className="text-[10px] text-[#8A8F98] uppercase font-bold mb-1 flex items-center gap-2">
                               <BarChart3 className="w-3 h-3" /> SKU
                             </p>
-                            <p className="text-white text-sm font-mono tracking-tighter truncate">{selectedProduct.variants?.[0]?.sku || 'AIOX-GEN'}</p>
+                            <p className="text-[#EDEDEF] text-sm font-mono tracking-tighter truncate">{selectedProduct.variants?.[0]?.sku || 'AIOX-GEN'}</p>
                           </div>
-                          <div className="p-3 rounded-xl bg-slate-900/50 border border-slate-800">
-                            <p className="text-[10px] text-slate-500 uppercase font-bold mb-1 flex items-center gap-2">
+                          <div className="p-3 rounded-xl bg-white/5/50 border border-white/10">
+                            <p className="text-[10px] text-[#8A8F98] uppercase font-bold mb-1 flex items-center gap-2">
                               <Layers className="w-3 h-3" /> Peso
                             </p>
-                            <p className="text-white text-sm font-bold">{selectedProduct.variants?.[0]?.weight || '0'} kg</p>
+                            <p className="text-[#EDEDEF] text-sm font-bold">{selectedProduct.variants?.[0]?.weight || '0'} kg</p>
                           </div>
                         </div>
                       </div>
@@ -313,7 +313,7 @@ const Inventory = ({ products = [], total = 0, page = 1, loading, onDelete, onRe
                         {/* Botão Instagram */}
                         <button 
                           onClick={() => openIgModal(selectedProduct)}
-                          className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-pink-500/20 group"
+                          className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-[#EDEDEF] font-bold rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-pink-500/20 group"
                         >
                           <IgIcon className="w-5 h-5 group-hover:scale-110 transition-transform" />
                           PUBLICAR NO INSTAGRAM
@@ -324,14 +324,14 @@ const Inventory = ({ products = [], total = 0, page = 1, loading, onDelete, onRe
                             href={getText(selectedProduct.canonical_url)} 
                             target="_blank" 
                             rel="noreferrer"
-                            className="flex-1 py-3 bg-slate-800 text-white font-bold rounded-xl hover:bg-slate-700 transition-all flex items-center justify-center gap-2 border border-slate-700"
+                            className="flex-1 py-3 bg-white/5 text-[#EDEDEF] font-bold rounded-xl hover:bg-slate-700 transition-all flex items-center justify-center gap-2 border border-white/10"
                           >
                             <ExternalLink className="w-4 h-4" /> VER NA LOJA
                           </a>
                           
                           <button 
                             onClick={handleDuplicate}
-                            className="flex-[1.5] py-3 bg-primary/10 text-primary font-bold rounded-xl hover:bg-primary hover:text-white transition-all flex items-center justify-center gap-2 border border-primary/30"
+                            className="flex-[1.5] py-3 bg-primary/10 text-primary font-bold rounded-xl hover:bg-primary hover:text-[#EDEDEF] transition-all flex items-center justify-center gap-2 border border-primary/30"
                           >
                             <PlusCircle className="w-5 h-5" /> REPLICAR PARA LOTE
                           </button>
@@ -339,7 +339,7 @@ const Inventory = ({ products = [], total = 0, page = 1, loading, onDelete, onRe
 
                         <button 
                           onClick={() => onDelete(selectedProduct.id)}
-                          className="w-full py-3 bg-rose-500/10 text-rose-500 font-bold rounded-xl hover:bg-rose-500 hover:text-white transition-all flex items-center justify-center gap-2 border border-rose-500/20"
+                          className="w-full py-3 bg-rose-500/10 text-rose-500 font-bold rounded-xl hover:bg-rose-500 hover:text-[#EDEDEF] transition-all flex items-center justify-center gap-2 border border-rose-500/20"
                         >
                           <Trash2 className="w-5 h-5" /> EXCLUIR PRODUTO
                         </button>
@@ -347,9 +347,9 @@ const Inventory = ({ products = [], total = 0, page = 1, loading, onDelete, onRe
                     </div>
                   </div>
                 ) : (
-                  <div className="glass p-12 rounded-2xl flex flex-col items-center justify-center text-center opacity-40 h-[400px] border-dashed border-2 border-slate-700">
+                  <div className="glass p-12 rounded-2xl flex flex-col items-center justify-center text-center opacity-40 h-[400px] border-dashed border-2 border-white/10">
                     <Package className="w-16 h-16 mb-4 text-slate-700" />
-                    <p className="text-slate-500 font-medium">Selecione um produto para visualizar os detalhes técnicos e SEO.</p>
+                    <p className="text-[#8A8F98] font-medium">Selecione um produto para visualizar os detalhes técnicos e SEO.</p>
                   </div>
                 )}
               </div>
@@ -361,21 +361,21 @@ const Inventory = ({ products = [], total = 0, page = 1, loading, onDelete, onRe
       {/* ─── Modal Publicar no Instagram ─────────────────────────────── */}
       {igModal && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-slate-900 border border-slate-700 rounded-[28px] p-8 w-full max-w-lg shadow-2xl animate-in slide-in-from-bottom-8 duration-300">
+          <div className="bg-white/5 border border-white/10 rounded-[28px] p-8 w-full max-w-lg shadow-2xl animate-in slide-in-from-bottom-8 duration-300">
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-pink-600 rounded-xl flex items-center justify-center">
-                  <IgIcon className="w-5 h-5 text-white" />
+                  <IgIcon className="w-5 h-5 text-[#EDEDEF]" />
                 </div>
                 <div>
-                  <h3 className="text-white font-bold text-lg leading-tight">Publicar no Instagram</h3>
-                  <p className="text-slate-500 text-xs">{getText(selectedProduct?.name)}</p>
+                  <h3 className="text-[#EDEDEF] font-bold text-lg leading-tight">Publicar no Instagram</h3>
+                  <p className="text-[#8A8F98] text-xs">{getText(selectedProduct?.name)}</p>
                 </div>
               </div>
               <button 
                 onClick={() => setIgModal(false)} 
-                className="p-2 hover:bg-slate-800 rounded-xl text-slate-500 transition-colors"
+                className="p-2 hover:bg-white/5 rounded-xl text-[#8A8F98] transition-all"
               >
                 <X size={20} />
               </button>
@@ -383,22 +383,22 @@ const Inventory = ({ products = [], total = 0, page = 1, loading, onDelete, onRe
 
             {/* Legenda do Feed */}
             <div className="space-y-3 mb-6">
-              <label className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+              <label className="text-xs font-bold text-[#8A8F98] uppercase tracking-widest flex items-center gap-2">
                 <Send size={12} /> Legenda do Feed
               </label>
               <textarea
                 value={igCaption}
                 onChange={(e) => setIgCaption(e.target.value)}
                 rows={7}
-                className="w-full bg-slate-950 border border-slate-800 focus:border-pink-500/50 focus:ring-4 focus:ring-pink-500/10 rounded-2xl py-3 px-4 text-white text-sm font-mono leading-relaxed resize-none outline-none transition-all"
+                className="w-full bg-slate-950 border border-white/10 focus:border-pink-500/50 focus:ring-4 focus:ring-pink-500/10 rounded-2xl py-3 px-4 text-[#EDEDEF] text-sm font-mono leading-relaxed resize-none outline-none transition-all"
                 placeholder="Digite a legenda aqui..."
               />
-              <p className="text-[11px] text-slate-600 italic">Esta legenda é usada no <b className="text-slate-500">Feed</b>. O Story usa apenas o link do produto.</p>
+              <p className="text-[11px] text-slate-600 italic">Esta legenda é usada no <b className="text-[#8A8F98]">Feed</b>. O Story usa apenas o link do produto.</p>
             </div>
 
             {/* Checkboxes */}
             <div className="flex gap-4 mb-6">
-              <label className={`flex items-center gap-3 p-3 flex-1 rounded-xl border cursor-pointer transition-all ${igPostFeed ? 'border-pink-500/40 bg-pink-500/10 text-pink-300' : 'border-slate-800 text-slate-500'}`}>
+              <label className={`flex items-center gap-3 p-3 flex-1 rounded-xl border cursor-pointer transition-all ${igPostFeed ? 'border-pink-500/40 bg-pink-500/10 text-pink-300' : 'border-white/10 text-[#8A8F98]'}`}>
                 <input 
                   type="checkbox" 
                   checked={igPostFeed} 
@@ -410,7 +410,7 @@ const Inventory = ({ products = [], total = 0, page = 1, loading, onDelete, onRe
                   <p className="text-[10px] opacity-70">Foto + legenda</p>
                 </div>
               </label>
-              <label className={`flex items-center gap-3 p-3 flex-1 rounded-xl border cursor-pointer transition-all ${igPostStory ? 'border-purple-500/40 bg-purple-500/10 text-purple-300' : 'border-slate-800 text-slate-500'}`}>
+              <label className={`flex items-center gap-3 p-3 flex-1 rounded-xl border cursor-pointer transition-all ${igPostStory ? 'border-purple-500/40 bg-purple-500/10 text-purple-300' : 'border-white/10 text-[#8A8F98]'}`}>
                 <input 
                   type="checkbox" 
                   checked={igPostStory} 
@@ -428,14 +428,14 @@ const Inventory = ({ products = [], total = 0, page = 1, loading, onDelete, onRe
             <div className="flex gap-3">
               <button 
                 onClick={() => setIgModal(false)}
-                className="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl transition-colors"
+                className="flex-1 py-3 bg-white/5 hover:bg-slate-700 text-[#EDEDEF] font-bold rounded-xl transition-all"
               >
                 Cancelar
               </button>
               <button 
                 onClick={publishToInstagram}
                 disabled={igLoading}
-                className="flex-[2] py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 disabled:opacity-50 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg"
+                className="flex-[2] py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 disabled:opacity-50 text-[#EDEDEF] font-bold rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg"
               >
                 {igLoading ? (
                   <>

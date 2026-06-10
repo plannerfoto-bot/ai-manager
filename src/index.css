@@ -1,18 +1,54 @@
 @import "tailwindcss";
 
+@theme {
+  --color-cinematic-deep: #020203;
+  --color-cinematic-base: #050506;
+  --color-cinematic-elevated: #0a0a0c;
+  --color-cinematic-surface: rgba(255, 255, 255, 0.05);
+  --color-cinematic-accent: #5E6AD2;
+  --color-cinematic-fg: #EDEDEF;
+  --color-cinematic-muted: #8A8F98;
+  --color-cinematic-border: rgba(255, 255, 255, 0.08);
+}
+
 :root {
   color-scheme: dark;
+  --accent-glow: rgba(94, 106, 210, 0.2);
+  --easing-smooth: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 body {
-  @apply bg-slate-950 text-slate-200 antialiased;
+  background: linear-gradient(to bottom, #0a0a0f, #020203);
+  color: #EDEDEF;
+  min-height: 100vh;
   margin: 0;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Custom Glassmorphism Utilities */
+/* UI/UX Pro Max - Cinematic Glass */
 .glass {
-  @apply bg-slate-900/50 backdrop-blur-xl border border-slate-800 shadow-2xl;
+  background-color: var(--color-cinematic-surface);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--color-cinematic-border);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.btn-primary {
+  background-color: var(--color-cinematic-accent);
+  color: #FFFFFF;
+  border-radius: 16px;
+  font-weight: 600;
+  transition: transform 0.2s var(--easing-smooth), box-shadow 0.2s var(--easing-smooth);
+}
+
+.btn-primary:active {
+  transform: scale(0.97);
+}
+
+.btn-primary:hover {
+  box-shadow: 0 0 20px var(--accent-glow);
 }
 
 /* Animations */
@@ -22,5 +58,5 @@ body {
 }
 
 .animate-in {
-  animation: fadeIn 0.5s ease-out forwards;
+  animation: fadeIn 0.5s var(--easing-smooth) forwards;
 }

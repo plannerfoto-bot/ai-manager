@@ -802,7 +802,7 @@ export default function AbandonedCart({ storeId }) {
                     >
                       <td style={{ padding: '12px 16px', color: '#f1f5f9', fontSize: 13 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <User className="w-3 h-3 text-slate-500" />
+                          <User className="w-3 h-3 text-[#8A8F98]" />
                           {c.customer_name || 'Sem nome'}
                         </div>
                         {willFire && <span style={{ marginLeft: 6, fontSize: 10, background: '#f59e0b22', color: '#f59e0b', padding: '2px 6px', borderRadius: 6 }}>Pronto p/ envio</span>}

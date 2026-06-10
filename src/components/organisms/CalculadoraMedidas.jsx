@@ -78,14 +78,14 @@ const CalculadoraMedidas = ({ product, storeUrl }) => {
     val?.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) ?? '';
 
   return (
-    <div className="mt-4 p-4 rounded-2xl bg-gradient-to-br from-blue-950/60 to-slate-900/80 border border-blue-500/20 shadow-lg shadow-blue-500/5">
+    <div className="mt-4 p-4 rounded-2xl bg-gradient-to-br from-blue-950/60 to-slate-900/80 border border-indigo-500/20 shadow-lg shadow-blue-500/5">
       {/* Cabeçalho */}
       <div className="flex items-center gap-2 mb-4">
-        <div className="p-2 bg-blue-500/15 rounded-xl">
-          <Calculator className="w-4 h-4 text-blue-400" />
+        <div className="p-2 btn-primary/15 rounded-xl">
+          <Calculator className="w-4 h-4 text-indigo-400" />
         </div>
         <div>
-          <h3 className="text-white font-bold text-sm">Calculadora de Medidas</h3>
+          <h3 className="text-[#EDEDEF] font-bold text-sm">Calculadora de Medidas</h3>
           <p className="text-blue-300/70 text-[10px]">Gramatura 120g · Sob encomenda</p>
         </div>
       </div>
@@ -93,7 +93,7 @@ const CalculadoraMedidas = ({ product, storeUrl }) => {
       {/* Inputs */}
       <div className="grid grid-cols-2 gap-3 mb-3">
         <div>
-          <label className="text-[10px] text-slate-400 uppercase font-bold flex items-center gap-1 mb-1">
+          <label className="text-[10px] text-[#8A8F98] uppercase font-bold flex items-center gap-1 mb-1">
             <Ruler className="w-3 h-3" /> Altura (m)
           </label>
           <input
@@ -102,11 +102,11 @@ const CalculadoraMedidas = ({ product, storeUrl }) => {
             placeholder="ex: 1,70"
             value={altura}
             onChange={(e) => { setAltura(e.target.value); setResultado(null); }}
-            className="w-full bg-slate-800/70 border border-slate-700/60 rounded-xl px-3 py-2 text-white text-sm placeholder-slate-600 focus:border-blue-500/60 outline-none transition-all focus:bg-slate-800"
+            className="w-full bg-white/5/70 border border-white/10/60 rounded-xl px-3 py-2 text-[#EDEDEF] text-sm placeholder-slate-600 focus:border-indigo-500/60 outline-none transition-all focus:bg-white/5"
           />
         </div>
         <div>
-          <label className="text-[10px] text-slate-400 uppercase font-bold flex items-center gap-1 mb-1">
+          <label className="text-[10px] text-[#8A8F98] uppercase font-bold flex items-center gap-1 mb-1">
             <Ruler className="w-3 h-3 rotate-90" /> Largura (m)
           </label>
           <input
@@ -115,7 +115,7 @@ const CalculadoraMedidas = ({ product, storeUrl }) => {
             placeholder="ex: 2,50"
             value={largura}
             onChange={(e) => { setLargura(e.target.value); setResultado(null); }}
-            className="w-full bg-slate-800/70 border border-slate-700/60 rounded-xl px-3 py-2 text-white text-sm placeholder-slate-600 focus:border-blue-500/60 outline-none transition-all focus:bg-slate-800"
+            className="w-full bg-white/5/70 border border-white/10/60 rounded-xl px-3 py-2 text-[#EDEDEF] text-sm placeholder-slate-600 focus:border-indigo-500/60 outline-none transition-all focus:bg-white/5"
           />
         </div>
       </div>
@@ -123,7 +123,7 @@ const CalculadoraMedidas = ({ product, storeUrl }) => {
       {/* Botão calcular */}
       <button
         onClick={handleCalcular}
-        className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-bold rounded-xl text-sm transition-all flex items-center justify-center gap-2 shadow-md shadow-blue-900/40"
+        className="w-full py-2.5 btn-primary hover:btn-primary active:scale-95 text-[#EDEDEF] font-bold rounded-xl text-sm transition-all flex items-center justify-center gap-2 shadow-md shadow-blue-900/40"
       >
         <Calculator className="w-4 h-4" /> CALCULAR PREÇO
       </button>
@@ -145,7 +145,7 @@ const CalculadoraMedidas = ({ product, storeUrl }) => {
                 </div>
 
                 {/* Medidas */}
-                <div className="flex items-center gap-2 text-slate-400 text-xs">
+                <div className="flex items-center gap-2 text-[#8A8F98] text-xs">
                   <Ruler className="w-3 h-3" />
                   <span>
                     {String(resultado.alt.toFixed(2)).replace('.', ',')}m × {String(resultado.larg.toFixed(2)).replace('.', ',')}m · 120g
@@ -153,12 +153,12 @@ const CalculadoraMedidas = ({ product, storeUrl }) => {
                 </div>
 
                 {/* Valor */}
-                <p className="text-3xl font-black text-white tracking-tight">
+                <p className="text-3xl font-black text-[#EDEDEF] tracking-tight">
                   {formatBRL(resultado.preco)}
                 </p>
 
                 {/* Regra aplicada */}
-                <div className="flex items-center gap-1.5 text-[10px] text-slate-500">
+                <div className="flex items-center gap-1.5 text-[10px] text-[#8A8F98]">
                   <Info className="w-3 h-3" />
                   {resultado.regra === 'A'
                     ? 'Regra A: dimensão menor que 1,56m'
@@ -169,7 +169,7 @@ const CalculadoraMedidas = ({ product, storeUrl }) => {
               {/* Botão checkout */}
               <button
                 onClick={handleCheckout}
-                className="mt-3 w-full py-3 bg-gradient-to-r from-green-600 to-emerald-500 hover:from-green-500 hover:to-emerald-400 active:scale-95 text-white font-black rounded-xl text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-green-900/30"
+                className="mt-3 w-full py-3 bg-gradient-to-r from-green-600 to-emerald-500 hover:from-green-500 hover:to-emerald-400 active:scale-95 text-[#EDEDEF] font-black rounded-xl text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-green-900/30"
               >
                 <ShoppingCart className="w-4 h-4" /> IR PARA PRODUTO NA LOJA
               </button>
