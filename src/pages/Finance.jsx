@@ -325,11 +325,17 @@ const Finance = () => {
     
     let historicalMatchCount = 0;
     let historicalCardMatchCount = 0;
+    let historicalMatchedRevenue = 0;
     if (profitData && profitData.historicalOrders) {
       const matches = profitData.historicalOrders.filter(o => o.total >= sim2CartValue);
       historicalMatchCount = matches.length;
       historicalCardMatchCount = matches.filter(o => o.paymentMethod === 'credit_card').length;
+      historicalMatchedRevenue = matches.reduce((sum, o) => sum + o.total, 0);
     }
+    
+    const historicalMatchedProfit = historicalMatchedRevenue * historyMargin;
+    const profitDifference = profitScenarioB - historicalMatchedProfit;
+    const projectedTotalProfit = (profitData?.totalProfit || 0) + profitDifference;
 
     return {
       projGross,
@@ -337,7 +343,9 @@ const Finance = () => {
       extraFeeCost,
       profitScenarioB,
       historicalMatchCount,
-      historicalCardMatchCount
+      historicalCardMatchCount,
+      projectedTotalProfit,
+      profitDifference
     };
   };
 
@@ -834,6 +842,30 @@ const Finance = () => {
                     </div>
                   </div>
 
+                </div>
+
+                {/* Impacto / Diferença vs Realidade */}
+                <div className="mt-8 pt-6 border-t border-[var(--border-soft)]">
+                  <h4 className="text-sm font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <TrendingUp size={16} /> Impacto Projetado vs Realidade do Mês
+                  </h4>
+                  <div className="bg-[var(--surface-input)] p-5 rounded-xl border border-[var(--border-soft)]">
+                    <p className="text-[14px] text-[var(--text-muted)] mb-4">
+                      Se você vender esses <strong className="text-[var(--text-primary)]">{sim2CartCount}</strong> carrinhos no {sim2Installments}x sem juros em vez dos <strong className="text-[var(--text-primary)]">{sim2Results?.historicalMatchCount || 0}</strong> carrinhos reais:
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-xs text-[var(--text-muted)] uppercase">Novo Lucro Líquido (Mês Inteiro)</p>
+                        <p className="text-2xl font-black text-[var(--text-primary)]">{fmtBRL(sim2Results?.projectedTotalProfit || 0)}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-[var(--text-muted)] uppercase">Lucro Adicional</p>
+                        <p className={`text-2xl font-black ${(sim2Results?.profitDifference || 0) >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                          {(sim2Results?.profitDifference || 0) >= 0 ? '+' : ''}{fmtBRL(sim2Results?.profitDifference || 0)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
