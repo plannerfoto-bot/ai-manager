@@ -328,41 +328,48 @@ app.get('/api/scripts/force-install', async (req, res) => {
 });
 
 // Funçao central de cálculo de preço - usada por simulate-price e create-variant
-function calcMeasure(w, h) {
-  const max = Math.max(w, h);
-  const min = Math.min(w, h);
-  
-  // Regra Especial: UMA das dimensões entre 1,56m e 1,74m (exclusive)
+function calcMeasure(w, h, hasAlineTag = false) {
+  // Regra Especial: UMA das dimensões entre 1,60m e 1,75m E a outra maior que 1,55m
   // Resultado = Altura x Largura x R$24,90 + R$65,00, apenas tecido 120g (sem emenda)
-  const inSpecialRange = (d) => d > 1.56 && d < 1.74;
-  const isSpecial = (inSpecialRange(w) || inSpecialRange(h)) && !(w > 1.56 && h > 1.56 && w < 1.74 && h < 1.74 && false);
+  const inSpecialRange = (d) => d >= 1.60 && d <= 1.75;
+  const isSpecial = (inSpecialRange(w) && h > 1.55) || (inSpecialRange(h) && w > 1.55);
   
   if (isSpecial) {
-    const price = (w * h * 24.90) + 65.00;
+    let price = (w * h * 24.90) + 65.00;
+    if (hasAlineTag) price += 50.00;
     return { price120: price, price160: null, measureType: 'special_seamless', isSpecial: true };
   }
 
-  // Regra A: menor dimensão <= 1,56m
-  if (min <= 1.56) {
+  const min = Math.min(w, h);
+  const max = Math.max(w, h);
+
+  // Regra A: menor dimensão <= 1,55m
+  if (min <= 1.55) {
+    let p120 = (max * 22.50) + 3.00 + 45.00;
+    let p160 = (max * 26.00) + 3.00 + 45.00;
+    if (hasAlineTag) { p120 += 50.00; p160 += 50.00; }
     return {
-      price120: (max * 22.50) + 3.00 + 45.00,
-      price160: (max * 26.00) + 3.00 + 45.00,
+      price120: p120,
+      price160: p160,
       measureType: 'standard', isSpecial: false
     };
   }
   
   // Regra B: ambas as dimensões > 1,56m (e não na faixa especial)
+  let p120b = (((max * 2) * 22.50) + 15.00) * 1.80;
+  let p160b = (((max * 2) * 26.00) + 15.00) * 1.80;
+  if (hasAlineTag) { p120b += 50.00; p160b += 50.00; }
   return {
-    price120: (((max * 2) * 22.50) + 15.00) * 1.80,
-    price160: (((max * 2) * 26.00) + 15.00) * 1.80,
+    price120: p120b,
+    price160: p160b,
     measureType: 'double_layer', isSpecial: false
   };
 }
 
 // --- SIMULAR PREÇO (Frontend Instantâneo) ---
-app.post('/api/simulate-price', (req, res) => {
+app.post('/api/simulate-price', async (req, res) => {
   try {
-    const { width, height } = req.body;
+    const { width, height, productId } = req.body;
     const w = parseFloat(String(width).replace(',', '.'));
     const h = parseFloat(String(height).replace(',', '.'));
     if (!w || !h || w <= 0 || h <= 0) return res.status(400).json({ error: 'Medidas inválidas. Recebido: ' + width + 'x' + height });
@@ -370,7 +377,20 @@ app.post('/api/simulate-price', (req, res) => {
     const min = Math.min(w, h);
     if (min > 3) return res.status(400).json({ error: 'Menor dimensão não pode ultrapassar 3,00m' });
     
-    const result = calcMeasure(w, h);
+    let hasAlineTag = false;
+    if (productId) {
+      try {
+        const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
+        const client = await getApiClient(storeId);
+        const prodRes = await client.get(`/products/${productId}`);
+        const tags = prodRes.data.tags || '';
+        if (tags.toLowerCase().includes('aline-martins')) hasAlineTag = true;
+      } catch (err) {
+        console.warn('[Simulate] Erro ao buscar tags do produto:', err.message);
+      }
+    }
+    
+    const result = calcMeasure(w, h, hasAlineTag);
     res.json({
       price120: result.price120 ? result.price120.toFixed(2) : null,
       price160: result.price160 ? result.price160.toFixed(2) : null,
@@ -399,8 +419,14 @@ app.post('/api/create-variant', async (req, res) => {
     const min = Math.min(w, h);
     if (min > 3) return res.status(400).json({ error: 'Menor dimensao nao pode ultrapassar 3,00m' });
     
+    // Busca o produto ANTES do calculo para ler as tags
+    const prodRes = await client.get(`/products/${productId}`);
+    const product = prodRes.data;
+    const tags = product.tags || '';
+    const hasAlineTag = tags.toLowerCase().includes('aline-martins');
+
     // Usa a funcao central de calculo
-    const calcResult = calcMeasure(w, h);
+    const calcResult = calcMeasure(w, h, hasAlineTag);
     const { measureType } = calcResult;
     const price120 = calcResult.price120;
     const price160 = calcResult.price160; // null quando medicao especial sem emenda
@@ -416,10 +442,6 @@ app.post('/api/create-variant', async (req, res) => {
     // Timestamp atual para identificar variantes criadas pelo sistema (para limpeza 24h)
     const nowTs = Date.now();
     const createdMark = 'calc:' + nowTs; // fica no campo SKU da variante
-    
-    // Busca o produto
-    const prodRes = await client.get(`/products/${productId}`);
-    const product = prodRes.data;
     
     // Detecta o sufixo real de gramatura usado na loja
     let gramSuffix = 'g';

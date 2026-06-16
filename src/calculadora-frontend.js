@@ -331,6 +331,8 @@
       b.innerHTML = '<span style="opacity: 0.8;">Simulando...</span>';
 
       var storeId = (window.LS && LS.store && LS.store.id) ? LS.store.id : '';
+      var productId = (window.LS && LS.product && LS.product.id) ? LS.product.id : '';
+      if (!productId) { var meta = document.querySelector('meta[property="product:id"]'); if(meta) productId = meta.content; }
 
       fetch(API_BASE_URL + '/api/simulate-price', {
         method: 'POST',
@@ -340,7 +342,8 @@
         },
         body: JSON.stringify({
           width: l,
-          height: a
+          height: a,
+          productId: productId
         })
       })
       .then(res => res.json())
