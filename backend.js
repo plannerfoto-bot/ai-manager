@@ -327,7 +327,7 @@ app.get('/api/scripts/force-install', async (req, res) => {
   }
 });
 
-// Funçao central de cálculo de preço - usada por simulate-price e create-variant
+// Funçao central de cálculo de preço
 function calcMeasure(w, h, hasAlineTag = false) {
   // Regra Especial: UMA das dimensões entre 1,60m e 1,75m E a outra maior que 1,55m
   // Resultado = Altura x Largura x R$24,90 + R$65,00, apenas tecido 120g (sem emenda)
@@ -337,7 +337,7 @@ function calcMeasure(w, h, hasAlineTag = false) {
   if (isSpecial) {
     let price = (w * h * 24.90) + 65.00;
     if (hasAlineTag) price += 50.00;
-    return { price120: price, price160: null, measureType: 'special_seamless', isSpecial: true };
+    return { price120: hasAlineTag ? null : price, price160: null, measureType: 'special_seamless', isSpecial: true };
   }
 
   const min = Math.min(w, h);
@@ -347,7 +347,7 @@ function calcMeasure(w, h, hasAlineTag = false) {
   if (min <= 1.55) {
     let p120 = (max * 22.50) + 3.00 + 45.00;
     let p160 = (max * 26.00) + 3.00 + 45.00;
-    if (hasAlineTag) { p120 += 50.00; p160 += 50.00; }
+    if (hasAlineTag) { p120 = null; p160 += 50.00; }
     return {
       price120: p120,
       price160: p160,
@@ -358,7 +358,7 @@ function calcMeasure(w, h, hasAlineTag = false) {
   // Regra B: ambas as dimensões > 1,56m (e não na faixa especial)
   let p120b = (((max * 2) * 22.50) + 15.00) * 1.80;
   let p160b = (((max * 2) * 26.00) + 15.00) * 1.80;
-  if (hasAlineTag) { p120b += 50.00; p160b += 50.00; }
+  if (hasAlineTag) { p120b = null; p160b += 50.00; }
   return {
     price120: p120b,
     price160: p160b,

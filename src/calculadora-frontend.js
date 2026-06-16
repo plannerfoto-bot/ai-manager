@@ -154,38 +154,46 @@
 
     // --- Bloco de escolha de tecido ---
     var isSpecial = measureType === 'special_seamless';
-    var tecidoHtml = '';
+    var tecidoHtml = '<div style="display:flex;gap:10px;margin-top:8px;">';
 
-    if (isSpecial) {
+    if (isSpecial && p120) {
       // Medida especial: apenas 120g, sem emenda
       tecidoHtml =
         '<div class="cc-badge-seamless">' +
           '<svg viewBox="0 0 24 24"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>' +
-          'Esta medida é SEM EMENDA — disponível apenas em TECIDO 120g' +
+          'Esta medida é SEM EMENDA – disponível apenas em TECIDO 120g' +
         '</div>' +
         '<div style="display:flex;gap:10px;margin-top:8px;">' +
           '<div style="flex:1;background:#0f172a;border:1.5px solid #0ea5e966;border-radius:10px;padding:12px;text-align:center;">' +
             '<div style="font-size:11px;color:#38bdf8;font-weight:700;margin-bottom:4px;">TECIDO 120g</div>' +
-            '<div style="font-size:9px;color:#64748b;margin-bottom:6px;">⭐ Sem Emenda</div>' +
+            '<div style="font-size:9px;color:#64748b;margin-bottom:6px;">✨ Sem Emenda</div>' +
             '<div style="font-size:20px;color:#fff;font-weight:900;margin-bottom:10px;letter-spacing:-0.5px;">' + brl(p120) + '</div>' +
             '<button class="cc-buy-btn" data-gram="120g" style="width:100%;padding:10px;background:linear-gradient(135deg,#0284c7,#0ea5e9);color:#fff;border:none;border-radius:8px;font-weight:800;font-size:12px;cursor:pointer;transition:0.2s;">GERAR OPÇÃO</button>' +
           '</div>' +
         '</div>';
     } else {
-      // Medida padrão: os dois tecidos
-      tecidoHtml =
-        '<div style="display:flex;gap:10px;margin-top:8px;">' +
+      // Medida padrão ou quando p120 está indisponível
+      if (p120) {
+        tecidoHtml += 
           '<div style="flex:1;background:#0f172a;border:1px solid #334155;border-radius:10px;padding:12px;text-align:center;">' +
             '<div style="font-size:11px;color:#94a3b8;font-weight:700;margin-bottom:4px;">TECIDO 120g</div>' +
             '<div style="font-size:20px;color:#fff;font-weight:900;margin-bottom:10px;letter-spacing:-0.5px;">' + brl(p120) + '</div>' +
             '<button class="cc-buy-btn" data-gram="120g" style="width:100%;padding:10px;background:#2563eb;color:#fff;border:none;border-radius:8px;font-weight:800;font-size:12px;cursor:pointer;transition:0.2s;">GERAR OPÇÃO</button>' +
-          '</div>' +
+          '</div>';
+      }
+      if (p160) {
+        tecidoHtml += 
           '<div style="flex:1;background:#0f172a;border:1px solid #334155;border-radius:10px;padding:12px;text-align:center;">' +
             '<div style="font-size:11px;color:#94a3b8;font-weight:700;margin-bottom:4px;">TECIDO 160g</div>' +
             '<div style="font-size:20px;color:#fff;font-weight:900;margin-bottom:10px;letter-spacing:-0.5px;">' + brl(p160) + '</div>' +
             '<button class="cc-buy-btn" data-gram="160g" style="width:100%;padding:10px;background:#16a34a;color:#fff;border:none;border-radius:8px;font-weight:800;font-size:12px;cursor:pointer;transition:0.2s;">GERAR OPÇÃO</button>' +
-          '</div>' +
-        '</div>';
+          '</div>';
+      }
+      tecidoHtml += '</div>';
+
+      if (!p120 && !p160) {
+        tecidoHtml = '<div style="color:#ef4444;text-align:center;padding:10px;">Nenhuma opção de tecido disponível para esta medida.</div>';
+      }
     }
 
     var original = getOriginalOrientation();
