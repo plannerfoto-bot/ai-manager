@@ -50,6 +50,11 @@
   }
 
   function getOriginalOrientation() {
+    var mainImg = document.querySelector('.js-product-active-image, .js-product-main-image, #product_image, .js-main-image-src, .product-image img, [data-main-product-image], .js-product-slide-link img');
+    if (mainImg && mainImg.naturalWidth > 0 && mainImg.naturalHeight > 0) {
+      return mainImg.naturalWidth > mainImg.naturalHeight ? 'landscape' : 'portrait';
+    }
+
     var variants = document.querySelectorAll('.js-variant-option, .variant-option, label, .js-instock-variant');
     var foundLandscape = 0;
     var foundPortrait = 0;
