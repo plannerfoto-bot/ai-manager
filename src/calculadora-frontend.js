@@ -161,19 +161,21 @@
     var isSpecial = measureType === 'special_seamless';
     var tecidoHtml = '<div style="display:flex;gap:10px;margin-top:8px;">';
 
-    if (isSpecial && p120) {
-      // Medida especial: apenas 120g, sem emenda
+    if (isSpecial && (p120 || p160)) {
+      var specialPrice = p120 || p160;
+      var specialGram = p120 ? '120g' : '160g';
+      // Medida especial: sem emenda
       tecidoHtml =
         '<div class="cc-badge-seamless">' +
           '<svg viewBox="0 0 24 24"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>' +
-          'Esta medida é SEM EMENDA – disponível apenas em TECIDO 120g' +
+          'Esta medida é SEM EMENDA – disponível apenas em TECIDO ' + specialGram +
         '</div>' +
         '<div style="display:flex;gap:10px;margin-top:8px;">' +
           '<div style="flex:1;background:#0f172a;border:1.5px solid #0ea5e966;border-radius:10px;padding:12px;text-align:center;">' +
-            '<div style="font-size:11px;color:#38bdf8;font-weight:700;margin-bottom:4px;">TECIDO 120g</div>' +
+            '<div style="font-size:11px;color:#38bdf8;font-weight:700;margin-bottom:4px;">TECIDO ' + specialGram + '</div>' +
             '<div style="font-size:9px;color:#64748b;margin-bottom:6px;">✨ Sem Emenda</div>' +
-            '<div style="font-size:20px;color:#fff;font-weight:900;margin-bottom:10px;letter-spacing:-0.5px;">' + brl(p120) + '</div>' +
-            '<button class="cc-buy-btn" data-gram="120g" style="width:100%;padding:10px;background:linear-gradient(135deg,#0284c7,#0ea5e9);color:#fff;border:none;border-radius:8px;font-weight:800;font-size:12px;cursor:pointer;transition:0.2s;">GERAR OPÇÃO</button>' +
+            '<div style="font-size:20px;color:#fff;font-weight:900;margin-bottom:10px;letter-spacing:-0.5px;">' + brl(specialPrice) + '</div>' +
+            '<button class="cc-buy-btn" data-gram="' + specialGram + '" style="width:100%;padding:10px;background:linear-gradient(135deg,#0284c7,#0ea5e9);color:#fff;border:none;border-radius:8px;font-weight:800;font-size:12px;cursor:pointer;transition:0.2s;">GERAR OPÇÃO</button>' +
           '</div>' +
         '</div>';
     } else {

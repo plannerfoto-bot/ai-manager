@@ -335,9 +335,11 @@ function calcMeasure(w, h, hasAlineTag = false) {
   const isSpecial = (inSpecialRange(w) && h > 1.55) || (inSpecialRange(h) && w > 1.55);
   
   if (isSpecial) {
+    if (hasAlineTag) {
+      return { error: 'Não é possível fazer nesta medida porque a Cloth Sublimação só tem disponível para essa medida o tecido de 120g, o que não é permitida venda na coleção da Aline Martins.' };
+    }
     let price = (w * h * 24.90) + 65.00;
-    if (hasAlineTag) price += 50.00;
-    return { price120: hasAlineTag ? null : price, price160: null, measureType: 'special_seamless', isSpecial: true };
+    return { price120: price, price160: null, measureType: 'special_seamless', isSpecial: true };
   }
 
   const min = Math.min(w, h);
@@ -391,6 +393,9 @@ app.post('/api/simulate-price', async (req, res) => {
     }
     
     const result = calcMeasure(w, h, hasAlineTag);
+    if (result.error) {
+      return res.status(400).json({ error: result.error });
+    }
     res.json({
       price120: result.price120 ? result.price120.toFixed(2) : null,
       price160: result.price160 ? result.price160.toFixed(2) : null,
@@ -427,6 +432,9 @@ app.post('/api/create-variant', async (req, res) => {
 
     // Usa a funcao central de calculo
     const calcResult = calcMeasure(w, h, hasAlineTag);
+    if (calcResult.error) {
+      return res.status(400).json({ error: calcResult.error });
+    }
     const { measureType } = calcResult;
     const price120 = calcResult.price120;
     const price160 = calcResult.price160; // null quando medicao especial sem emenda
