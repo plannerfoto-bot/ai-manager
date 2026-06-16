@@ -323,10 +323,14 @@
         return;
       }
 
-      var proceedWithSimulation = function() {
+      var proceedWithSimulation = function(simL, simA) {
         b.disabled = true;
         var originalText = b.innerHTML;
         b.innerHTML = '<span style="opacity: 0.8;">Simulando...</span>';
+
+        // Atualiza visualmente os inputs para mostrar que inverteu
+        document.getElementById('cloth-calc-larg').value = simL.toFixed(2).replace('.', ',');
+        document.getElementById('cloth-calc-alt').value = simA.toFixed(2).replace('.', ',');
 
         var storeId = (window.LS && LS.store && LS.store.id) ? LS.store.id : '';
         var productId = (window.LS && LS.product && LS.product.id) ? LS.product.id : '';
@@ -339,8 +343,8 @@
             'x-store-id': storeId
           },
           body: JSON.stringify({
-            width: l,
-            height: a,
+            width: simL,
+            height: simA,
             productId: productId
           })
         })
@@ -349,10 +353,9 @@
           b.disabled = false;
           b.innerHTML = originalText;
           if(data.error) throw new Error(data.error);
-          renderSuccess(data.price120, data.price160, a, l, data.measureType);
+          renderSuccess(data.price120, data.price160, simA, simL, data.measureType);
           
-          // NOVO: Atualiza a proporção da imagem imediatamente após o cálculo de sucesso
-          try { updateImageRatio(l, a); } catch(ev){}
+          try { updateImageRatio(simL, simA); } catch(ev){}
         })
         .catch(err => {
           b.disabled = false;
@@ -364,31 +367,30 @@
       var original = getOriginalOrientation();
       var current = l > a ? 'landscape' : 'portrait';
       
-      if (original !== 'unknown' && original !== current && !b.dataset.ratioAgreed) {
+      if (original !== 'unknown' && original !== current) {
         var el = document.getElementById('cloth-calc-result');
         var msg = original === 'landscape' ? 
-          'Atenção! A imagem deste produto é no <strong>formato horizontal</strong> (largura maior que a altura). Você inseriu uma medida vertical. Se prosseguir, a imagem será distorcida para caber na sua medida.' :
-          'Atenção! A imagem deste produto é no <strong>formato vertical</strong> (altura maior que a largura). Você inseriu uma medida horizontal. Se prosseguir, a imagem será distorcida para caber na sua medida.';
+          'Para manter a proporção original da imagem (Horizontal), as medidas precisam ser invertidas para <strong>' + a.toFixed(2).replace('.', ',') + 'm Largura x ' + l.toFixed(2).replace('.', ',') + 'm Altura</strong>.' :
+          'Para manter a proporção original da imagem (Vertical), as medidas precisam ser invertidas para <strong>' + a.toFixed(2).replace('.', ',') + 'm Largura x ' + l.toFixed(2).replace('.', ',') + 'm Altura</strong>.';
 
         el.innerHTML = '<div style="background:#1e293b;border:1px solid #f59e0b;border-radius:12px;padding:20px;text-align:center;animation:clothIn 0.3s ease;">' +
           '<svg viewBox="0 0 24 24" width="40" height="40" style="stroke:#f59e0b;fill:none;stroke-width:2;margin-bottom:12px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' +
           '<h3 style="color:#f59e0b;font-size:16px;margin:0 0 8px;">Aviso de Proporção</h3>' +
           '<p style="color:#cbd5e1;font-size:13px;line-height:1.5;margin-bottom:16px;">' + msg + '</p>' +
-          '<button id="btn-agree-ratio" style="background:#f59e0b;color:#1e293b;border:none;border-radius:8px;padding:12px 20px;font-weight:700;font-size:13px;cursor:pointer;width:100%;transition:opacity 0.2s;">Eu concordo, seguir com a simulação</button>' +
+          '<button type="button" id="btn-agree-ratio" style="background:#f59e0b;color:#1e293b;border:none;border-radius:8px;padding:12px 20px;font-weight:700;font-size:13px;cursor:pointer;width:100%;transition:opacity 0.2s;">Simular com medidas invertidas</button>' +
         '</div>';
         
         var agreeBtn = document.getElementById('btn-agree-ratio');
-        agreeBtn.addEventListener('click', function() {
-          b.dataset.ratioAgreed = 'true'; // Set flag to avoid asking again on next click
+        agreeBtn.addEventListener('click', function(ev) {
+          ev.preventDefault();
           agreeBtn.innerHTML = 'Simulando...';
           agreeBtn.style.opacity = '0.7';
-          proceedWithSimulation();
+          proceedWithSimulation(a, l); // inverte l e a
         });
         return;
       }
 
-      // If proportions match or user already agreed, proceed immediately
-      proceedWithSimulation();
+      proceedWithSimulation(l, a);
     });
 
     ['cloth-calc-alt', 'cloth-calc-larg'].forEach(function(id){
