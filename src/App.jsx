@@ -48,7 +48,13 @@ class ErrorBoundary extends React.Component {
   }
 }
 
-const App = () => {
+// Envolve o App principal com o AuthProvider
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import Login from './pages/Login';
+
+const MainApp = () => {
+  const { session, loading: authLoading } = useAuth();
+  
   // Captura o ID da Loja vindo da Nuvemshop (URL de Carregamento)
   const [storeId, setStoreId] = useState(() => {
     const params = new URLSearchParams(window.location.search);
@@ -69,18 +75,23 @@ const App = () => {
     ? 'http://localhost:3001' 
     : 'https://ai-manager-nuvemshop.onrender.com';
 
-  // Configuração Global de Axios para Multi-Loja
+  // Configuração Global de Axios para Multi-Loja e Autenticação
   useEffect(() => {
     if (storeId) {
       axios.defaults.headers.common['x-store-id'] = storeId;
       localStorage.setItem('last_store_id', storeId);
       console.log("[App] Configurado ID de Loja:", storeId);
     }
-  }, [storeId]);
+    if (session?.access_token) {
+      axios.defaults.headers.common['Authorization'] = `Bearer ${session.access_token}`;
+    } else {
+      delete axios.defaults.headers.common['Authorization'];
+    }
+  }, [storeId, session]);
 
   // Se não tiver storeId na URL nem no localStorage, busca do backend
   useEffect(() => {
-    if (!storeId) {
+    if (!storeId && session) {
       axios.get(`${API_BASE_URL}/api/me`)
         .then(res => {
           if (res.data?.storeId) {
@@ -90,9 +101,10 @@ const App = () => {
         })
         .catch(err => console.warn("[App] /api/me falhou:", err.message));
     }
-  }, []); // eslint-disable-line
+  }, [session]); // eslint-disable-line
 
   const fetchData = async (page = 1, searchQuery = '') => {
+    if (!session) return;
     setLoading(true);
     try {
       const statsReq = axios.get(`${API_BASE_URL}/api/stats`);
@@ -111,18 +123,21 @@ const App = () => {
   };
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (session) {
+      fetchData();
+    }
+  }, [session]);
 
   // Sincroniza configurações do script com o backend
   useEffect(() => {
+    if (!session) return;
     axios.get(`${API_BASE_URL}/api/store-script-settings`)
       .then(res => {
         setCalculatorEnabled(res.data.enabled);
         setWhatsapp(res.data.whatsapp);
       })
       .catch(err => console.warn("Erro ao buscar settings:", err));
-  }, []); // eslint-disable-line
+  }, [session]); // eslint-disable-line
 
   const toggleCalculator = async () => {
     const newState = !calculatorEnabled;
@@ -181,7 +196,6 @@ const App = () => {
   };
 
   const renderContent = () => {
-    console.log("[App] Trocando para:", activeTab);
     switch (activeTab) {
       case 'dashboard':
         return <Dashboard stats={stats} />;
@@ -222,8 +236,16 @@ const App = () => {
     }
   };
 
+  if (authLoading) {
+    return <div className="min-h-screen flex items-center justify-center text-slate-400 bg-[#020617]">Carregando sistema seguro...</div>;
+  }
+
+  if (!session) {
+    return <Login />;
+  }
+
   return (
-    <div className="min-h-screen text-[var(--text-primary)] relative">
+    <div className="min-h-screen text-[var(--text-primary)] relative bg-[#020617]">
       <BackgroundBlobs />
       <Toaster position="top-right" />
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
@@ -270,6 +292,14 @@ const App = () => {
         </div>
       </main>
     </div>
+  );
+};
+
+const App = () => {
+  return (
+    <AuthProvider>
+      <MainApp />
+    </AuthProvider>
   );
 };
 

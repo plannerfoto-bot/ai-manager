@@ -27,6 +27,22 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 
+// Middleware de autenticação JWT com Supabase
+const requireAuth = async (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Acesso negado. Token não fornecido.' });
+  }
+  const token = authHeader.split(' ')[1];
+  const { data: { user }, error } = await supabase.auth.getUser(token);
+  
+  if (error || !user) {
+    return res.status(401).json({ error: 'Acesso negado. Token inválido ou expirado.' });
+  }
+  req.user = user;
+  next();
+};
+
 // Servindo arquivos estáticos do frontend (pasta dist após npm run build)
 app.use(express.static(path.join(__dirname, 'dist')));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
@@ -60,11 +76,11 @@ function getSystemSettings() {
   }
 }
 
-app.get('/api/settings', (req, res) => {
+app.get('/api/settings', requireAuth, (req, res) => {
   res.json(getSystemSettings());
 });
 
-app.post('/api/settings', (req, res) => {
+app.post('/api/settings', requireAuth, (req, res) => {
   try {
     fs.writeFileSync(path.join(__dirname, 'system_settings.json'), JSON.stringify(req.body, null, 2));
     exec('git add system_settings.json && git commit -m "chore: update system settings" && git -c http.sslVerify=false push', (err) => {
@@ -128,8 +144,8 @@ const APP_SECRET = process.env.NUVEMSHOP_APP_SECRET;
 const PUBLIC_URL = process.env.PUBLIC_URL || 'https://ai-manager-nuvemshop.onrender.com';
 
 // --- PERSISTÊNCIA DE TOKENS (SUPABASE) ---
-const supabaseUrl = process.env.SUPABASE_URL || 'https://juvdgqfkpgelcetfjqhl.supabase.co';
-const supabaseKey = process.env.SUPABASE_ANON_KEY || 'sb_publishable_mixQaQt-Op1pd6-IWi9giw_j8ZpenBM';
+const supabaseUrl = process.env.SUPABASE_URL || 'https://jiifmxlnhxodvqgscjro.supabase.co';
+const supabaseKey = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImppaWZteGxuaHhvZHZxZ3NjanJvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MDE3MTc5OCwiZXhwIjoyMDk1NzQ3Nzk4fQ.VYXXKFr_r-jYtNor4oMKFqqtOULO37fOce08tGQrB5Y';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function getStores() {
@@ -595,7 +611,7 @@ console.log('[Limpeza 24h] Scheduler iniciado - rodara a cada 30 minutos.');
 /**
  * SALVAR CONFIGURAÇÕES DE MARKETING (META/INSTAGRAM)
  */
-app.post('/api/marketing/settings', async (req, res) => {
+app.post('/api/marketing/settings', requireAuth, async (req, res) => {
     const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
     // Aceita os dois formatos de nome para máxima compatibilidade
     const meta_token = req.body.meta_token || req.body.metaToken || null;
@@ -626,7 +642,7 @@ app.post('/api/marketing/settings', async (req, res) => {
 /**
  * BUSCAR CONFIGURAÇÕES DE MARKETING
  */
-app.get('/api/marketing/settings', async (req, res) => {
+app.get('/api/marketing/settings', requireAuth, async (req, res) => {
     const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
     
     try {
@@ -653,7 +669,7 @@ app.get('/api/marketing/settings', async (req, res) => {
  * DIAGNÓSTICO DAS CREDENCIAIS DO META/INSTAGRAM
  * Testa o token e page_id antes de tentar postar, retorna erros detalhados
  */
-app.get('/api/marketing/validate', async (req, res) => {
+app.get('/api/marketing/validate', requireAuth, async (req, res) => {
     const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
     console.log(`[Marketing Validate] Iniciando diagnóstico para loja ${storeId}`);
     try {
@@ -751,7 +767,7 @@ async function prepareStoryImage(imageUrl) {
  * POSTAGEM MANUAL NO INSTAGRAM
  * Recebe productId (ou imageUrl+caption diretamente) e posta no Feed e/ou Story
  */
-app.post('/api/instagram/publish', async (req, res) => {
+app.post('/api/instagram/publish', requireAuth, async (req, res) => {
     const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
     const { productId, customCaption, postFeed = true, postStory = true } = req.body;
 
@@ -1199,7 +1215,7 @@ app.get('/api/marketing/queue', async (req, res) => {
 });
 
 // Endpoint para frontend descobrir storeId padrão
-app.get('/api/me', (req, res) => {
+app.get('/api/me', requireAuth, (req, res) => {
   res.json({
     storeId: DEFAULT_STORE_ID,
     hasToken: !!DEFAULT_ACCESS_TOKEN
@@ -1217,7 +1233,7 @@ app.get('/api/debug-env', (req, res) => {
 });
 
 // Dashboard Stats
-app.get('/api/stats', async (req, res) => {
+app.get('/api/stats', requireAuth, async (req, res) => {
   const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
   const client = await getApiClient(storeId);
   try {
@@ -1518,7 +1534,7 @@ function analyzeLineItem(item, settings) {
  * Retorna:
  *   { totalProfit, sewingCost, ordersCount, period, startDate, endDate }
  */
-app.get('/api/profit-stats', async (req, res) => {
+app.get('/api/profit-stats', requireAuth, async (req, res) => {
   const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
   const client = await getApiClient(storeId);
 
@@ -1749,7 +1765,7 @@ app.get('/api/profit-stats', async (req, res) => {
 });
 
 // Vendas (Orders)
-app.get('/api/orders', async (req, res) => {
+app.get('/api/orders', requireAuth, async (req, res) => {
   const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
   const client = await getApiClient(storeId);
   try {
@@ -1760,7 +1776,7 @@ app.get('/api/orders', async (req, res) => {
   }
 });
 
-app.get('/api/orders/:id', async (req, res) => {
+app.get('/api/orders/:id', requireAuth, async (req, res) => {
   const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
   const client = await getApiClient(storeId);
   try {
@@ -1772,7 +1788,7 @@ app.get('/api/orders/:id', async (req, res) => {
 });
 
 // Produtos (Products) com Paginação e Busca
-app.get('/api/products', async (req, res) => {
+app.get('/api/products', requireAuth, async (req, res) => {
   const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
   const client = await getApiClient(storeId);
   try {
@@ -1794,7 +1810,7 @@ app.get('/api/products', async (req, res) => {
   }
 });
 
-app.get('/api/products/:id', async (req, res) => {
+app.get('/api/products/:id', requireAuth, async (req, res) => {
   const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
   const client = await getApiClient(storeId);
   try {
@@ -1806,7 +1822,7 @@ app.get('/api/products/:id', async (req, res) => {
 });
 
 // Instalação do Script via API (One-Click)
-app.post('/api/store-script', async (req, res) => {
+app.post('/api/store-script', requireAuth, async (req, res) => {
   const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
   const client = await getApiClient(storeId);
   const scriptSrc = `${PUBLIC_URL}/api/script.js`;
@@ -1839,7 +1855,7 @@ app.post('/api/store-script', async (req, res) => {
 });
 
 // Categorias (Para IA)
-app.get('/api/categories', async (req, res) => {
+app.get('/api/categories', requireAuth, async (req, res) => {
   const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
   const client = await getApiClient(storeId);
   try {
@@ -1861,7 +1877,7 @@ app.get('/api/categories', async (req, res) => {
 });
 
 // --- Gerenciamento Financeiro (Comissões) ---
-app.get('/api/commissions-report', async (req, res) => {
+app.get('/api/commissions-report', requireAuth, async (req, res) => {
   const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
   const client = await getApiClient(storeId);
   try {
@@ -2003,7 +2019,7 @@ app.get('/api/commissions-report', async (req, res) => {
 
 
 // IA Engine - Geração Massiva
-app.post('/api/ai/bulk-process', async (req, res) => {
+app.post('/api/ai/bulk-process', requireAuth, async (req, res) => {
   const { concepts } = req.body; // Array de strings ou objetos
   
   const processed = concepts.map((concept, index) => ({
@@ -2022,7 +2038,7 @@ app.post('/api/ai/bulk-process', async (req, res) => {
 });
 
 // Criar produtos em lote (Manual / Replicação)
-app.post('/api/products/bulk-create-manual', async (req, res) => {
+app.post('/api/products/bulk-create-manual', requireAuth, async (req, res) => {
   try {
     const { items, baseProduct, commonData } = req.body;
     const results = [];
@@ -2180,7 +2196,7 @@ app.post('/api/products/bulk-create-manual', async (req, res) => {
  * em grade (tiled) em uma nova imagem antes de cadastrar o produto na Nuvemshop.
  * O SKU é gerado automaticamente a partir do nome do arquivo original.
  */
-app.post('/api/products/register-unitary', async (req, res) => {
+app.post('/api/products/register-unitary', requireAuth, async (req, res) => {
     try {
         const { baseProductId, fileName, imageData } = req.body;
         const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
@@ -2344,13 +2360,13 @@ function serveScript(res, enabled, whatsapp) {
 }
 
 // 2. ENDPOINT INTERNO: Para o Painel Salvar as Configurações Cloud
-app.get('/api/store-script-settings', (req, res) => {
+app.get('/api/store-script-settings', requireAuth, (req, res) => {
   res.json(getScriptSettings());
 });
 
 
 
-app.post('/api/store-script-settings', async (req, res) => {
+app.post('/api/store-script-settings', requireAuth, async (req, res) => {
   const { enabled, whatsapp } = req.body;
   saveScriptSettings({ enabled, whatsapp });
 
@@ -2457,7 +2473,7 @@ app.post('/api/store-script', async (req, res) => {
 });
 
 // Remove a versão local antiga de store-script porque vamos gerenciar via nuvem
-app.delete('/api/store-script', async (req, res) => {
+app.delete('/api/store-script', requireAuth, async (req, res) => {
   const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
   const client = await getApiClient(storeId);
   try {
@@ -2501,7 +2517,7 @@ app.delete('/api/scripts/store-script', async (req, res) => {
 // ============================================================
 
 /** GET /api/abandoned-cart/settings — retorna configurações */
-app.get('/api/abandoned-cart/settings', async (req, res) => {
+app.get('/api/abandoned-cart/settings', requireAuth, async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('abandoned_cart_config')
@@ -2517,7 +2533,7 @@ app.get('/api/abandoned-cart/settings', async (req, res) => {
 });
 
 /** POST /api/abandoned-cart/settings — salva configurações */
-app.post('/api/abandoned-cart/settings', async (req, res) => {
+app.post('/api/abandoned-cart/settings', requireAuth, async (req, res) => {
   try {
     const { data: current } = await supabase.from('abandoned_cart_config').select('id').maybeSingle();
     const safeBody = req.body;
@@ -2547,7 +2563,7 @@ app.post('/api/abandoned-cart/settings', async (req, res) => {
 
 /** GET /api/abandoned-cart/history — lista carrinhos já contatados */
 /** GET /api/abandoned-cart/history — lista carrinhos já contatados */
-app.get('/api/abandoned-cart/history', async (req, res) => {
+app.get('/api/abandoned-cart/history', requireAuth, async (req, res) => {
   try {
     const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
     console.log(`[Admin] Buscando histórico para loja ${storeId}...`);
@@ -2575,7 +2591,7 @@ app.get('/api/abandoned-cart/history', async (req, res) => {
 
 
 /** POST /api/abandoned-cart/mark-sent — registra que um carrinho foi contatado (chamado pelo n8n) */
-app.post('/api/abandoned-cart/mark-sent', async (req, res) => {
+app.post('/api/abandoned-cart/mark-sent', requireAuth, async (req, res) => {
   try {
     const { checkout_id, customer_name, customer_phone, total, products, status, error_message, store_id } = req.body;
     const finalStoreId = String(store_id || req.headers['x-store-id'] || DEFAULT_STORE_ID);
@@ -2624,7 +2640,7 @@ app.get('/api/abandoned-cart/check-sent/:checkoutId', async (req, res) => {
 /**
  * POST /api/abandoned-cart/register-webhook — Registra o webhook de abandono na Nuvemshop
  */
-app.post('/api/abandoned-cart/register-webhook', async (req, res) => {
+app.post('/api/abandoned-cart/register-webhook', requireAuth, async (req, res) => {
   try {
     const STORE_ID = req.headers['x-store-id'] || DEFAULT_STORE_ID;
     
@@ -2688,7 +2704,7 @@ app.post('/api/abandoned-cart/register-webhook', async (req, res) => {
   }
 });
 
-app.get('/api/abandoned-cart/checkouts', async (req, res) => {
+app.get('/api/abandoned-cart/checkouts', requireAuth, async (req, res) => {
   try {
     const storeId = req.headers['x-store-id'] || req.query.store_id || DEFAULT_STORE_ID;
     const api = await getApiClient(storeId);
@@ -2887,7 +2903,7 @@ app.post('/api/abandoned-cart/webhook', async (req, res) => {
 });
 
 /** POST /api/abandoned-cart/manual-send — Proxy simples para webhook do n8n */
-app.post('/api/abandoned-cart/manual-send', async (req, res) => {
+app.post('/api/abandoned-cart/manual-send', requireAuth, async (req, res) => {
   try {
     const { 
       phone, customer_name, products, total, checkout_url,
@@ -2986,7 +3002,7 @@ app.post('/api/abandoned-cart/manual-send', async (req, res) => {
 });
 
 /** POST /api/abandoned-cart/coupons/bulk-delete — Remove todos os cupons da Nuvemshop */
-app.post('/api/abandoned-cart/coupons/bulk-delete', async (req, res) => {
+app.post('/api/abandoned-cart/coupons/bulk-delete', requireAuth, async (req, res) => {
   const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
   
   try {
@@ -3039,7 +3055,7 @@ app.post('/api/abandoned-cart/coupons/bulk-delete', async (req, res) => {
 
 
 /** POST /api/abandoned-cart/sync-manually — Dispara o vigilante manualmente */
-app.post('/api/abandoned-cart/sync-manually', async (req, res) => {
+app.post('/api/abandoned-cart/sync-manually', requireAuth, async (req, res) => {
   try {
     console.log('[Admin] Sincronização manual solicitada.');
     // Rodamos async para responder rápido

@@ -90,7 +90,13 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
           <span className="font-medium text-[15px]">{isDark ? 'Light Mode' : 'Dark Mode'}</span>
         </button>
 
-        <button className="w-full flex items-center gap-3 px-4 py-3.5 text-[var(--text-primary)] opacity-70 hover:bg-red-500/10 hover:text-red-500 hover:opacity-100 rounded-xl transition-all">
+        <button 
+          onClick={async () => {
+            const { supabase } = await import('../../lib/supabaseClient');
+            await supabase.auth.signOut();
+          }}
+          className="w-full flex items-center gap-3 px-4 py-3.5 text-[var(--text-primary)] opacity-70 hover:bg-red-500/10 hover:text-red-500 hover:opacity-100 rounded-xl transition-all"
+        >
           <LogOut size={22} />
           <span className="font-medium text-[15px]">Sair</span>
         </button>
