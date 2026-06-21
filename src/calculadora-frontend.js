@@ -639,6 +639,93 @@
     }
   }
 
+  // --- COMPRA RÁPIDA: Atualiza preço no grid ao alterar variantes ---
+  function initQuickShopPriceUpdater() {
+    window.addEventListener('change', function(e) {
+      if (e.target && e.target.tagName === 'SELECT') {
+        var select = e.target;
+        // Encontra o container do produto
+        var productContainer = select.closest('.js-item-product, [data-product-id], .js-product-container, .item-product');
+        if (!productContainer) return;
+
+        // Tenta buscar as variações salvas no HTML do container
+        var variantsEl = productContainer.querySelector('[data-variants]');
+        var variantsAttr = variantsEl ? variantsEl.getAttribute('data-variants') : productContainer.getAttribute('data-variants');
+        if (!variantsAttr) return;
+
+        try {
+          var variants = JSON.parse(variantsAttr);
+          if (!Array.isArray(variants) || variants.length === 0) return;
+
+          // Seleciona todos os dropdowns de variação daquele produto
+          var selects = productContainer.querySelectorAll('select');
+          if (selects.length === 0) return;
+
+          function normalize(val) {
+            if (!val) return '';
+            return val.toString().toLowerCase().replace(/\s+/g, '').replace(/,/g, '.').replace(/gr/g, 'g');
+          }
+
+          // Encontra a variação correspondente
+          var matchingVariant = null;
+          for (var i = 0; i < variants.length; i++) {
+            var v = variants[i];
+            var match = true;
+            if (selects[0] && v.option0) {
+              if (normalize(v.option0) !== normalize(selects[0].value)) match = false;
+            }
+            if (selects[1] && v.option1) {
+              if (normalize(v.option1) !== normalize(selects[1].value)) match = false;
+            }
+            if (selects[2] && v.option2) {
+              if (normalize(v.option2) !== normalize(selects[2].value)) match = false;
+            }
+            if (match) {
+              matchingVariant = v;
+              break;
+            }
+          }
+
+          if (matchingVariant) {
+            // 1. Atualiza o preço principal
+            var priceEl = productContainer.querySelector('.js-price-display, .js-price, .item-price, .price, .js-compare-price-display');
+            if (priceEl && matchingVariant.price_short) {
+              priceEl.innerText = matchingVariant.price_short;
+            }
+
+            // 2. Atualiza o parcelamento (mantendo a taxa de juros original da loja)
+            var installmentEl = productContainer.querySelector('.js-installments-display, .installments, .js-max-installments, .item-installments');
+            if (!installmentEl) {
+              var allTexts = productContainer.querySelectorAll('span, div, p');
+              for (var j = 0; j < allTexts.length; j++) {
+                if (allTexts[j].innerText.indexOf('x de') !== -1) {
+                  installmentEl = allTexts[j];
+                  break;
+                }
+              }
+            }
+
+            if (installmentEl && matchingVariant.price_number) {
+              var text = installmentEl.innerText;
+              var instValMatch = text.match(/R\$\s*(\d+(?:[.,]\d+)?)/);
+              if (instValMatch) {
+                var oldInstVal = parseFloat(instValMatch[1].replace(',', '.'));
+                var firstVariant = variants[0];
+                var oldPrice = firstVariant.price_number || 1;
+                var ratio = oldInstVal / oldPrice;
+                var newInstVal = matchingVariant.price_number * ratio;
+                var newInstText = text.replace(/R\$\s*[\d,.]+/, 'R$ ' + newInstVal.toFixed(2).replace('.', ','));
+                installmentEl.innerText = newInstText;
+              }
+            }
+          }
+        } catch (err) {
+          console.error('[QuickShop Price] Erro:', err);
+        }
+      }
+    });
+  }
+
   // Evento instantâneo no clique
   document.addEventListener('click', function(e){
     if (e.target.closest('.js-variant-option, .js-insta-variant, .variant-option, .cc-custom-btn')) {
@@ -646,7 +733,7 @@
     }
   });
 
-  document.readyState==='loading' ? document.addEventListener('DOMContentLoaded', function(){ inject(); initImageAdjuster(); }) : (function(){ inject(); initImageAdjuster(); })();
+  document.readyState==='loading' ? document.addEventListener('DOMContentLoaded', function(){ inject(); initImageAdjuster(); initQuickShopPriceUpdater(); }) : (function(){ inject(); initImageAdjuster(); initQuickShopPriceUpdater(); })();
   
   setInterval(function(){
     inject();
