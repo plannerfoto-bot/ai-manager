@@ -2317,12 +2317,23 @@ function serveScript(res, enabled, whatsapp) {
   res.setHeader('Expires', '0');
 
   const scriptPath = path.join(__dirname, 'src', 'calculadora-frontend.js');
+  const fretePath = path.join(__dirname, 'src', 'frete-frontend.js');
   let jsContent = '';
   try {
-    jsContent = fs.readFileSync(scriptPath, 'utf8');
+    const calcContent = fs.readFileSync(scriptPath, 'utf8');
+    
+    let freteContent = '';
+    try {
+      freteContent = fs.readFileSync(fretePath, 'utf8');
+    } catch(e) {
+      console.warn("Script frete-frontend.js não encontrado, ignorando.");
+    }
+    
+    jsContent = calcContent + '\n\n/* --- Frete Dinamico Injetado --- */\n\n' + freteContent;
+    
     jsContent = jsContent
-      .replace('__ENABLED__', enabled.toString())
-      .replace('__WHATSAPP__', whatsapp.toString())
+      .replace(/__ENABLED__/g, enabled.toString())
+      .replace(/__WHATSAPP__/g, whatsapp.toString())
       .replace(/__PUBLIC_URL__/g, process.env.PUBLIC_URL || 'https://ai-manager-nuvemshop.onrender.com');
   } catch (err) {
     console.error("Erro ao ler front script:", err);

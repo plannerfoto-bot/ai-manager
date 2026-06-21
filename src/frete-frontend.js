@@ -1,0 +1,193 @@
+(function() {
+  // Configurações
+  var FRETE_ENABLED = __ENABLED__;
+  if (!FRETE_ENABLED) return;
+
+  function brl(v) {
+    return 'R$ ' + parseFloat(v).toFixed(2).replace('.', ',');
+  }
+
+  // Tabela de frete por região
+  function getShippingGoal(zipcode) {
+    var zip = parseInt(zipcode.replace(/\D/g, ''), 10);
+    if (isNaN(zip)) return null;
+    
+    // Tratamento para garantir 8 dígitos
+    var zipStr = zipcode.replace(/\D/g, '');
+    if (zipStr.length < 8) return null; // CEP incompleto
+    
+    var p = parseInt(zipStr.substring(0, 5), 10); // Primeiros 5 dígitos
+
+    // Sudeste: SP (01000-19999), RJ (20000-28999), ES (29000-29999), MG (30000-39999)
+    if (p >= 1000 && p <= 39999) return { region: 'Sudeste', goal: 300 };
+    
+    // Sul: PR (80000-87999), SC (88000-89999), RS (90000-99999)
+    // Centro-Oeste: MS (79000-79999), MT (78000-78899), GO (72800-76999), DF (70000-73399)
+    if ((p >= 80000 && p <= 99999) || (p >= 70000 && p <= 76999) || (p >= 78000 && p <= 79999)) return { region: 'Sul / Centro-Oeste', goal: 350 };
+    
+    // Nordeste: BA (40000-48999), SE (49000-49999), PE (50000-56999), AL (57000-57999), PB (58000-58999), RN (59000-59999), CE (60000-63999), PI (64000-64999), MA (65000-65999)
+    if (p >= 40000 && p <= 65999) return { region: 'Nordeste', goal: 450 };
+    
+    // Norte: AM, PA, etc (66000-69999, 77000-77999) e outros
+    if ((p >= 66000 && p <= 69999) || (p >= 77000 && p <= 77999) || (p >= 69000 && p <= 69999)) return { region: 'Norte', goal: 650 };
+    
+    // Fallback genérico caso não mapeado
+    return null;
+  }
+
+  function injectBanner() {
+    var banner = document.getElementById('ai-frete-banner');
+    if (!banner) {
+      banner = document.createElement('div');
+      banner.id = 'ai-frete-banner';
+      banner.style.cssText = 'position:fixed;top:0;left:0;width:100%;background:linear-gradient(90deg, #1e293b, #0f172a);color:#fff;text-align:center;font-family:sans-serif;font-size:13px;font-weight:600;z-index:999999;box-shadow:0 2px 10px rgba(0,0,0,0.3);transform:translateY(-100%);transition:transform 0.4s ease;display:flex;align-items:center;justify-content:center;flex-direction:column;';
+      
+      var inner = document.createElement('div');
+      inner.id = 'ai-frete-inner';
+      inner.style.cssText = 'padding:10px 15px;width:100%;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;gap:6px;max-width:600px;';
+      banner.appendChild(inner);
+
+      var progressBarContainer = document.createElement('div');
+      progressBarContainer.style.cssText = 'width:100%;background:#334155;height:6px;border-radius:4px;overflow:hidden;position:relative;margin-top:2px;';
+      
+      var progressBarFill = document.createElement('div');
+      progressBarFill.id = 'ai-frete-progress';
+      progressBarFill.style.cssText = 'width:0%;height:100%;background:#3b82f6;border-radius:4px;transition:width 0.5s ease, background 0.3s ease;';
+      progressBarContainer.appendChild(progressBarFill);
+      
+      inner.appendChild(progressBarContainer);
+
+      document.body.appendChild(banner);
+    }
+    return banner;
+  }
+
+  function updateBanner() {
+    var cartTotal = 0;
+    var cartItems = 0;
+
+    // Tenta pegar o total do carrinho da Nuvemshop
+    if (window.LS && window.LS.cart) {
+      cartTotal = window.LS.cart.total / 100; // LS.cart.total geralmente vem em centavos (ex: 29900 para R$ 299,00)
+      cartItems = window.LS.cart.items ? window.LS.cart.items.length : 0;
+    } else {
+      // Tenta ler elementos do DOM caso LS.cart não esteja atualizado
+      var cartTotalEl = document.querySelector('.js-cart-total, .cart-total, [data-cart-total]');
+      if (cartTotalEl) {
+        var text = cartTotalEl.innerText || '';
+        var match = text.match(/[\d.,]+/);
+        if (match) {
+          cartTotal = parseFloat(match[0].replace('.', '').replace(',', '.'));
+          cartItems = 1; // Força exibir se achou o valor no DOM
+        }
+      }
+    }
+
+    var banner = injectBanner();
+    var inner = document.getElementById('ai-frete-inner');
+    var progress = document.getElementById('ai-frete-progress');
+
+    // Se o carrinho estiver vazio, esconde o banner
+    if (cartTotal <= 0) {
+      banner.style.transform = 'translateY(-100%)';
+      return;
+    }
+
+    var savedZip = sessionStorage.getItem('cc_shipping_zipcode');
+    var rule = savedZip ? getShippingGoal(savedZip) : null;
+
+    // Limpa a div interna exceto a barra de progresso
+    var textNode = inner.querySelector('.ai-frete-text');
+    if (!textNode) {
+      textNode = document.createElement('div');
+      textNode.className = 'ai-frete-text';
+      inner.insertBefore(textNode, inner.firstChild);
+    }
+
+    if (!rule) {
+      // Estado 1: Tem item no carrinho, mas não sabemos o CEP
+      textNode.innerHTML = '📦 Adicione itens ou calcule o frete para descobrir a meta de <strong>Frete Grátis</strong> da sua região!';
+      progress.style.width = '100%';
+      progress.style.background = '#64748b'; // Neutro
+      banner.style.transform = 'translateY(0)';
+      // Se body não tem margem topo para acomodar, adicionamos
+      if (document.body.style.paddingTop !== '50px') {
+        document.body.style.paddingTop = '50px';
+      }
+      return;
+    }
+
+    // Estado 2: Sabemos a região e o carrinho
+    var faltam = rule.goal - cartTotal;
+    var percent = Math.min(100, Math.max(0, (cartTotal / rule.goal) * 100));
+
+    if (faltam > 0) {
+      textNode.innerHTML = 'Faltam apenas <strong style="color:#60a5fa;">' + brl(faltam) + '</strong> para <strong>Frete Grátis</strong> na região ' + rule.region + '!';
+      progress.style.width = percent + '%';
+      progress.style.background = '#3b82f6';
+    } else {
+      textNode.innerHTML = '🎉 Parabéns! Você atingiu o valor de <strong>Frete Grátis</strong> para ' + rule.region + '!';
+      progress.style.width = '100%';
+      progress.style.background = '#22c55e'; // Verde sucesso
+    }
+
+    banner.style.transform = 'translateY(0)';
+    if (document.body.style.paddingTop !== '50px') {
+      document.body.style.paddingTop = '50px';
+    }
+  }
+
+  // Monitorar digitação de CEP
+  function bindZipcodeListeners() {
+    var inputs = document.querySelectorAll('input[name="zipcode"], input[name="postal_code"], #shipping-zipcode');
+    inputs.forEach(function(input) {
+      if (input.dataset.freteBound) return;
+      input.dataset.freteBound = 'true';
+      
+      input.addEventListener('input', function(e) {
+        var val = e.target.value.replace(/\D/g, '');
+        if (val.length >= 8) {
+          sessionStorage.setItem('cc_shipping_zipcode', val);
+          updateBanner();
+        }
+      });
+      
+      // Se o campo já estiver preenchido ao carregar a página
+      var val = input.value.replace(/\D/g, '');
+      if (val.length >= 8) {
+        sessionStorage.setItem('cc_shipping_zipcode', val);
+      }
+    });
+  }
+
+  // Inicialização e Observadores
+  function init() {
+    bindZipcodeListeners();
+    updateBanner();
+
+    // Observa mudanças na DOM (Ex: Carrinho lateral abrindo ou atualizando)
+    var observer = new MutationObserver(function() {
+      bindZipcodeListeners();
+      updateBanner();
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    // Se o cliente calcular o frete e houver chamada AJAX
+    var origFetch = window.fetch;
+    window.fetch = function() {
+      return origFetch.apply(this, arguments).then(function(res) {
+        if (res.url.indexOf('shipping') !== -1 || res.url.indexOf('cart') !== -1) {
+          setTimeout(updateBanner, 500);
+        }
+        return res;
+      });
+    };
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+
+})();
