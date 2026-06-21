@@ -53,13 +53,21 @@
         animation: aiShimmer 2s infinite;
       }
       .ai-frete-suggestion {
-        font-size: 11px;
-        color: #6b7280;
-        margin-top: 8px;
+        font-size: 13px;
+        color: #0f172a;
+        margin-top: 12px;
         display: inline-block;
-        background: #f3f4f6;
-        padding: 4px 8px;
-        border-radius: 4px;
+        background: #f8fafc;
+        border: 1px solid #cbd5e1;
+        padding: 8px 14px;
+        border-radius: 8px;
+        font-weight: 500;
+        line-height: 1.4;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+      }
+      .ai-frete-suggestion strong {
+        color: #1d4ed8;
+        font-weight: 800;
       }
     `;
     document.head.appendChild(style);
@@ -202,10 +210,19 @@
         // Sugestões inteligentes de itens
         var precoNormal = 94.00;
         var precoAline = 156.00; // O mais barato da coleção Aline Martins
-        var qtdNormal = Math.ceil(faltam / precoNormal);
-        var qtdAline = Math.ceil(faltam / precoAline);
+        var dicaHTML = '';
         
-        suggestionNode.innerHTML = '💡 Dica: Adicione mais <strong>' + qtdNormal + ' fundo(s) tradicional(is)</strong> ou <strong>' + qtdAline + ' Aline Martins</strong> para garantir o frete!';
+        if (faltam <= precoNormal) {
+          dicaHTML = '💡 <strong>Dica de Ouro:</strong> Adicione apenas <strong>1 fundo menorzinho (ex: a partir de R$ 94)</strong> e o frete fica por nossa conta!';
+        } else if (faltam <= precoAline) {
+          dicaHTML = '💡 <strong>Dica:</strong> Falta pouco! Adicionando <strong>1 Aline Martins</strong> ou <strong>2 tradicionais</strong> você já ganha Frete Grátis!';
+        } else {
+          var qtdNormal = Math.ceil(faltam / precoNormal);
+          var qtdAline = Math.ceil(faltam / precoAline);
+          dicaHTML = '💡 <strong>Dica:</strong> Adicione mais <strong>' + qtdNormal + ' fundo(s) tradicional(is)</strong> ou <strong>' + qtdAline + ' Aline Martins</strong> para garantir o frete!';
+        }
+        
+        suggestionNode.innerHTML = dicaHTML;
         suggestionNode.style.display = 'inline-block';
 
       } else {
