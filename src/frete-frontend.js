@@ -212,7 +212,20 @@
         var precoAline = 156.00; // O mais barato da coleção Aline Martins
         var dicaHTML = '';
         
-        if (faltam <= precoNormal) {
+        // --- NOVA LÓGICA DA CALCULADORA DINÂMICA ---
+        // A fórmula do backend para tecido 120g com altura padrão 1.50 é: (largura * 22.50) + 48.00
+        var larguraIdeal = (faltam - 48) / 22.50;
+        if (larguraIdeal < 1.0) larguraIdeal = 1.0; // Assume mínimo de 1 metro
+        larguraIdeal = Math.ceil(larguraIdeal * 10) / 10; // Arredonda para 1 casa decimal
+        var precoCalculado = (larguraIdeal * 22.50) + 48.00;
+        
+        if (faltam <= precoCalculado && precoCalculado <= precoNormal) {
+          dicaHTML = '💡 <strong>Dica de Ouro:</strong> Crie um fundo sob medida! ' +
+                     'Se você digitar <strong>1,50m x ' + larguraIdeal.toFixed(2).replace('.', ',') + 'm</strong> ' +
+                     'na calculadora do produto, ele sairá por apenas <strong>' + brl(precoCalculado) + '</strong> e já libera seu frete grátis! ' +
+                     '<span style="display:block;font-size:11px;color:#64748b;margin-top:6px;font-weight:normal;line-height:1.4;">' +
+                     '<em>Como chegamos nesse valor?</em> Nossa calculadora soma um custo base de <strong>R$ 48,00</strong> com <strong>R$ 22,50 por metro</strong> na largura do fundo. Simples e sob medida para você!</span>';
+        } else if (faltam <= precoNormal) {
           dicaHTML = '💡 <strong>Dica de Ouro:</strong> Adicione apenas <strong>1 fundo menorzinho (ex: a partir de R$ 94)</strong> e o frete fica por nossa conta!';
         } else if (faltam <= precoAline) {
           dicaHTML = '💡 <strong>Dica:</strong> Falta pouco! Adicionando <strong>1 Aline Martins</strong> ou <strong>2 tradicionais</strong> você já ganha Frete Grátis!';
