@@ -165,10 +165,25 @@
     bindZipcodeListeners();
     updateBanner();
 
-    // Observa mudanças na DOM (Ex: Carrinho lateral abrindo ou atualizando)
-    var observer = new MutationObserver(function() {
-      bindZipcodeListeners();
-      updateBanner();
+    // Observa mudanças na DOM com Debounce para evitar travamentos
+    var debounceTimer;
+    var observer = new MutationObserver(function(mutations) {
+      // Ignora as mudanças que o próprio banner faz para evitar loop infinito
+      var ignore = false;
+      for (var i = 0; i < mutations.length; i++) {
+        var t = mutations[i].target;
+        if (t.id === 'ai-frete-banner' || (t.closest && t.closest('#ai-frete-banner'))) {
+          ignore = true;
+          break;
+        }
+      }
+      if (ignore) return;
+
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(function() {
+        bindZipcodeListeners();
+        updateBanner();
+      }, 600); // Roda apenas a cada 600ms após a última mudança
     });
     observer.observe(document.body, { childList: true, subtree: true });
 
