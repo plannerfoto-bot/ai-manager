@@ -66,22 +66,33 @@
     var cartTotal = 0;
     var cartItems = 0;
 
-    // Tenta pegar o total do carrinho da Nuvemshop
-    if (window.LS && window.LS.cart) {
-      cartTotal = window.LS.cart.total / 100; // LS.cart.total geralmente vem em centavos (ex: 29900 para R$ 299,00)
-      cartItems = window.LS.cart.items ? window.LS.cart.items.length : 0;
-    } else {
-      // Tenta ler elementos do DOM caso LS.cart não esteja atualizado
-      var cartTotalEl = document.querySelector('.js-cart-total, .cart-total, [data-cart-total]');
-      if (cartTotalEl) {
-        var text = cartTotalEl.innerText || '';
-        var match = text.match(/[\d.,]+/);
-        if (match) {
-          cartTotal = parseFloat(match[0].replace('.', '').replace(',', '.'));
-          cartItems = 1; // Força exibir se achou o valor no DOM
-        }
+    // Tenta ler elementos do DOM primeiro (é mais confiável visualmente)
+    var cartTotalEl = document.querySelector('.js-cart-total, .cart-total, [data-cart-total]');
+    if (cartTotalEl) {
+      var text = cartTotalEl.innerText || '';
+      var match = text.match(/[\d.,]+/);
+      if (match) {
+        cartTotal = parseFloat(match[0].replace(/\./g, '').replace(',', '.'));
+        cartItems = 1;
       }
+    } 
+    
+    // Fallback para LS.cart se o DOM falhar
+    if ((isNaN(cartTotal) || cartTotal <= 0) && window.LS && window.LS.cart) {
+      if (typeof window.LS.cart.total === 'number') {
+        // As vezes Nuvemshop dá em centavos, as vezes direto. Se for absurdamente alto, dividimos.
+        cartTotal = window.LS.cart.total;
+        if (cartTotal > 100000 && text && text.indexOf(cartTotal) === -1) {
+          cartTotal = cartTotal / 100;
+        }
+      } else if (typeof window.LS.cart.total === 'string') {
+        var strMatch = window.LS.cart.total.match(/[\d.,]+/);
+        if (strMatch) cartTotal = parseFloat(strMatch[0].replace(/\./g, '').replace(',', '.'));
+      }
+      cartItems = window.LS.cart.items ? window.LS.cart.items.length : 1;
     }
+
+    if (isNaN(cartTotal)) cartTotal = 0;
 
     var banner = injectBanner();
     var inner = document.getElementById('ai-frete-inner');
