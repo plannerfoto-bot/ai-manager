@@ -2039,7 +2039,6 @@ const COMMISSION_VALUE = 50.00;
 // Busca comissões (relatório completo de pendentes e pagas)
 app.get('/api/commissions/report', requireAuth, cacheMiddleware('commissions_report', 5), async (req, res) => {
   const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
-  const client = await getApiClient(storeId);
   try {
     // 1. Busca última data de pagamento
     const { data: lastPayout, error: dbError } = await supabase
@@ -2057,60 +2056,41 @@ app.get('/api/commissions/report', requireAuth, cacheMiddleware('commissions_rep
     const lastPaidAt = lastPayout ? lastPayout.end_date : null;
     const now = new Date().toISOString();
 
-    // 2. Buscar todos os produtos com a tag 'Aline Martins'
+    // 2. Buscar todos os produtos com a tag 'Aline Martins' direto do banco (Supabase)
+    const { data: dbProducts, error: pError } = await supabase
+      .from('nuvemshop_products')
+      .select('id, tags')
+      .eq('store_id', storeId)
+      .or('tags.ilike.%aline martins%,tags.ilike.%aline-martins%,tags.ilike.%alinemartins%');
+
+    if (pError) {
+      console.error('Erro ao buscar produtos para comissões no Supabase:', pError.message);
+      return res.status(500).json({ error: pError.message });
+    }
+
     let targetProductIds = new Set();
-    let pPage = 1;
-    let pHasMore = true;
-    while(pHasMore) {
-      try {
-        const pRes = await client.get('/products', { params: { q: 'aline', per_page: 200, page: pPage } });
-        const prods = pRes.data || [];
-        if (prods.length === 0) {
-          pHasMore = false;
-        } else {
-          prods.forEach(p => {
-            if (p.tags) {
-              const tg = p.tags.toLowerCase();
-              if (tg.includes('aline martins') || tg.includes('aline-martins') || tg.includes('alinemartins')) {
-                targetProductIds.add(p.id);
-              }
-            }
-          });
-          if (prods.length < 200) pHasMore = false;
-          else pPage++;
-        }
-      } catch (err) {
-        console.error('Erro buscar produtos:', err.message);
-        pHasMore = false;
-      }
+    if (dbProducts && dbProducts.length > 0) {
+      dbProducts.forEach(p => {
+        targetProductIds.add(String(p.id));
+      });
     }
 
     if (targetProductIds.size === 0) {
       return res.json({ pendingAmount: 0, itemsCount: 0, ordersCount: 0, startDate: lastPaidAt, endDate: now, pendingOrders: [], paidOrders: [] });
     }
 
-    // 3. Buscar pedidos desde o lançamento da coleção (Fev/2025)
-    let allOrders = [];
-    let oPage = 1;
-    let oHasMore = true;
-    while (oHasMore) {
-      // 2025-02-15 é o lançamento
-      const params = { per_page: 200, page: oPage, payment_status: 'paid', created_at_min: '2025-02-15T00:00:00Z' };
-      
-      try {
-        const response = await client.get('/orders', { params });
-        const orders = response.data || [];
-        if (orders.length === 0) {
-          oHasMore = false;
-        } else {
-          allOrders = allOrders.concat(orders);
-          if (orders.length < 200) oHasMore = false;
-          else oPage++;
-        }
-      } catch (err) {
-         console.error('Erro buscar pedidos:', err.message);
-         oHasMore = false;
-      }
+    // 3. Buscar todos os pedidos pagos desde o lançamento (Fev/2025) salvos no Supabase
+    const { data: dbOrders, error: oError } = await supabase
+      .from('nuvemshop_orders')
+      .select('id, number, status, payment_status, customer, products, created_at')
+      .eq('store_id', storeId)
+      .eq('payment_status', 'paid')
+      .gte('created_at', '2025-02-15T00:00:00Z')
+      .order('created_at', { ascending: false });
+
+    if (oError) {
+      console.error('Erro ao buscar pedidos para comissões no Supabase:', oError.message);
+      return res.status(500).json({ error: oError.message });
     }
 
     let pendingOrders = [];
@@ -2118,14 +2098,16 @@ app.get('/api/commissions/report', requireAuth, cacheMiddleware('commissions_rep
     let totalPendingCommission = 0;
     let totalPendingItems = 0;
 
-    for (const order of allOrders) {
-      if (!order.products || order.products.length === 0) continue;
+    for (const order of (dbOrders || [])) {
+      const orderProducts = Array.isArray(order.products) ? order.products : [];
+      if (orderProducts.length === 0) continue;
       
       let collectionItemCount = 0;
       let collectionRevenue = 0;
       
-      for (const item of order.products) {
-        if (targetProductIds.has(item.product_id)) {
+      for (const item of orderProducts) {
+        // Garantindo comparação como string/número independente do tipo armazenado
+        if (targetProductIds.has(String(item.product_id || item.id))) {
           const qty = parseInt(item.quantity || 1, 10);
           collectionItemCount += qty;
           collectionRevenue += (parseFloat(item.price || 0) * qty);
@@ -2137,7 +2119,7 @@ app.get('/api/commissions/report', requireAuth, cacheMiddleware('commissions_rep
         const orderData = {
           orderId: order.id,
           orderNumber: order.number,
-          customerName: order.customer ? order.customer.name : 'N/A',
+          customerName: order.customer ? (order.customer.name || 'N/A') : 'N/A',
           createdAt: order.created_at,
           status: order.status,
           collectionItemsSold: collectionItemCount,
