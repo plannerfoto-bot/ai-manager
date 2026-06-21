@@ -1029,6 +1029,102 @@ app.get('/api/webhooks/logs', async (req, res) => {
  * WEBHOOK: Novo Produto Criado
  * Aciona a postagem automática no Instagram
  */
+
+/**
+ * WEBHOOK GERAL NUVEMSHOP
+ * Recebe eventos de produtos e pedidos e atualiza o banco de dados em tempo real.
+ */
+app.post('/api/webhooks/nuvemshop', async (req, res) => {
+    // Responder OK imediatamente para não travar a Nuvemshop
+    res.status(200).send('OK');
+
+    const storeId = req.headers['x-linked-store-id'] || req.body.store_id || DEFAULT_STORE_ID;
+    const event = req.body.event;
+    const id = String(req.body.id);
+
+    console.log(`
+🔔 [Webhook] Recebido evento "${event}" (ID: ${id}) para a loja ${storeId}`);
+
+    try {
+        const client = await getApiClient(storeId);
+
+        if (event.startsWith('product/')) {
+            // Buscar produto na Nuvemshop
+            const response = await client.get(`/products/${id}`);
+            const product = response.data;
+            const name = typeof product.name === 'object' ? (product.name.pt || product.name.es || product.name.en || '') : String(product.name || '');
+            
+            await supabase.from('nuvemshop_products').upsert({
+                id: String(product.id),
+                store_id: String(storeId),
+                name: name,
+                sku: product.variants?.[0]?.sku || null,
+                price: parseFloat(product.variants?.[0]?.price || 0),
+                tags: product.tags || null,
+                created_at: product.created_at,
+                updated_at: product.updated_at,
+                raw_data: product
+            }, { onConflict: 'id' });
+
+            console.log(`  ✅ Produto ${id} atualizado no Supabase via Webhook.`);
+            
+            // Logar no histórico se for criação para manter compatibilidade com Instagram
+            if (event === 'product/created') {
+                await addWebhookLog({ storeId, event, productId: id, status: 'Processing', details: 'Novo produto criado. Iniciando publicação automatizada...' });
+                // Dispara fluxo do instagram
+                try {
+                    const settings = await getMarketingSettings(storeId);
+                    if (settings && settings.instagram_enabled) {
+                        const publishRes = await publishProductToInstagram(product, settings, storeId);
+                        await updateWebhookLog(id, 'Success', `Publicado no Instagram: ${publishRes.id || 'OK'}`);
+                    } else {
+                        await updateWebhookLog(id, 'Success', 'Automação desativada nas configurações.');
+                    }
+                } catch (err) {
+                    await updateWebhookLog(id, 'Error', err.message);
+                }
+            }
+
+        } else if (event.startsWith('order/')) {
+            // Buscar pedido na Nuvemshop
+            const response = await client.get(`/orders/${id}`);
+            const order = response.data;
+
+            await supabase.from('nuvemshop_orders').upsert({
+                id: String(order.id),
+                store_id: String(storeId),
+                number: String(order.number),
+                status: String(order.status),
+                payment_status: String(order.payment_status),
+                total: parseFloat(order.total || 0),
+                shipping_cost_customer: parseFloat(order.shipping_cost_customer || 0),
+                shipping_cost_owner: parseFloat(order.shipping_cost_owner || 0),
+                shipping_carrier: order.shipping_carrier || null,
+                customer: {
+                    name: order.customer?.name || null,
+                    phone: order.customer?.phone || null,
+                    email: order.customer?.email || null
+                },
+                products: order.products || [],
+                created_at: order.created_at,
+                updated_at: order.updated_at,
+                raw_data: order
+            }, { onConflict: 'id' });
+
+            console.log(`  ✅ Pedido ${id} (${order.number}) atualizado no Supabase via Webhook.`);
+            
+            // Se o pedido foi pago, invalidar cache de comissões e financeiro
+            if (order.payment_status === 'paid') {
+                await supabase.from('api_cache').delete().eq('key', `${storeId}_commissions_report`);
+                await supabase.from('api_cache').delete().eq('key', `${storeId}_profit_stats`);
+                await supabase.from('api_cache').delete().eq('key', `${storeId}_stats`);
+            }
+        }
+    } catch (err) {
+        console.error(`❌ [Webhook Error] Erro ao processar evento ${event} (ID: ${id}):`, err.response?.data || err.message);
+    }
+});
+
 app.post('/api/webhooks/product-created', async (req, res) => {
     // Debug profundo: Logar exatamente o que chega
     console.log('--- WEBHOOK RAW BODY ---');
