@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { DollarSign, CheckCircle2, AlertCircle, Calendar, FileText, History, Clock } from 'lucide-react';
+import { DollarSign, CheckCircle2, AlertCircle, Calendar, FileText, History, Clock, RefreshCw } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 const API_BASE_URL = window.location.hostname === 'localhost' 
@@ -22,11 +22,12 @@ const Commissions = () => {
     }
   }, [activeTab]);
 
-  const fetchReport = async () => {
+  const fetchReport = async (force = false) => {
     setLoading(true);
     try {
-      const res = await axios.get(`${API_BASE_URL}/api/commissions/report`);
+      const res = await axios.get(`${API_BASE_URL}/api/commissions/report${force ? '?force_refresh=true' : ''}`);
       setReportData(res.data);
+      if (force) toast.success('Relatório atualizado da Nuvemshop!');
     } catch (error) {
       console.error('Erro ao buscar relatório:', error);
       toast.error('Erro ao carregar comissões.');
@@ -65,7 +66,7 @@ const Commissions = () => {
         endDate: reportData.endDate
       });
       toast.success('Pagamento registrado com sucesso!');
-      fetchReport();
+      fetchReport(true);
     } catch (error) {
       console.error('Erro ao registrar pagamento:', error);
       if (error.response?.data?.error) {
@@ -98,6 +99,14 @@ const Commissions = () => {
             Controle de pagamento de comissões exclusivas da coleção Aline Martins (R$ 50,00 por produto).
           </p>
         </div>
+        <button
+          onClick={() => fetchReport(true)}
+          disabled={loading}
+          className="flex items-center gap-2 px-4 py-2 bg-[var(--surface-glass)] hover:bg-[var(--border-soft)] border border-[var(--border-soft)] text-[var(--text-primary)] font-bold text-sm rounded-xl transition-all duration-200 shadow disabled:opacity-50"
+        >
+          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          {loading ? 'Sincronizando...' : 'Sincronizar Nuvemshop'}
+        </button>
       </div>
 
       <div className="flex gap-4 border-b border-[var(--border-soft)] mb-6">

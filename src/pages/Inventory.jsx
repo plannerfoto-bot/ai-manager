@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
-import { Package, Trash2, ExternalLink, Tag, Info, Layers, BarChart3, X, PlusCircle, LayoutGrid, Send, Loader2 } from 'lucide-react';
+import { Package, Trash2, ExternalLink, Tag, Info, Layers, BarChart3, X, PlusCircle, LayoutGrid, Send, Loader2, RefreshCw } from 'lucide-react';
 import BulkManualUpload from '../components/organisms/BulkManualUpload';
 import CalculadoraMedidas from '../components/organisms/CalculadoraMedidas';
 
@@ -126,6 +126,17 @@ const Inventory = ({ products = [], total = 0, page = 1, loading, onDelete, onRe
               className="bg-[var(--surface-glass)]/50 border border-[var(--border-soft)]/50 rounded-2xl px-5 py-3 text-sm text-[var(--text-primary)] w-64 focus:border-primary outline-none transition-all group-hover:bg-[var(--surface-glass)]"
             />
           </form>
+
+          {viewMode === 'list' && (
+            <button
+              onClick={() => onRefresh && onRefresh(page, searchQuery, true)}
+              disabled={loading}
+              className="h-[46px] px-4 bg-[var(--surface-glass)] hover:bg-[var(--border-soft)] border border-[var(--border-soft)] text-[var(--text-primary)] font-bold text-sm rounded-2xl transition-all duration-200 shadow disabled:opacity-50 flex items-center gap-2"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              {loading ? 'Sincronizando...' : 'Sincronizar'}
+            </button>
+          )}
 
           {viewMode === 'list' && (
             <button 

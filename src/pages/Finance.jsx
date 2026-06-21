@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import axios from 'axios';
+import { toast } from 'react-hot-toast';
 import { 
   TrendingUp, 
   Scissors, 
@@ -469,7 +470,7 @@ const Finance = () => {
   const finalNetProfit = profitData ? profitData.totalProfit - accDynamicTotal : 0;
 
 
-  const fetchProfitStats = useCallback(async (period, start, end, fP, fF, fpP, fpF) => {
+  const fetchProfitStats = useCallback(async (period, start, end, fP, fF, fpP, fpF, force = false) => {
     setProfitLoading(true);
     setProfitError(null);
     try {
@@ -478,8 +479,12 @@ const Finance = () => {
         params.start = start;
         params.end = end;
       }
+      if (force) {
+        params.force_refresh = 'true';
+      }
       const res = await axios.get(`${API_BASE_URL}/api/profit-stats`, { params });
       setProfitData(res.data);
+      if (force) toast.success('Dados financeiros atualizados!');
     } catch (err) {
       setProfitError(err.message);
     } finally {
@@ -533,7 +538,7 @@ const Finance = () => {
           
           <div className="flex gap-2">
             <button
-              onClick={() => fetchProfitStats(profitPeriod, profitCustomStart, profitCustomEnd, feePercent, feeFixed, feePixPercent, feePixFixed)}
+              onClick={() => fetchProfitStats(profitPeriod, profitCustomStart, profitCustomEnd, feePercent, feeFixed, feePixPercent, feePixFixed, true)}
               disabled={profitLoading}
               className="h-10 px-4 rounded-xl bg-[var(--surface-glass)] hover:bg-slate-700 text-[var(--text-primary)] font-medium transition-all flex items-center gap-2 disabled:opacity-50"
             >

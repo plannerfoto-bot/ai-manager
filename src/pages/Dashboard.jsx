@@ -27,7 +27,7 @@ const API_BASE_URL = window.location.hostname === 'localhost'
 // ─────────────────────────────────────────────────────────────
 // DASHBOARD PRINCIPAL
 // ─────────────────────────────────────────────────────────────
-const Dashboard = ({ stats }) => {
+const Dashboard = ({ stats, onRefresh, loading }) => {
   // ── Stats gerais (recebidos via props)
   const cards = [
     {
@@ -60,14 +60,22 @@ const Dashboard = ({ stats }) => {
     },
   ];
 
-
-
   return (
     <div className="space-y-8">
       {/* ── Cabeçalho ── */}
-      <div>
-        <h2 className="text-3xl font-bold text-[var(--text-primary)]">Painel de Controle</h2>
-        <p className="text-[var(--text-muted)]">Visão geral do desempenho da Cloth Sublimação</p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-3xl font-bold text-[var(--text-primary)]">Painel de Controle</h2>
+          <p className="text-[var(--text-muted)]">Visão geral do desempenho da Cloth Sublimação</p>
+        </div>
+        <button
+          onClick={onRefresh}
+          disabled={loading}
+          className="flex items-center gap-2 px-4 py-2 bg-[var(--surface-glass)] hover:bg-[var(--border-soft)] border border-[var(--border-soft)] text-[var(--text-primary)] font-bold text-sm rounded-xl transition-all duration-200 shadow disabled:opacity-50"
+        >
+          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          {loading ? 'Sincronizando...' : 'Sincronizar Nuvemshop'}
+        </button>
       </div>
 
       {/* ── Cards de Estatísticas Gerais ── */}

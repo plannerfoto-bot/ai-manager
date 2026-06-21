@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { ShoppingBag, User, Phone, Calendar, CheckCircle, Clock, ExternalLink } from 'lucide-react';
+import { ShoppingBag, User, Phone, Calendar, CheckCircle, Clock, ExternalLink, RefreshCw } from 'lucide-react';
+import { toast } from 'react-hot-toast';
+
+const API_BASE_URL = window.location.hostname === 'localhost' 
+  ? 'http://localhost:3001' 
+  : 'https://ai-manager-nuvemshop.onrender.com';
 
 const Orders = () => {
   const [orders, setOrders] = useState([]);
@@ -11,12 +16,15 @@ const Orders = () => {
     fetchOrders();
   }, []);
 
-  const fetchOrders = async () => {
+  const fetchOrders = async (force = false) => {
+    setLoading(true);
     try {
-      const res = await axios.get('https://ai-manager-nuvemshop.onrender.com/api/orders');
+      const res = await axios.get(`${API_BASE_URL}/api/orders${force ? '?force_refresh=true' : ''}`);
       setOrders(res.data);
+      if (force) toast.success('Vendas atualizadas!');
     } catch (error) {
       console.error('Erro ao buscar pedidos');
+      toast.error('Erro ao carregar vendas.');
     } finally {
       setLoading(false);
     }
@@ -35,8 +43,13 @@ const Orders = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold text-[var(--text-primary)] tracking-tight">Vendas & Operacional</h1>
-        <button onClick={fetchOrders} className="p-2 glass rounded-lg hover:bg-[var(--surface-glass)] transition-all">
-          <Clock className="w-5 h-5" />
+        <button 
+          onClick={() => fetchOrders(true)} 
+          disabled={loading}
+          className="flex items-center gap-2 px-4 py-2 bg-[var(--surface-glass)] hover:bg-[var(--border-soft)] border border-[var(--border-soft)] text-[var(--text-primary)] font-bold text-sm rounded-xl transition-all duration-200 shadow disabled:opacity-50"
+        >
+          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          {loading ? 'Sincronizando...' : 'Sincronizar Nuvemshop'}
         </button>
       </div>
 

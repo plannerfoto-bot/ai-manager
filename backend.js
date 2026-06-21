@@ -24,6 +24,62 @@ const __dirname = path.dirname(__filename);
 dotenv.config({ path: fs.existsSync('../nuvemshop-mcp/.env') ? '../nuvemshop-mcp/.env' : '.env' });
 
 const app = express();
+
+// ==========================================
+// CACHE MIDDLEWARE (SUPABASE)
+// ==========================================
+function cacheMiddleware(cacheKeyFn, ttlMinutes = 5) {
+  return async (req, res, next) => {
+    const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
+    const forceRefresh = req.query.force_refresh === 'true';
+    const cacheKey = typeof cacheKeyFn === 'function' ? cacheKeyFn(req) : cacheKeyFn;
+    const fullKey = `${storeId}_${cacheKey}`;
+
+    if (!forceRefresh) {
+      try {
+        const { data, error } = await supabase
+          .from('api_cache')
+          .select('*')
+          .eq('key', fullKey)
+          .single();
+        
+        if (!error && data) {
+          const now = new Date();
+          const updatedAt = new Date(data.updated_at);
+          const diffMinutes = (now - updatedAt) / 1000 / 60;
+          
+          if (diffMinutes <= ttlMinutes) {
+            console.log(`[CACHE HIT] ${fullKey}`);
+            return res.json(data.value);
+          }
+        }
+      } catch (err) {
+        console.warn('Cache error (ignoring):', err.message);
+      }
+    }
+
+    console.log(`[CACHE MISS] ${fullKey} - Fetching fresh data`);
+    
+    // Intercept res.json
+    const originalJson = res.json;
+    res.json = function (body) {
+      // Only cache 200 OK responses
+      if (res.statusCode >= 200 && res.statusCode < 300) {
+        supabase.from('api_cache').upsert({
+          key: fullKey,
+          value: body,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'key' }).then(({error}) => {
+          if (error && error.code !== '42P01') console.error('Error saving cache:', error);
+        });
+      }
+      originalJson.call(this, body);
+    };
+
+    next();
+  };
+}
+
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 
@@ -1233,7 +1289,7 @@ app.get('/api/debug-env', (req, res) => {
 });
 
 // Dashboard Stats
-app.get('/api/stats', requireAuth, async (req, res) => {
+app.get('/api/stats', requireAuth, cacheMiddleware('stats', 5), async (req, res) => {
   const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
   const client = await getApiClient(storeId);
   try {
@@ -1534,7 +1590,7 @@ function analyzeLineItem(item, settings) {
  * Retorna:
  *   { totalProfit, sewingCost, ordersCount, period, startDate, endDate }
  */
-app.get('/api/profit-stats', requireAuth, async (req, res) => {
+app.get('/api/profit-stats', requireAuth, cacheMiddleware('profit_stats', 5), async (req, res) => {
   const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
   const client = await getApiClient(storeId);
 
@@ -1765,7 +1821,7 @@ app.get('/api/profit-stats', requireAuth, async (req, res) => {
 });
 
 // Vendas (Orders)
-app.get('/api/orders', requireAuth, async (req, res) => {
+app.get('/api/orders', requireAuth, cacheMiddleware(req => 'orders_p' + (req.query.page || 1) + '_s' + (req.query.status || 'all'), 5), async (req, res) => {
   const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
   const client = await getApiClient(storeId);
   try {
@@ -1788,7 +1844,7 @@ app.get('/api/orders/:id', requireAuth, async (req, res) => {
 });
 
 // Produtos (Products) com Paginação e Busca
-app.get('/api/products', requireAuth, async (req, res) => {
+app.get('/api/products', requireAuth, cacheMiddleware(req => 'products_p' + (req.query.page || 1), 5), async (req, res) => {
   const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
   const client = await getApiClient(storeId);
   try {
@@ -1885,7 +1941,7 @@ app.get('/api/categories', requireAuth, async (req, res) => {
 const COMMISSION_VALUE = 50.00;
 
 // Busca comissões (relatório completo de pendentes e pagas)
-app.get('/api/commissions/report', requireAuth, async (req, res) => {
+app.get('/api/commissions/report', requireAuth, cacheMiddleware('commissions_report', 5), async (req, res) => {
   const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
   const client = await getApiClient(storeId);
   try {
@@ -2041,6 +2097,9 @@ app.post('/api/commissions/pay', requireAuth, async (req, res) => {
       }
       throw error;
     }
+
+    // Invalidar cache
+    await supabase.from('api_cache').delete().eq('key', `${storeId}_commissions_report`);
 
     res.json({ success: true });
   } catch (err) {

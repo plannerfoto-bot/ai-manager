@@ -103,17 +103,18 @@ const MainApp = () => {
     }
   }, [session]); // eslint-disable-line
 
-  const fetchData = async (page = 1, searchQuery = '') => {
+  const fetchData = async (page = 1, searchQuery = '', force = false) => {
     if (!session) return;
     setLoading(true);
     try {
-      const statsReq = axios.get(`${API_BASE_URL}/api/stats`);
-      const prodReq = axios.get(`${API_BASE_URL}/api/products?page=${page}&q=${searchQuery}`);
+      const statsReq = axios.get(`${API_BASE_URL}/api/stats${force ? '?force_refresh=true' : ''}`);
+      const prodReq = axios.get(`${API_BASE_URL}/api/products?page=${page}&q=${searchQuery}${force ? '&force_refresh=true' : ''}`);
       
       const [statsRes, prodRes] = await Promise.all([statsReq, prodReq]);
       
       setProductList(prodRes.data);
       setStats(statsRes.data);
+      if (force) toast.success('Dados atualizados da Nuvemshop!');
     } catch (error) {
       console.error('Erro ao buscar dados:', error);
       toast.error('Erro ao sincronizar com a Nuvemshop');
@@ -198,7 +199,7 @@ const MainApp = () => {
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':
-        return <Dashboard stats={stats} />;
+        return <Dashboard stats={stats} onRefresh={() => fetchData(1, '', true)} loading={loading} />;
       case 'finance':
         return <Finance />;
       case 'inventory':
