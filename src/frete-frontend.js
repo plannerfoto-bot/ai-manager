@@ -64,7 +64,28 @@
 
   function updateBanner() {
     var cartTotal = 0;
-    var cartItems = 0;
+    var cartItems = -1; // -1 significa desconhecido
+
+    // 1. Tenta descobrir se o carrinho está vazio olhando o contador do cabeçalho
+    var countEl = document.querySelector('.js-cart-count, .js-cart-widget-amount, #cart-count, [data-cart-count]');
+    if (countEl) {
+      var countMatch = countEl.innerText.match(/\d+/);
+      if (countMatch) cartItems = parseInt(countMatch[0], 10);
+    }
+    
+    // Se ainda não achou, olha o LS
+    if (cartItems === -1 && window.LS && window.LS.cart && window.LS.cart.items) {
+      cartItems = window.LS.cart.items.length;
+    }
+
+    var banner = injectBanner();
+    
+    // Se o carrinho estiver vazio (0 itens), arranca o banner da tela
+    if (cartItems === 0) {
+      banner.style.transform = 'translateY(-100%)';
+      document.body.style.paddingTop = '0px';
+      return;
+    }
 
     // Tenta ler elementos do DOM primeiro (é mais confiável visualmente)
     var cartTotalEl = document.querySelector('.js-cart-total, .cart-total, [data-cart-total]');
@@ -92,22 +113,16 @@
       cartItems = window.LS.cart.items ? window.LS.cart.items.length : 1;
     }
 
-    if (isNaN(cartTotal)) cartTotal = 0;
+    // Se a lógica do DOM falhou em ler o total mas sabemos que tem itens, 
+    // ou se o fallback do LS não trouxe um total numérico
+    if (isNaN(cartTotal) || cartTotal <= 0) {
+      cartTotal = 0;
+    }
 
-    var banner = injectBanner();
     var inner = document.getElementById('ai-frete-inner');
     var progress = document.getElementById('ai-frete-progress');
 
-    // Se o carrinho estiver vazio, esconde o banner
-    if (cartTotal <= 0) {
-      banner.style.transform = 'translateY(-100%)';
-      return;
-    }
-
-    var savedZip = sessionStorage.getItem('cc_shipping_zipcode');
-    var rule = savedZip ? getShippingGoal(savedZip) : null;
-
-    // Limpa a div interna exceto a barra de progresso
+    // Remove qualquer mensagem antiga
     var textNode = inner.querySelector('.ai-frete-text');
     if (!textNode) {
       textNode = document.createElement('div');
@@ -198,16 +213,31 @@
     });
     observer.observe(document.body, { childList: true, subtree: true });
 
-    // Se o cliente calcular o frete e houver chamada AJAX
+    // Se o cliente calcular o frete e houver chamada AJAX via fetch
     var origFetch = window.fetch;
     window.fetch = function() {
       return origFetch.apply(this, arguments).then(function(res) {
         if (res.url.indexOf('shipping') !== -1 || res.url.indexOf('cart') !== -1) {
           setTimeout(updateBanner, 500);
+          setTimeout(updateBanner, 1500); // Garante que lê após o DOM atualizar
         }
         return res;
       });
     };
+
+    // A Nuvemshop usa muito jQuery (XHR) para adicionar/remover do carrinho
+    if (window.XMLHttpRequest) {
+      var origOpen = window.XMLHttpRequest.prototype.open;
+      window.XMLHttpRequest.prototype.open = function() {
+        this.addEventListener('load', function() {
+          if (this.responseURL && (this.responseURL.indexOf('cart') !== -1 || this.responseURL.indexOf('shipping') !== -1)) {
+            setTimeout(updateBanner, 500);
+            setTimeout(updateBanner, 1500); // Garante que lê após o DOM atualizar
+          }
+        });
+        origOpen.apply(this, arguments);
+      };
+    }
   }
 
   if (document.readyState === 'loading') {
