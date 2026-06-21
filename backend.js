@@ -1877,98 +1877,90 @@ app.get('/api/categories', requireAuth, async (req, res) => {
 });
 
 // --- Gerenciamento Financeiro (Comissões) ---
-app.get('/api/commissions-report', requireAuth, async (req, res) => {
+
+// ==========================================
+// GERENCIADOR DE COMISSÕES ALINE MARTINS
+// ==========================================
+
+const COMMISSION_VALUE = 50.00;
+
+// Busca comissões pendentes (após a última data paga)
+app.get('/api/commissions/pending', requireAuth, async (req, res) => {
   const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
   const client = await getApiClient(storeId);
   try {
-    const { categoryId, dateMin, dateMax } = req.query;
-    if (!categoryId) return res.status(400).json({ error: 'categoryId é obrigatório' });
+    // 1. Busca última data de pagamento
+    const { data: lastPayout, error: dbError } = await supabase
+      .from('commissions_history')
+      .select('*')
+      .eq('store_id', storeId)
+      .order('end_date', { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
-    // 1. Mapear árvore de categorias para incluir subcategorias (Busca paginada completa)
-    let allCats = [];
-    let cPage = 1;
-    let cHasMore = true;
-    while(cHasMore) {
-      const cRes = await client.get('/categories', { params: { per_page: 200, page: cPage } });
-      const cats = cRes.data || [];
-      allCats = allCats.concat(cats);
-      if (cats.length < 200) cHasMore = false;
-      else cPage++;
-      if (cPage > 10) cHasMore = false;
+    if (dbError && dbError.code !== '42P01') {
+      console.warn('Erro ao buscar histórico (tabela pode não existir ainda):', dbError.message);
     }
-    
-    let targetCategoryIds = new Set([parseInt(categoryId, 10)]);
-    const addSubcats = (parentId) => {
-      const parent = allCats.find(c => c.id === parentId);
-      if (parent && parent.subcategories && Array.isArray(parent.subcategories)) {
-        parent.subcategories.forEach(subId => {
-          if (!targetCategoryIds.has(subId)) {
-            targetCategoryIds.add(subId);
-            addSubcats(subId);
-          }
-        });
-      }
-    };
-    addSubcats(parseInt(categoryId, 10));
 
-    // 2. Extrair os produtos pertencentes à categoria pai e todas as suas filhas
-    let categoryProductIds = new Set();
-    
-    for (const catId of targetCategoryIds) {
-      let pPage = 1;
-      let pHasMore = true;
-      while(pHasMore) {
-        try {
-          const pRes = await client.get('/products', { params: { category_id: catId, per_page: 200, page: pPage } });
-          const prods = pRes.data;
-          if (!prods || prods.length === 0) {
-            pHasMore = false;
-          } else {
-            prods.forEach(p => categoryProductIds.add(p.id));
-            if (prods.length < 200) {
-              pHasMore = false; // Prevents 404 Not Found on next page
-            } else {
-              pPage++;
-              if (pPage > 50) pHasMore = false; // limite de segurança
-            }
-          }
-        } catch (err) {
-          console.error(`Erro ao buscar produtos da categoria ${catId}:`, err.message);
+    const lastPaidAt = lastPayout ? lastPayout.end_date : null;
+    const now = new Date().toISOString();
+
+    // 2. Buscar todos os produtos com a tag 'Aline Martins'
+    let targetProductIds = new Set();
+    let pPage = 1;
+    let pHasMore = true;
+    while(pHasMore) {
+      try {
+        const pRes = await client.get('/products', { params: { q: 'aline martins', per_page: 200, page: pPage } });
+        const prods = pRes.data || [];
+        if (prods.length === 0) {
           pHasMore = false;
+        } else {
+          prods.forEach(p => {
+            if (p.tags && p.tags.toLowerCase().includes('aline martins')) {
+              targetProductIds.add(p.id);
+            }
+          });
+          if (prods.length < 200) pHasMore = false;
+          else pPage++;
         }
+      } catch (err) {
+        console.error('Erro buscar produtos:', err.message);
+        pHasMore = false;
       }
     }
 
-    if (categoryProductIds.size === 0) {
-      return res.json({ orders: [], summary: { grossRevenue: 0, netRevenue: 0, totalCommission: 0 } });
+    if (targetProductIds.size === 0) {
+      return res.json({ pendingAmount: 0, itemsCount: 0, ordersCount: 0, startDate: lastPaidAt, endDate: now, orders: [] });
     }
 
+    // 3. Buscar pedidos criados APÓS o lastPaidAt
     let allOrders = [];
     let oPage = 1;
     let oHasMore = true;
     while (oHasMore) {
-      const params = { per_page: 200, page: oPage, status: 'any' };
-      if (dateMin) params.created_at_min = dateMin;
-      if (dateMax) params.created_at_max = dateMax;
+      const params = { per_page: 200, page: oPage, payment_status: 'paid' };
+      if (lastPaidAt) params.created_at_min = lastPaidAt;
       
-      const response = await client.get('/orders', { params });
-      const orders = response.data || [];
-      if (orders.length === 0) {
-        oHasMore = false;
-      } else {
-        allOrders = allOrders.concat(orders);
-        if (orders.length < 200) {
-          oHasMore = false; // Prevents 404 Not Found on next page
+      try {
+        const response = await client.get('/orders', { params });
+        const orders = response.data || [];
+        if (orders.length === 0) {
+          oHasMore = false;
         } else {
-          oPage++;
-          if (oPage > 500) oHasMore = false;
+          allOrders = allOrders.concat(orders);
+          if (orders.length < 200) oHasMore = false;
+          else oPage++;
         }
+      } catch (err) {
+         console.error('Erro buscar pedidos:', err.message);
+         oHasMore = false;
       }
     }
 
     let reportData = [];
-    let totalGrossRevenue = 0;
     let totalCommission = 0;
+    let totalItems = 0;
 
     for (const order of allOrders) {
       if (!order.products || order.products.length === 0) continue;
@@ -1977,7 +1969,7 @@ app.get('/api/commissions-report', requireAuth, async (req, res) => {
       let collectionRevenue = 0;
       
       for (const item of order.products) {
-        if (categoryProductIds.has(item.product_id)) {
+        if (targetProductIds.has(item.product_id)) {
           const qty = parseInt(item.quantity || 1, 10);
           collectionItemCount += qty;
           collectionRevenue += (parseFloat(item.price || 0) * qty);
@@ -1985,10 +1977,9 @@ app.get('/api/commissions-report', requireAuth, async (req, res) => {
       }
 
       if (collectionItemCount > 0) {
-        const settings = getSystemSettings().commissions;
-        const orderCommission = collectionItemCount * (settings.valorFixo || 50); // R$ Dinâmico por unidade vendida
-        totalGrossRevenue += collectionRevenue;
+        const orderCommission = collectionItemCount * COMMISSION_VALUE;
         totalCommission += orderCommission;
+        totalItems += collectionItemCount;
 
         reportData.push({
           orderId: order.id,
@@ -2004,19 +1995,69 @@ app.get('/api/commissions-report', requireAuth, async (req, res) => {
     }
 
     res.json({
-      summary: {
-        grossRevenue: totalGrossRevenue,
-        totalCommission: totalCommission,
-        netRevenue: totalGrossRevenue - totalCommission
-      },
+      pendingAmount: totalCommission,
+      itemsCount: totalItems,
+      ordersCount: reportData.length,
+      startDate: lastPaidAt,
+      endDate: now,
       orders: reportData
     });
   } catch (error) {
-    console.error('Error generating commission report:', error.response ? error.response.data : error.message);
+    console.error('Error generating pending commissions:', error.message);
     res.status(500).json({ error: error.message });
   }
 });
 
+// Pagar comissões (registrar na tabela commissions_history)
+app.post('/api/commissions/pay', requireAuth, async (req, res) => {
+  const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
+  try {
+    const { amount, itemsCount, ordersCount, startDate, endDate } = req.body;
+    
+    const { error } = await supabase.from('commissions_history').insert([{
+      store_id: storeId,
+      amount,
+      items_count: itemsCount,
+      orders_count: ordersCount,
+      start_date: startDate,
+      end_date: endDate
+    }]);
+
+    if (error) {
+      if (error.code === '42P01') {
+        return res.status(400).json({ error: "A tabela commissions_history ainda não foi criada no Supabase." });
+      }
+      throw error;
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Buscar histórico de pagamentos
+app.get('/api/commissions/history', requireAuth, async (req, res) => {
+  const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
+  try {
+    const { data, error } = await supabase
+      .from('commissions_history')
+      .select('*')
+      .eq('store_id', storeId)
+      .order('created_at', { ascending: false });
+      
+    if (error) {
+      if (error.code === '42P01') {
+         return res.json([]); // Tabela não existe, retorna vazio
+      }
+      throw error;
+    }
+    
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 // IA Engine - Geração Massiva
 app.post('/api/ai/bulk-process', requireAuth, async (req, res) => {

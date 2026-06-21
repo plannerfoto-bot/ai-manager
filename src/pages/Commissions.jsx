@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
-import { DollarSign, Download, Filter, TrendingUp, Search, Calendar, FileText } from 'lucide-react';
+import { DollarSign, CheckCircle2, AlertCircle, Calendar, FileText, History, Clock } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 const API_BASE_URL = window.location.hostname === 'localhost' 
@@ -10,160 +8,82 @@ const API_BASE_URL = window.location.hostname === 'localhost'
   : 'https://ai-manager-nuvemshop.onrender.com';
 
 const Commissions = () => {
-  const [categories, setCategories] = useState([]);
-  const [selectedCategory, setSelectedCategory] = useState('');
-  const [selectedPeriod, setSelectedPeriod] = useState('');
+  const [activeTab, setActiveTab] = useState('pending'); // 'pending' | 'history'
   const [loading, setLoading] = useState(false);
-  const [report, setReport] = useState(null);
+  const [pendingData, setPendingData] = useState(null);
+  const [historyData, setHistoryData] = useState([]);
+  const [paying, setPaying] = useState(false);
 
   useEffect(() => {
-    fetchCategories();
-  }, []);
-
-  const fetchCategories = async () => {
-    try {
-      const res = await axios.get(`${API_BASE_URL}/api/categories`);
-      const allCats = res.data || [];
-      const parents = allCats.filter(c => !c.parent || c.parent === 0);
-      const sorted = [];
-      parents.forEach(p => {
-        sorted.push(p);
-        const children = allCats.filter(c => c.parent === p.id);
-        children.forEach(c => {
-          c._isChild = true;
-          sorted.push(c);
-        });
-      });
-      
-      const groupedIds = new Set(sorted.map(c => c.id));
-      const orphans = allCats.filter(c => !groupedIds.has(c.id));
-      
-      setCategories([...sorted, ...orphans]);
-    } catch (error) {
-      console.error('Erro ao buscar categorias:', error);
-      toast.error('Erro ao carregar coleções.');
+    if (activeTab === 'pending') {
+      fetchPending();
+    } else {
+      fetchHistory();
     }
-  };
+  }, [activeTab]);
 
-  const getDatesForPeriod = (period) => {
-    const today = new Date();
-    let min = new Date();
-    let max = new Date(today);
-    
-    switch (period) {
-      case 'semana':
-        min.setDate(today.getDate() - 7);
-        break;
-      case 'quinzena':
-        min.setDate(today.getDate() - 15);
-        break;
-      case 'mes':
-        min.setMonth(today.getMonth() - 1);
-        break;
-      case 'trimestre':
-        min.setMonth(today.getMonth() - 3);
-        break;
-      case 'semestre':
-        min.setMonth(today.getMonth() - 6);
-        break;
-      case 'ano':
-        min.setFullYear(today.getFullYear() - 1);
-        break;
-      default:
-        min = null;
-        max = null;
-    }
-    
-    return {
-      dateMin: min ? min.toISOString() : '',
-      dateMax: max ? max.toISOString() : ''
-    };
-  };
-
-  const handleGenerateReport = async () => {
-    if (!selectedCategory) {
-      toast.error('Selecione uma coleção primeiro.');
-      return;
-    }
-    
+  const fetchPending = async () => {
     setLoading(true);
-    const { dateMin, dateMax } = getDatesForPeriod(selectedPeriod);
-    
     try {
-      const res = await axios.get(`${API_BASE_URL}/api/commissions-report`, {
-        params: {
-          categoryId: selectedCategory,
-          dateMin,
-          dateMax
-        }
-      });
-      setReport(res.data);
-      toast.success('Relatório gerado com sucesso!');
+      const res = await axios.get(`${API_BASE_URL}/api/commissions/pending`);
+      setPendingData(res.data);
     } catch (error) {
-      console.error('Erro:', error);
-      toast.error('Falha ao gerar o relatório.');
+      console.error('Erro ao buscar pendências:', error);
+      toast.error('Erro ao carregar comissões pendentes.');
     } finally {
       setLoading(false);
     }
   };
 
-  const downloadPDF = () => {
-    if (!report || !report.orders || report.orders.length === 0) return;
-    
-    const doc = new jsPDF();
-    const collectionName = categories.find(c => c.id === parseInt(selectedCategory))?.name?.pt || categories.find(c => c.id === parseInt(selectedCategory))?.name || 'Coleção';
-    
-    // Título
-    doc.setFontSize(20);
-    doc.setTextColor(15, 23, 42); // slate-900
-    doc.text('Relatório de Comissões e Vendas', 14, 22);
-    
-    // Informações Gerais
-    doc.setFontSize(11);
-    doc.setTextColor(71, 85, 105); // slate-500
-    doc.text(`Coleção Analisada: ${collectionName}`, 14, 32);
-    doc.text(`Período de Vendas: ${selectedPeriod === '' ? 'Todo o período' : selectedPeriod}`, 14, 38);
-    doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}`, 14, 44);
+  const fetchHistory = async () => {
+    setLoading(true);
+    try {
+      const res = await axios.get(`${API_BASE_URL}/api/commissions/history`);
+      setHistoryData(res.data || []);
+    } catch (error) {
+      console.error('Erro ao buscar histórico:', error);
+      toast.error('Erro ao carregar histórico.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    // Resumo Financeiro
-    doc.setFontSize(14);
-    doc.setTextColor(15, 23, 42);
-    doc.text('Resumo Financeiro', 14, 56);
+  const handlePay = async () => {
+    if (!pendingData || pendingData.pendingAmount === 0) return;
     
-    doc.setFontSize(11);
-    doc.setTextColor(30, 41, 59);
-    doc.text(`Faturamento Bruto (Coleção): R$ ${report.summary.grossRevenue.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`, 14, 64);
-    doc.text(`Faturamento Líquido: R$ ${report.summary.netRevenue.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`, 14, 70);
-    doc.setTextColor(5, 150, 105); // emerald-600
-    doc.text(`Valor Total de Comissões: R$ ${report.summary.totalCommission.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`, 14, 76);
+    if (!window.confirm(`Tem certeza que deseja registrar o pagamento de R$ ${pendingData.pendingAmount.toFixed(2)} e zerar as pendências?`)) {
+      return;
+    }
 
-    // Tabela de Pedidos
-    const tableColumn = ["Pedido", "Data", "Cliente", "Itens", "Fat. Bruto", "Comissão"];
-    const tableRows = [];
+    setPaying(true);
+    try {
+      await axios.post(`${API_BASE_URL}/api/commissions/pay`, {
+        amount: pendingData.pendingAmount,
+        itemsCount: pendingData.itemsCount,
+        ordersCount: pendingData.ordersCount,
+        startDate: pendingData.startDate,
+        endDate: pendingData.endDate
+      });
+      toast.success('Pagamento registrado com sucesso!');
+      fetchPending();
+    } catch (error) {
+      console.error('Erro ao registrar pagamento:', error);
+      if (error.response?.data?.error) {
+        toast.error(error.response.data.error);
+      } else {
+        toast.error('Erro ao registrar pagamento.');
+      }
+    } finally {
+      setPaying(false);
+    }
+  };
 
-    report.orders.forEach(o => {
-      const rowData = [
-        `#${o.orderNumber}`,
-        new Date(o.createdAt).toLocaleDateString('pt-BR'),
-        o.customerName,
-        `${o.collectionItemsSold} un.`,
-        `R$ ${o.collectionRevenue.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`,
-        `R$ ${o.commissionValue.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`
-      ];
-      tableRows.push(rowData);
+  const formatDate = (dateString) => {
+    if (!dateString) return 'Início';
+    return new Date(dateString).toLocaleDateString('pt-BR', {
+      day: '2-digit', month: '2-digit', year: 'numeric',
+      hour: '2-digit', minute: '2-digit'
     });
-
-    doc.autoTable({
-      startY: 84,
-      head: [tableColumn],
-      body: tableRows,
-      theme: 'grid',
-      headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255], fontStyle: 'bold' },
-      styles: { fontSize: 9, cellPadding: 4 },
-      alternateRowStyles: { fillColor: [248, 250, 252] }
-    });
-
-    doc.save(`Relatorio_Comissoes_${new Date().getTime()}.pdf`);
   };
 
   return (
@@ -172,131 +92,186 @@ const Commissions = () => {
         <div>
           <h1 className="text-3xl font-bold text-[var(--text-primary)] tracking-tight flex items-center gap-3">
             <DollarSign className="w-8 h-8 text-emerald-500" />
-            Comissões & Financeiro
+            Comissões: Aline Martins
           </h1>
-          <p className="text-[var(--text-muted)] mt-1">Gerenciamento de comissões fixas para parceiros por coleção</p>
-        </div>
-        {report && (
-          <button onClick={downloadPDF} className="px-5 py-2.5 btn-primary text-[var(--text-inverse)] font-semibold rounded-lg hover:brightness-110 transition-all flex items-center gap-2 shadow-lg shadow-blue-500/20">
-            <Download className="w-5 h-5" /> Exportar Relatório em PDF
-          </button>
-        )}
-      </div>
-
-      <div className="glass p-6 rounded-xl border border-[var(--border-soft)]">
-        <h2 className="text-lg font-bold text-[var(--text-primary)] mb-4 flex items-center gap-2">
-          <Filter className="w-5 h-5 text-primary" /> Filtros do Relatório
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div>
-            <label className="block text-sm font-medium text-[var(--text-muted)] mb-2">Coleção (Categoria)</label>
-            <select 
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="w-full bg-[var(--surface-glass)] border border-[var(--border-soft)] rounded-lg p-3 text-[var(--text-primary)] focus:border-primary focus:ring-1 focus:ring-primary outline-none"
-            >
-              <option value="">Selecione a Coleção...</option>
-              {categories.map(cat => (
-                <option key={cat.id} value={cat.id}>
-                  {cat._isChild || (cat.parent && cat.parent !== 0) ? '  — ' : ''}{cat.name.pt || cat.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-[var(--text-muted)] mb-2">Período de Vendas</label>
-            <select 
-              value={selectedPeriod}
-              onChange={(e) => setSelectedPeriod(e.target.value)}
-              className="w-full bg-[var(--surface-glass)] border border-[var(--border-soft)] rounded-lg p-3 text-[var(--text-primary)] focus:border-primary focus:ring-1 focus:ring-primary outline-none"
-            >
-              <option value="">Todo o Período</option>
-              <option value="semana">Última Semana</option>
-              <option value="quinzena">Última Quinzena</option>
-              <option value="mes">Último Mês</option>
-              <option value="trimestre">Último Trimestre</option>
-              <option value="semestre">Último Semestre</option>
-              <option value="ano">Último Ano</option>
-            </select>
-          </div>
-          <div className="flex items-end">
-            <button 
-              onClick={handleGenerateReport}
-              disabled={loading}
-              className="w-full py-3 btn-primary text-[var(--text-inverse)] font-bold rounded-lg hover:brightness-110 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-            >
-              {loading ? (
-                <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-white"></div>
-              ) : (
-                <><Search className="w-5 h-5" /> Gerar Relatório</>
-              )}
-            </button>
-          </div>
+          <p className="text-[var(--text-muted)] mt-1">
+            Controle de pagamento de comissões exclusivas da coleção Aline Martins (R$ 50,00 por produto).
+          </p>
         </div>
       </div>
 
-      {report && (
+      <div className="flex gap-4 border-b border-[var(--border-soft)] mb-6">
+        <button
+          onClick={() => setActiveTab('pending')}
+          className={`pb-3 px-2 font-medium flex items-center gap-2 transition-all ${
+            activeTab === 'pending'
+              ? 'border-b-2 border-emerald-500 text-emerald-500'
+              : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+          }`}
+        >
+          <Clock className="w-4 h-4" /> Valores Pendentes
+        </button>
+        <button
+          onClick={() => setActiveTab('history')}
+          className={`pb-3 px-2 font-medium flex items-center gap-2 transition-all ${
+            activeTab === 'history'
+              ? 'border-b-2 border-primary text-primary'
+              : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+          }`}
+        >
+          <History className="w-4 h-4" /> Histórico de Pagamentos
+        </button>
+      </div>
+
+      {activeTab === 'pending' && (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
-          {/* Métricas */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="glass p-6 rounded-xl border border-[var(--border-soft)] bg-gradient-to-br from-slate-900 to-slate-800/50">
-              <p className="text-[var(--text-muted)] text-sm font-bold uppercase mb-1">Faturamento Bruto (Coleção)</p>
-              <p className="text-3xl font-black text-[var(--text-primary)]">R$ {report.summary.grossRevenue.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</p>
-            </div>
-            <div className="glass p-6 rounded-xl border border-emerald-900/30 bg-gradient-to-br from-emerald-950/20 to-slate-900">
-              <p className="text-emerald-500/80 text-sm font-bold uppercase mb-1">Valor da Comissão Parceiro</p>
-              <p className="text-3xl font-black text-emerald-500">R$ {report.summary.totalCommission.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</p>
-              <p className="text-xs text-emerald-500/50 mt-1">R$ 50 por unidade vendida</p>
-            </div>
-            <div className="glass p-6 rounded-xl border border-blue-900/30 bg-gradient-to-br from-blue-950/20 to-slate-900">
-              <p className="text-[var(--accent)]/80 text-sm font-bold uppercase mb-1">Faturamento Líquido</p>
-              <p className="text-3xl font-black text-[var(--accent)]">R$ {report.summary.netRevenue.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</p>
-            </div>
-          </div>
+          {loading ? (
+            <div className="p-12 flex justify-center"><div className="animate-spin rounded-full h-8 w-8 border-t-2 border-emerald-500"></div></div>
+          ) : pendingData ? (
+            <>
+              {/* Resumo de Pendências */}
+              <div className="glass p-8 rounded-2xl border border-emerald-500/30 bg-gradient-to-br from-emerald-950/20 to-slate-900 flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
+                <div className="absolute -right-10 -top-10 text-emerald-500/5 rotate-12">
+                  <DollarSign className="w-64 h-64" />
+                </div>
+                
+                <div className="z-10">
+                  <p className="text-emerald-500/80 font-bold uppercase tracking-widest text-sm mb-2 flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4" /> Saldo Pendente
+                  </p>
+                  <p className="text-5xl font-black text-emerald-400 drop-shadow-lg">
+                    R$ {pendingData.pendingAmount.toLocaleString('pt-BR', {minimumFractionDigits: 2})}
+                  </p>
+                  <p className="text-slate-400 mt-3 text-sm">
+                    Acumulado desde: <strong className="text-slate-300">{formatDate(pendingData.startDate)}</strong>
+                  </p>
+                  <div className="flex gap-4 mt-4">
+                    <div className="bg-slate-800/50 px-4 py-2 rounded-lg border border-slate-700/50">
+                      <p className="text-xs text-slate-400 uppercase font-semibold">Produtos</p>
+                      <p className="text-lg font-bold text-slate-200">{pendingData.itemsCount}</p>
+                    </div>
+                    <div className="bg-slate-800/50 px-4 py-2 rounded-lg border border-slate-700/50">
+                      <p className="text-xs text-slate-400 uppercase font-semibold">Pedidos</p>
+                      <p className="text-lg font-bold text-slate-200">{pendingData.ordersCount}</p>
+                    </div>
+                  </div>
+                </div>
 
-          {/* Tabela de Pedidos */}
+                <div className="z-10">
+                  <button 
+                    onClick={handlePay}
+                    disabled={paying || pendingData.pendingAmount === 0}
+                    className="px-8 py-4 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 disabled:text-slate-500 text-white font-black text-lg rounded-xl shadow-xl shadow-emerald-900/50 flex items-center gap-3 transition-all"
+                  >
+                    {paying ? (
+                      <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-white"></div>
+                    ) : (
+                      <><CheckCircle2 className="w-6 h-6" /> Marcar Pendência como Paga</>
+                    )}
+                  </button>
+                  <p className="text-xs text-slate-500 text-center mt-3 max-w-[280px]">
+                    Isso zerará o saldo pendente e salvará o pagamento no histórico de acertos.
+                  </p>
+                </div>
+              </div>
+
+              {/* Pedidos que compõem a pendência */}
+              <div className="glass rounded-xl border border-[var(--border-soft)] overflow-hidden">
+                <div className="p-4 border-b border-[var(--border-soft)] flex items-center justify-between bg-[var(--surface-glass)]/50">
+                  <h3 className="font-bold text-[var(--text-primary)] flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-primary" />
+                    Pedidos Computados ({pendingData.orders.length})
+                  </h3>
+                </div>
+                
+                <div className="overflow-x-auto">
+                  {pendingData.orders.length === 0 ? (
+                    <div className="p-12 text-center text-[var(--text-muted)]">
+                      Nenhum pedido pago com produtos Aline Martins desde o último acerto.
+                    </div>
+                  ) : (
+                    <table className="w-full text-left text-sm">
+                      <thead className="bg-[var(--surface-glass)] text-[var(--text-muted)] uppercase text-xs font-semibold">
+                        <tr>
+                          <th className="px-6 py-4">Pedido</th>
+                          <th className="px-6 py-4">Data Pagamento</th>
+                          <th className="px-6 py-4">Cliente</th>
+                          <th className="px-6 py-4 text-center">Itens (Aline M.)</th>
+                          <th className="px-6 py-4 text-right">Comissão Adicionada</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-800/50">
+                        {pendingData.orders.map((o) => (
+                          <tr key={o.orderId} className="hover:bg-[var(--surface-glass)]/30 transition-all">
+                            <td className="px-6 py-4 font-medium text-[var(--text-primary)]">#{o.orderNumber}</td>
+                            <td className="px-6 py-4 text-[var(--text-muted)]">
+                              <div className="flex items-center gap-2">
+                                <Calendar className="w-4 h-4" />
+                                {formatDate(o.createdAt)}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 text-[var(--text-muted)]">{o.customerName}</td>
+                            <td className="px-6 py-4 text-center text-[var(--accent)] font-bold">{o.collectionItemsSold} un.</td>
+                            <td className="px-6 py-4 text-right text-emerald-500 font-bold">
+                              + R$ {o.commissionValue.toLocaleString('pt-BR', {minimumFractionDigits:2})}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+              </div>
+            </>
+          ) : null}
+        </div>
+      )}
+
+      {activeTab === 'history' && (
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
           <div className="glass rounded-xl border border-[var(--border-soft)] overflow-hidden">
             <div className="p-4 border-b border-[var(--border-soft)] flex items-center justify-between bg-[var(--surface-glass)]/50">
               <h3 className="font-bold text-[var(--text-primary)] flex items-center gap-2">
-                <FileText className="w-5 h-5 text-primary" />
-                Vendas Relacionadas ({report.orders.length})
+                <History className="w-5 h-5 text-primary" />
+                Acertos Realizados
               </h3>
             </div>
             
             <div className="overflow-x-auto">
-              {report.orders.length === 0 ? (
+              {loading ? (
+                <div className="p-12 flex justify-center"><div className="animate-spin rounded-full h-8 w-8 border-t-2 border-primary"></div></div>
+              ) : historyData.length === 0 ? (
                 <div className="p-12 text-center text-[var(--text-muted)]">
-                  Nenhuma venda contendo produtos desta coleção foi encontrada no período.
+                  Nenhum acerto de pagamento foi registrado no histórico.
                 </div>
               ) : (
                 <table className="w-full text-left text-sm">
                   <thead className="bg-[var(--surface-glass)] text-[var(--text-muted)] uppercase text-xs font-semibold">
                     <tr>
-                      <th className="px-6 py-4">Pedido</th>
-                      <th className="px-6 py-4">Data</th>
-                      <th className="px-6 py-4">Cliente</th>
-                      <th className="px-6 py-4 text-center">Itens (Coleção)</th>
-                      <th className="px-6 py-4 text-right">Faturamento Bruto</th>
-                      <th className="px-6 py-4 text-right">Comissão Devida</th>
+                      <th className="px-6 py-4">Data do Acerto</th>
+                      <th className="px-6 py-4">Período Contemplado</th>
+                      <th className="px-6 py-4 text-center">Pedidos</th>
+                      <th className="px-6 py-4 text-center">Itens Vendidos</th>
+                      <th className="px-6 py-4 text-right">Valor Pago</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800/50">
-                    {report.orders.map((o) => (
-                      <tr key={o.orderId} className="hover:bg-[var(--surface-glass)]/30 transition-all">
-                        <td className="px-6 py-4 font-medium text-[var(--text-primary)]">#{o.orderNumber}</td>
-                        <td className="px-6 py-4 text-[var(--text-muted)]">
-                          <div className="flex items-center gap-2">
-                            <Calendar className="w-4 h-4" />
-                            {new Date(o.createdAt).toLocaleDateString('pt-BR')}
+                    {historyData.map((h) => (
+                      <tr key={h.id} className="hover:bg-[var(--surface-glass)]/30 transition-all">
+                        <td className="px-6 py-4 font-bold text-[var(--text-primary)]">
+                          <div className="flex items-center gap-2 text-emerald-400">
+                            <CheckCircle2 className="w-4 h-4" />
+                            {formatDate(h.created_at)}
                           </div>
                         </td>
-                        <td className="px-6 py-4 text-[var(--text-muted)]">{o.customerName}</td>
-                        <td className="px-6 py-4 text-center text-[var(--accent)] font-bold">{o.collectionItemsSold} un.</td>
-                        <td className="px-6 py-4 text-right text-[var(--text-muted)]">
-                          R$ {o.collectionRevenue.toLocaleString('pt-BR', {minimumFractionDigits:2})}
+                        <td className="px-6 py-4 text-[var(--text-muted)] text-xs">
+                          De: {formatDate(h.start_date)}<br/>
+                          Até: {formatDate(h.end_date)}
                         </td>
-                        <td className="px-6 py-4 text-right text-emerald-500 font-bold">
-                          R$ {o.commissionValue.toLocaleString('pt-BR', {minimumFractionDigits:2})}
+                        <td className="px-6 py-4 text-center text-[var(--text-muted)]">{h.orders_count}</td>
+                        <td className="px-6 py-4 text-center text-[var(--text-muted)]">{h.items_count}</td>
+                        <td className="px-6 py-4 text-right text-[var(--text-primary)] font-black text-lg">
+                          R$ {parseFloat(h.amount).toLocaleString('pt-BR', {minimumFractionDigits:2})}
                         </td>
                       </tr>
                     ))}
