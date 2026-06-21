@@ -1884,8 +1884,8 @@ app.get('/api/categories', requireAuth, async (req, res) => {
 
 const COMMISSION_VALUE = 50.00;
 
-// Busca comissões pendentes (após a última data paga)
-app.get('/api/commissions/pending', requireAuth, async (req, res) => {
+// Busca comissões (relatório completo de pendentes e pagas)
+app.get('/api/commissions/report', requireAuth, async (req, res) => {
   const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
   const client = await getApiClient(storeId);
   try {
@@ -1911,14 +1911,17 @@ app.get('/api/commissions/pending', requireAuth, async (req, res) => {
     let pHasMore = true;
     while(pHasMore) {
       try {
-        const pRes = await client.get('/products', { params: { q: 'aline martins', per_page: 200, page: pPage } });
+        const pRes = await client.get('/products', { params: { q: 'aline', per_page: 200, page: pPage } });
         const prods = pRes.data || [];
         if (prods.length === 0) {
           pHasMore = false;
         } else {
           prods.forEach(p => {
-            if (p.tags && p.tags.toLowerCase().includes('aline martins')) {
-              targetProductIds.add(p.id);
+            if (p.tags) {
+              const tg = p.tags.toLowerCase();
+              if (tg.includes('aline martins') || tg.includes('aline-martins') || tg.includes('alinemartins')) {
+                targetProductIds.add(p.id);
+              }
             }
           });
           if (prods.length < 200) pHasMore = false;
@@ -1931,16 +1934,16 @@ app.get('/api/commissions/pending', requireAuth, async (req, res) => {
     }
 
     if (targetProductIds.size === 0) {
-      return res.json({ pendingAmount: 0, itemsCount: 0, ordersCount: 0, startDate: lastPaidAt, endDate: now, orders: [] });
+      return res.json({ pendingAmount: 0, itemsCount: 0, ordersCount: 0, startDate: lastPaidAt, endDate: now, pendingOrders: [], paidOrders: [] });
     }
 
-    // 3. Buscar pedidos criados APÓS o lastPaidAt
+    // 3. Buscar pedidos desde o lançamento da coleção (Fev/2025)
     let allOrders = [];
     let oPage = 1;
     let oHasMore = true;
     while (oHasMore) {
-      const params = { per_page: 200, page: oPage, payment_status: 'paid' };
-      if (lastPaidAt) params.created_at_min = lastPaidAt;
+      // 2025-02-15 é o lançamento
+      const params = { per_page: 200, page: oPage, payment_status: 'paid', created_at_min: '2025-02-15T00:00:00Z' };
       
       try {
         const response = await client.get('/orders', { params });
@@ -1958,9 +1961,10 @@ app.get('/api/commissions/pending', requireAuth, async (req, res) => {
       }
     }
 
-    let reportData = [];
-    let totalCommission = 0;
-    let totalItems = 0;
+    let pendingOrders = [];
+    let paidOrders = [];
+    let totalPendingCommission = 0;
+    let totalPendingItems = 0;
 
     for (const order of allOrders) {
       if (!order.products || order.products.length === 0) continue;
@@ -1978,10 +1982,7 @@ app.get('/api/commissions/pending', requireAuth, async (req, res) => {
 
       if (collectionItemCount > 0) {
         const orderCommission = collectionItemCount * COMMISSION_VALUE;
-        totalCommission += orderCommission;
-        totalItems += collectionItemCount;
-
-        reportData.push({
+        const orderData = {
           orderId: order.id,
           orderNumber: order.number,
           customerName: order.customer ? order.customer.name : 'N/A',
@@ -1990,20 +1991,31 @@ app.get('/api/commissions/pending', requireAuth, async (req, res) => {
           collectionItemsSold: collectionItemCount,
           collectionRevenue: collectionRevenue,
           commissionValue: orderCommission
-        });
+        };
+
+        const isPaid = lastPaidAt && new Date(order.created_at) <= new Date(lastPaidAt);
+
+        if (isPaid) {
+          paidOrders.push(orderData);
+        } else {
+          totalPendingCommission += orderCommission;
+          totalPendingItems += collectionItemCount;
+          pendingOrders.push(orderData);
+        }
       }
     }
 
     res.json({
-      pendingAmount: totalCommission,
-      itemsCount: totalItems,
-      ordersCount: reportData.length,
+      pendingAmount: totalPendingCommission,
+      itemsCount: totalPendingItems,
+      ordersCount: pendingOrders.length,
       startDate: lastPaidAt,
       endDate: now,
-      orders: reportData
+      pendingOrders,
+      paidOrders
     });
   } catch (error) {
-    console.error('Error generating pending commissions:', error.message);
+    console.error('Error generating commissions report:', error.message);
     res.status(500).json({ error: error.message });
   }
 });
