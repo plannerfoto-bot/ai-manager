@@ -5,19 +5,16 @@ const axios = require('axios');
 // Bypass self-signed SSL errors if any
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
-const supabaseUrl = process.env.SUPABASE_URL || 'https://jiifmxlnhxodvqgscjro.supabase.co';
-const supabaseKey = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImppaWZteGxuaHhvZHZxZ3NjanJvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MDE3MTc5OCwiZXhwIjoyMDk1NzQ3Nzk4fQ.VYXXKFr_r-jYtNor4oMKFqqtOULO37fOce08tGQrB5Y';
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
-
-const DEFAULT_STORE_ID = '2767708';
-const DEFAULT_ACCESS_TOKEN = '454761d47b7ce42c4d539d997a3cf847d066c073';
 
 async function runSync() {
   console.log('🔄 Iniciando Sincronização Inicial de Dados (Produtos e Vendas dos últimos 2 meses)...');
 
   // 1. Obter credenciais
-  let storeId = DEFAULT_STORE_ID;
-  let accessToken = DEFAULT_ACCESS_TOKEN;
+  let storeId = process.env.TIENDANUBE_STORE_ID;
+  let accessToken = process.env.TIENDANUBE_ACCESS_TOKEN;
 
   try {
     const { data: stores } = await supabase.from('stores').select('*');
@@ -26,10 +23,10 @@ async function runSync() {
       accessToken = stores[0].access_token;
       console.log(`📌 Usando credenciais do banco: Loja ${storeId}`);
     } else {
-      console.log(`📌 Usando credenciais default do ambiente: Loja ${storeId}`);
+      console.log(`📌 Usando credenciais do .env: Loja ${storeId}`);
     }
   } catch (err) {
-    console.warn('⚠️ Não foi possível obter credenciais do Supabase, usando defaults.', err.message);
+    console.warn('⚠️ Não foi possível obter credenciais do Supabase, usando .env.', err.message);
   }
 
   const client = axios.create({
