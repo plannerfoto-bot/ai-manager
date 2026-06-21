@@ -242,7 +242,11 @@ const Commissions = () => {
                 </div>
               </div>
             </>
-          ) : null}
+          ) : (
+            <div className="p-12 text-center text-[var(--text-muted)] glass rounded-xl border border-[var(--border-soft)]">
+              Não foi possível carregar as informações de comissão ou os dados estão vazios. Tente clicar em "Sincronizar Nuvemshop" acima.
+            </div>
+          )}
         </div>
       )}
 
@@ -307,7 +311,11 @@ const Commissions = () => {
                 )}
               </div>
             </div>
-          ) : null}
+          ) : (
+            <div className="p-12 text-center text-[var(--text-muted)] glass rounded-xl border border-[var(--border-soft)]">
+              Não foi possível carregar o relatório completo de vendas. Tente clicar em "Sincronizar Nuvemshop" acima.
+            </div>
+          )}
         </div>
       )}
 
