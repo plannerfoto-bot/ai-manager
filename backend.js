@@ -3005,6 +3005,79 @@ app.post('/api/feedback/mark-sent', async (req, res) => {
   }
 });
 
+/** GET /api/public/search-products — Endpoint público de busca avançada por múltiplos termos (Nome, SKU, Tags) */
+app.get('/api/public/search-products', async (req, res) => {
+  try {
+    const q = req.query.q;
+    const storeId = req.query.store_id || DEFAULT_STORE_ID;
+    
+    if (!q || String(q).trim() === '') {
+      return res.json({ success: true, count: 0, products: [] });
+    }
+
+    // Limpar termos e remover acentos para busca flexível
+    const cleanTerm = String(q).normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+    // Dividir em palavras individuais
+    const words = cleanTerm.split(/\s+/).filter(w => w.length > 1);
+
+    if (words.length === 0) {
+      return res.json({ success: true, count: 0, products: [] });
+    }
+
+    let query = supabase
+      .from('nuvemshop_products')
+      .select('id, name, price, sku, tags, raw_data')
+      .eq('store_id', String(storeId));
+
+    // Aplicar a lógica AND: todas as palavras devem estar em Nome, SKU ou Tags
+    words.forEach(word => {
+      query = query.or(`name.ilike.%${word}%,sku.ilike.%${word}%,tags.ilike.%${word}%`);
+    });
+
+    const { data: products, error } = await query.limit(100);
+
+    if (error) {
+      console.error('❌ Erro Supabase search:', error);
+      throw error;
+    }
+
+    // Formatar resposta amigável para o frontend
+    const results = (products || []).map(p => {
+      const raw = p.raw_data || {};
+      const image = raw.images?.[0]?.src || '';
+      
+      let url = raw.canonical_url || '';
+      if (url && url.includes('tiendanube.com')) {
+        url = `/produtos/${raw.handle || ''}`;
+      } else if (!url) {
+        url = `/produtos/${raw.handle || ''}`;
+      } else {
+        try {
+          const parsedUrl = new URL(url);
+          url = parsedUrl.pathname;
+        } catch(e) {
+          url = `/produtos/${raw.handle || ''}`;
+        }
+      }
+
+      return {
+        id: p.id,
+        name: p.name,
+        price: p.price,
+        sku: p.sku,
+        url: url,
+        image: image
+      };
+    });
+
+    res.json({ success: true, count: results.length, products: results });
+  } catch (err) {
+    console.error('Erro ao buscar produtos:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+
 /** GET /api/abandoned-cart/checkouts — busca carrinhos abandonados da Nuvemshop (para o painel) */
 /**
  * POST /api/abandoned-cart/register-webhook — Registra o webhook de abandono na Nuvemshop
