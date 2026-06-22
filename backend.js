@@ -2849,6 +2849,150 @@ app.get('/api/abandoned-cart/check-sent/:checkoutId', async (req, res) => {
   }
 });
 
+/** GET /api/feedback/eligible — busca pedidos elegíveis para feedback com prazo dinâmico por CEP/UF */
+app.get('/api/feedback/eligible', async (req, res) => {
+  try {
+    // Autenticação flexível
+    const cronKey = req.query.key || req.headers['x-cron-key'];
+    const expectedKey = process.env.CRON_SECRET || 'ClothSecret2026';
+    if (cronKey !== expectedKey) {
+      return res.status(401).json({ error: 'Acesso negado. Token inválido.' });
+    }
+
+    const { data: orders, error } = await supabase
+      .from('nuvemshop_orders')
+      .select('id, store_id, number, customer, created_at, updated_at, raw_data')
+      .eq('payment_status', 'paid');
+
+    if (error) throw error;
+
+    const { data: sentFeedbacks, error: fError } = await supabase
+      .from('nuvemshop_feedbacks')
+      .select('order_id');
+    if (fError) throw fError;
+
+    const sentIds = new Set((sentFeedbacks || []).map(f => f.order_id));
+
+    // Filtrar elegíveis
+    const now = new Date();
+    const eligibleOrders = [];
+
+    for (const order of (orders || [])) {
+      // Ignorar se já foi enviado feedback
+      if (sentIds.has(order.id)) continue;
+
+      const raw = order.raw_data || {};
+      const trackingNumber = raw.shipping_tracking_number;
+      
+      // Só prossegue se tiver código de rastreamento
+      if (!trackingNumber || String(trackingNumber).trim() === '') continue;
+
+      // Pegar data de envio (ou última atualização do pedido)
+      const shippedAtStr = raw.shipped_at || order.updated_at || order.created_at;
+      const shippedAt = new Date(shippedAtStr);
+
+      // Calcular quantos dias se passaram desde o envio
+      const diffTime = Math.abs(now - shippedAt);
+      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+      // Determinar o prazo com base no CEP e Estado
+      const address = raw.shipping_address || {};
+      const zipcode = address.zipcode || '';
+      const province = address.province || '';
+      
+      const daysToWait = getDaysToWait(zipcode, province);
+
+      if (diffDays >= daysToWait) {
+        eligibleOrders.push({
+          id: order.id,
+          store_id: order.store_id,
+          number: order.number,
+          customer_name: order.customer?.name || 'Cliente',
+          customer_phone: order.customer?.phone || '',
+          customer_email: order.customer?.email || '',
+          tracking_number: trackingNumber,
+          shipped_at: shippedAtStr,
+          days_elapsed: diffDays,
+          days_required: daysToWait,
+          province: province,
+          zipcode: zipcode
+        });
+      }
+    }
+
+    res.json({ success: true, count: eligibleOrders.length, orders: eligibleOrders });
+  } catch (err) {
+    console.error('Erro ao buscar pedidos elegíveis para feedback:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Função auxiliar para calcular o prazo com base no CEP/UF
+function getDaysToWait(zipcode, province) {
+  const uf = String(province || '').toUpperCase().trim();
+  const cep = String(zipcode || '').replace(/\D/g, '');
+  
+  // RJ (Nova Iguaçu é no RJ)
+  if (uf === 'RJ' || uf === 'RIO DE JANEIRO' || cep.startsWith('2')) {
+    return 10; // 7 dias + 3 de margem
+  }
+  
+  // SP, MG, ES (Sudeste)
+  if (uf === 'SP' || uf === 'SÃO PAULO' || uf === 'SAO PAULO' || uf === 'MG' || uf === 'MINAS GERAIS' || uf === 'ES' || uf === 'ESPÍRITO SANTO' || uf === 'ESPIRITO SANTO') {
+    return 12;
+  }
+  
+  // Sul (PR, SC, RS)
+  if (['PR', 'PARANÁ', 'PARANA', 'SC', 'SANTA CATARINA', 'RS', 'RIO GRANDE DO SUL'].some(x => uf.includes(x)) || cep.startsWith('8') || cep.startsWith('9')) {
+    return 15;
+  }
+  
+  // Centro-Oeste
+  if (['DF', 'DISTRITO FEDERAL', 'GO', 'GOIÁS', 'GOIAS', 'MT', 'MATO GROSSO', 'MS', 'MATO GROSSO DO SUL'].some(x => uf.includes(x)) || cep.startsWith('7')) {
+    return 18;
+  }
+  
+  // Nordeste / Norte (Demora mais)
+  return 31;
+}
+
+/** POST /api/feedback/mark-sent — registra o envio do feedback para evitar duplicidade */
+app.post('/api/feedback/mark-sent', async (req, res) => {
+  try {
+    const cronKey = req.query.key || req.headers['x-cron-key'];
+    const expectedKey = process.env.CRON_SECRET || 'ClothSecret2026';
+    if (cronKey !== expectedKey) {
+      return res.status(401).json({ error: 'Acesso negado. Token inválido.' });
+    }
+
+    const { order_id, store_id, customer_name, customer_phone, status } = req.body;
+    if (!order_id) return res.status(400).json({ success: false, error: 'order_id obrigatório' });
+
+    const payload = {
+      order_id: String(order_id),
+      store_id: String(store_id || DEFAULT_STORE_ID),
+      customer_name: customer_name || 'N/A',
+      customer_phone: customer_phone || 'N/A',
+      status: status || 'sent',
+      sent_at: new Date().toISOString()
+    };
+
+    const { error } = await supabase
+      .from('nuvemshop_feedbacks')
+      .upsert(payload, { onConflict: 'order_id' });
+
+    if (error) {
+      console.error('❌ Erro Supabase mark-feedback-sent:', error);
+      throw error;
+    }
+
+    res.json({ success: true, record: payload });
+  } catch (err) {
+    console.error('Erro ao marcar feedback como enviado:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 /** GET /api/abandoned-cart/checkouts — busca carrinhos abandonados da Nuvemshop (para o painel) */
 /**
  * POST /api/abandoned-cart/register-webhook — Registra o webhook de abandono na Nuvemshop
