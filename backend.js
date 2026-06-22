@@ -3039,9 +3039,33 @@ app.get('/api/public/search-products', async (req, res) => {
       .select('id, name, price, sku, tags, raw_data')
       .eq('store_id', String(storeId));
 
-    // Aplicar a lógica AND: todas as palavras devem estar em Nome, SKU ou Tags
+    // Lógica para mapear letras para padrões regex com/sem acento
+    const buildRegexPattern = (word) => {
+      const map = {
+        'a': '[aáàâãäåæ]',
+        'e': '[eéèêë]',
+        'i': '[iíìîï]',
+        'o': '[oóòôõöø]',
+        'u': '[uúùûü]',
+        'c': '[cç]',
+        'n': '[nñ]'
+      };
+      let pattern = '';
+      for (let i = 0; i < word.length; i++) {
+        const char = word[i].toLowerCase();
+        if (map[char]) {
+          pattern += map[char];
+        } else {
+          pattern += char;
+        }
+      }
+      return pattern;
+    };
+
+    // Aplicar a lógica AND: todas as palavras devem estar em Nome, SKU ou Tags usando regex (imatch)
     words.forEach(word => {
-      query = query.or(`name.ilike.%${word}%,sku.ilike.%${word}%,tags.ilike.%${word}%`);
+      const regex = buildRegexPattern(word);
+      query = query.or(`name.imatch.${regex},sku.imatch.${regex},tags.imatch.${regex}`);
     });
 
     const { data: products, error } = await query
