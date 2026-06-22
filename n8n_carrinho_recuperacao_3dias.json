@@ -1,0 +1,315 @@
+{
+  "name": "Nuvemshop: Recuperação de Carrinho Abandonado Inteligente (3 Dias) - Dinâmico",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": "every30Minutes"
+      },
+      "id": "e2ba7e10-9190-482a-9e19-563b782c5f18",
+      "name": "Cron: Executar a cada 30 min",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [
+        200,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "abandoned_cart_config",
+        "returnAll": true,
+        "filters": {
+          "conditions": []
+        }
+      },
+      "id": "supabase-fetch-config",
+      "name": "Supabase: Buscar Configurações",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        380,
+        240
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "YOUR_SUPABASE_CREDENTIAL_ID",
+          "name": "Supabase connection"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "nuvemshop_checkouts",
+        "returnAll": true,
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "recovery_status",
+              "condition": "eq",
+              "keyValue": "pending"
+            }
+          ]
+        }
+      },
+      "id": "supabase-fetch-checkouts",
+      "name": "Supabase: Buscar Carrinhos Pendentes",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        560,
+        240
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "YOUR_SUPABASE_CREDENTIAL_ID",
+          "name": "Supabase connection"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const threeDaysAgo = new Date();\nthreeDaysAgo.setDate(threeDaysAgo.getDate() - 3);\n\nconst fiveDaysAgo = new Date();\nfiveDaysAgo.setDate(fiveDaysAgo.getDate() - 5);\n\n// Filtra apenas checkouts criados há mais de 3 dias e menos de 5 dias\nreturn items.filter(item => {\n  const createdAt = new Date(item.json.nuvemshop_created_at);\n  return createdAt <= threeDaysAgo && createdAt >= fiveDaysAgo;\n});"
+      },
+      "id": "filter-3-days",
+      "name": "Filtro: Exatamente 3 Dias",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        740,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://ai-manager-nuvemshop.onrender.com/api/abandoned-cart/verify-recovery/{{ $json.id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-cron-key",
+              "value": "ClothSecret2026"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "verify-recovery-endpoint",
+      "name": "API: Verificar Recuperação",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        920,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValueString": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "recovered-check",
+              "leftValue": "={{ $json.recovered }}",
+              "rightValue": "false",
+              "operator": "equals"
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-not-recovered",
+      "name": "Ainda Abandonado?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Supabase: Buscar Configurações').item.json.wuzapi_url }}/chat/send/text",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "token",
+              "value": "={{ $('Supabase: Buscar Configurações').item.json.wuzapi_user_token || $('Supabase: Buscar Configurações').item.json.wuzapi_token }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "phone",
+              "value": "={{ $('Filtro: Exatamente 3 Dias').item.json.customer_phone }}"
+            },
+            {
+              "name": "message",
+              "value": "=Oi, {{ $('Filtro: Exatamente 3 Dias').item.json.customer_first_name }}! Tudo bem? 😊\n\nVi que você começou uma compra no nosso site, mas não chegou a finalizar. Passei por aqui para saber se ficou com alguma dúvida ou se teve alguma dificuldade na hora de concluir.\n\nPode me chamar por aqui que eu te ajudo, tá?\n\nVou deixar o link do seu carrinho para facilitar:\n\n{{ $('Filtro: Exatamente 3 Dias').item.json.checkout_url }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "send-whatsapp-wuzapi",
+      "name": "Enviar WhatsApp (WuzAPI)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1300,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://ai-manager-nuvemshop.onrender.com/api/abandoned-cart/mark-sent",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-cron-key",
+              "value": "ClothSecret2026"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "checkout_id",
+              "value": "={{ $('Filtro: Exatamente 3 Dias').item.json.id }}"
+            },
+            {
+              "name": "store_id",
+              "value": "={{ $('Filtro: Exatamente 3 Dias').item.json.store_id }}"
+            },
+            {
+              "name": "customer_name",
+              "value": "={{ $('Filtro: Exatamente 3 Dias').item.json.customer_name }}"
+            },
+            {
+              "name": "customer_phone",
+              "value": "={{ $('Filtro: Exatamente 3 Dias').item.json.customer_phone }}"
+            },
+            {
+              "name": "total",
+              "value": "={{ $('Filtro: Exatamente 3 Dias').item.json.total }}"
+            },
+            {
+              "name": "status",
+              "value": "sent"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "mark-sent-database",
+      "name": "Marcar como Enviado",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1500,
+        140
+      ]
+    }
+  ],
+  "connections": {
+    "Cron: Executar a cada 30 min": {
+      "main": [
+        [
+          {
+            "node": "Supabase: Buscar Configurações",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase: Buscar Configurações": {
+      "main": [
+        [
+          {
+            "node": "Supabase: Buscar Carrinhos Pendentes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase: Buscar Carrinhos Pendentes": {
+      "main": [
+        [
+          {
+            "node": "Filtro: Exatamente 3 Dias",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filtro: Exatamente 3 Dias": {
+      "main": [
+        [
+          {
+            "node": "API: Verificar Recuperação",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "API: Verificar Recuperação": {
+      "main": [
+        [
+          {
+            "node": "Ainda Abandonado?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ainda Abandonado?": {
+      "main": [
+        [
+          {
+            "node": "Enviar WhatsApp (WuzAPI)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Enviar WhatsApp (WuzAPI)": {
+      "main": [
+        [
+          {
+            "node": "Marcar como Enviado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {},
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "1.0",
+  "triggerCount": 1,
+  "active": true
+}
