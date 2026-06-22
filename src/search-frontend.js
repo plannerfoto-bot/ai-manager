@@ -8,7 +8,7 @@ document.addEventListener("DOMContentLoaded", function() {
     if (query && query.trim() !== '') {
       console.log("[Busca Inteligente] Interceptando busca por:", query);
 
-      const baseUrl = typeof __PUBLIC_URL__ !== 'undefined' ? __PUBLIC_URL__ : 'https://ai-manager-nuvemshop.onrender.com';
+      const baseUrl = '__PUBLIC_URL__';
 
       fetch(`${baseUrl}/api/public/search-products?q=${encodeURIComponent(query)}`)
         .then(response => response.json())
