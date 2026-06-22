@@ -2875,11 +2875,16 @@ app.get('/api/feedback/eligible', async (req, res) => {
 
     // Filtrar elegíveis
     const now = new Date();
+    const limitDate = new Date('2026-06-15T00:00:00Z');
     const eligibleOrders = [];
 
     for (const order of (orders || [])) {
       // Ignorar se já foi enviado feedback
       if (sentIds.has(order.id)) continue;
+
+      // REGRA: Ignorar pedidos criados antes de 15/06/2026
+      const orderDate = new Date(order.created_at);
+      if (orderDate < limitDate) continue;
 
       const raw = order.raw_data || {};
       const trackingNumber = raw.shipping_tracking_number;
@@ -2923,7 +2928,11 @@ app.get('/api/feedback/eligible', async (req, res) => {
       }
     }
 
-    res.json({ success: true, count: eligibleOrders.length, orders: eligibleOrders });
+    // REGRA: Limitar quantidade de envios por execução para evitar spam no WhatsApp (padrão 3 pedidos)
+    const limit = parseInt(req.query.limit || '3', 10);
+    const batch = eligibleOrders.slice(0, limit);
+
+    res.json({ success: true, count: batch.length, total_eligible: eligibleOrders.length, orders: batch });
   } catch (err) {
     console.error('Erro ao buscar pedidos elegíveis para feedback:', err);
     res.status(500).json({ success: false, error: err.message });
