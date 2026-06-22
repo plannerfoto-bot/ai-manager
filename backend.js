@@ -2781,8 +2781,31 @@ app.get('/api/abandoned-cart/history', requireAuth, async (req, res) => {
 
 
 /** POST /api/abandoned-cart/mark-sent — registra que um carrinho foi contatado (chamado pelo n8n) */
-app.post('/api/abandoned-cart/mark-sent', requireAuth, async (req, res) => {
+app.post('/api/abandoned-cart/mark-sent', async (req, res) => {
   try {
+    // Autenticação flexível: Supabase JWT ou CRON_SECRET
+    const cronKey = req.query.key || req.headers['x-cron-key'];
+    const expectedKey = process.env.CRON_SECRET || 'ClothSecret2026';
+    let isAuthorized = false;
+
+    if (cronKey === expectedKey) {
+      isAuthorized = true;
+    } else {
+      // Tenta JWT do Supabase
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        const token = authHeader.split(' ')[1];
+        const { data: { user }, error } = await supabase.auth.getUser(token);
+        if (!error && user) {
+          isAuthorized = true;
+        }
+      }
+    }
+
+    if (!isAuthorized) {
+      return res.status(401).json({ error: 'Acesso negado. Token não fornecido ou inválido.' });
+    }
+
     const { checkout_id, customer_name, customer_phone, total, products, status, error_message, store_id } = req.body;
     const finalStoreId = String(store_id || req.headers['x-store-id'] || DEFAULT_STORE_ID);
     
