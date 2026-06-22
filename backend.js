@@ -3044,7 +3044,9 @@ app.get('/api/public/search-products', async (req, res) => {
       query = query.or(`name.ilike.%${word}%,sku.ilike.%${word}%,tags.ilike.%${word}%`);
     });
 
-    const { data: products, error } = await query.limit(100);
+    const { data: products, error } = await query
+      .order('created_at', { ascending: false })
+      .limit(100);
 
     if (error) {
       console.error('❌ Erro Supabase search:', error);
