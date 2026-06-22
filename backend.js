@@ -2479,8 +2479,12 @@ function getScriptSettings() {
     if (fs.existsSync(SETTINGS_FILE)) {
       return JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf-8'));
     }
+    const localSettings = path.join(__dirname, 'script_settings.json');
+    if (fs.existsSync(localSettings)) {
+      return JSON.parse(fs.readFileSync(localSettings, 'utf-8'));
+    }
   } catch(e) {}
-  return { enabled: true, whatsapp: '5511999999999' };
+  return { enabled: true, whatsapp: '5521964403083' };
 }
 function saveScriptSettings(settings) {
   try {
