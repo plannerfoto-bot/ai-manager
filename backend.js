@@ -2535,7 +2535,17 @@ function serveScript(res, enabled, whatsapp) {
       console.warn("Script frete-frontend.js não encontrado, ignorando.");
     }
     
-    jsContent = calcContent + '\n\n/* --- Frete Dinamico Injetado --- */\n\n' + freteContent;
+    let searchContent = '';
+    try {
+      const searchPath = path.join(__dirname, 'src', 'search-frontend.js');
+      searchContent = fs.readFileSync(searchPath, 'utf8');
+    } catch(e) {
+      console.warn("Script search-frontend.js não encontrado, ignorando.");
+    }
+    
+    jsContent = calcContent + 
+                '\n\n/* --- Frete Dinamico Injetado --- */\n\n' + freteContent +
+                '\n\n/* --- Busca Inteligente Injetada --- */\n\n' + searchContent;
     
     jsContent = jsContent
       .replace(/__ENABLED__/g, enabled.toString())
