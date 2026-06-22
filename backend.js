@@ -2948,6 +2948,123 @@ app.get('/api/abandoned-cart/checkouts', requireAuth, async (req, res) => {
   }
 });
 
+/**
+ * GET /api/abandoned-cart/verify-recovery/:checkoutId
+ * Verifica se um carrinho abandonado foi recuperado.
+ * Retorna { recovered: true/false, reason: 'completed' | 'new_order' | null }
+ * Permite acesso com Supabase Auth ou com a CRON_SECRET como header/query.
+ */
+app.get('/api/abandoned-cart/verify-recovery/:checkoutId', async (req, res) => {
+  try {
+    const checkoutId = req.params.checkoutId;
+    if (!checkoutId) return res.status(400).json({ success: false, error: 'checkoutId obrigatório' });
+
+    // Autenticação flexível: Supabase JWT ou CRON_SECRET
+    const cronKey = req.query.key || req.headers['x-cron-key'];
+    const expectedKey = process.env.CRON_SECRET || 'ClothSecret2026';
+    let isAuthorized = false;
+
+    if (cronKey === expectedKey) {
+      isAuthorized = true;
+    } else {
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        const token = authHeader.split(' ')[1];
+        const { data: { user }, error } = await supabase.auth.getUser(token);
+        if (!error && user) {
+          isAuthorized = true;
+          req.user = user;
+        }
+      }
+    }
+
+    if (!isAuthorized) {
+      return res.status(401).json({ success: false, error: 'Acesso negado. Autenticação inválida.' });
+    }
+
+    // 1. Buscar o carrinho no banco para pegar o email/telefone e a data de criação
+    const { data: checkout, error: dbErr } = await supabase
+      .from('nuvemshop_checkouts')
+      .select('*')
+      .eq('id', String(checkoutId))
+      .maybeSingle();
+
+    if (dbErr) throw dbErr;
+    if (!checkout) {
+      return res.status(404).json({ success: false, error: 'Carrinho não encontrado no banco' });
+    }
+
+    const storeId = checkout.store_id || DEFAULT_STORE_ID;
+    const client = await getApiClient(storeId);
+    
+    // 2. Chamar a API da Nuvemshop para verificar se o checkout já foi pago/concluído
+    let isCompleted = false;
+    try {
+      const apiRes = await client.get(`/checkouts/${checkoutId}`);
+      const apiCart = apiRes.data;
+      if (apiCart && apiCart.completed_at) {
+        isCompleted = true;
+      }
+    } catch (apiErr) {
+      console.warn(`[Verificação] Falha ao buscar checkout ${checkoutId} na Nuvemshop API:`, apiErr.message);
+    }
+
+    if (isCompleted) {
+      // Atualiza o status no banco de dados para evitar reprocessamento futuro
+      await supabase
+        .from('nuvemshop_checkouts')
+        .update({ recovery_status: 'completed', last_sync_at: new Date().toISOString() })
+        .eq('id', checkoutId);
+
+      return res.json({ success: true, recovered: true, reason: 'completed' });
+    }
+
+    // 3. Verificar se o cliente comprou algo APÓS criar este carrinho
+    const email = checkout.customer_email;
+    const phone = checkout.customer_phone;
+    const createdTime = checkout.nuvemshop_created_at;
+
+    if (email || phone) {
+      // Procurar pedidos pagos ou em aberto da mesma loja criados após este carrinho
+      let query = supabase
+        .from('nuvemshop_orders')
+        .select('id, created_at, status')
+        .eq('store_id', storeId)
+        .gt('created_at', createdTime)
+        .neq('status', 'cancelled'); // Desconsidera cancelados
+
+      if (email && phone) {
+        query = query.or(`customer->>email.eq."${email}",customer->>phone.eq."${phone}"`);
+      } else if (email) {
+        query = query.eq('customer->>email', email);
+      } else {
+        query = query.eq('customer->>phone', phone);
+      }
+
+      const { data: orders, error: ordersErr } = await query;
+
+      if (ordersErr) {
+        console.error('[Verificação] Erro ao buscar pedidos recentes do cliente:', ordersErr.message);
+      } else if (orders && orders.length > 0) {
+        console.log(`[Verificação] Cliente ${email || phone} realizou a compra ${orders[0].id} após o carrinho ${checkoutId}.`);
+        
+        // Atualiza o status no banco para "recovered_other"
+        await supabase
+          .from('nuvemshop_checkouts')
+          .update({ recovery_status: 'recovered_other', last_sync_at: new Date().toISOString() })
+          .eq('id', checkoutId);
+
+        return res.json({ success: true, recovered: true, reason: 'new_order' });
+      }
+    }
+
+    res.json({ success: true, recovered: false });
+  } catch (err) {
+    console.error('[Verificação] Erro crítico no endpoint de verificação:', err.message);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 /** 
  * POST /api/abandoned-cart/webhook — Webhook oficial para Automação Total 
  * Recebe notificações de abandono de carrinho da Nuvemshop
