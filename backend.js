@@ -2895,6 +2895,9 @@ app.get('/api/feedback/eligible', async (req, res) => {
       const diffTime = Math.abs(now - shippedAt);
       const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
+      // Limite de segurança: se foi enviado há mais de 40 dias, ignora para evitar contatar históricos antigos
+      if (diffDays > 40) continue;
+
       // Determinar o prazo com base no CEP e Estado
       const address = raw.shipping_address || {};
       const zipcode = address.zipcode || '';
