@@ -820,6 +820,61 @@ async function prepareStoryImage(imageUrl) {
 }
 
 /**
+ * Publica um produto recém-criado no Instagram (Feed e Story)
+ * @param {object} product Dados do produto da Nuvemshop
+ * @param {object} settings Configurações de marketing
+ * @param {string} storeId ID da loja
+ * @returns {Promise<object>} Detalhes da publicação
+ */
+async function publishProductToInstagram(product, settings, storeId) {
+    const metaToken = settings?.meta_access_token;
+    const fbPageId = settings?.facebook_page_id;
+
+    if (!metaToken || !fbPageId) {
+        throw new Error('Meta Access Token ou Page ID não configurados nas configurações de marketing.');
+    }
+
+    const stores = await getStores();
+    const storeData = stores[storeId] || {};
+
+    const productName = (product.name && product.name.pt) ? product.name.pt : (product.name ? Object.values(product.name)[0] : 'Produto');
+    const productHandle = (product.handle && product.handle.pt) ? product.handle.pt : (product.handle ? Object.values(product.handle)[0] : '');
+    const productLink = `https://${storeData.domain || 'www.fundofotograficocloth.com.br'}/produtos/${productHandle}`;
+    const productPrice = product.variants && product.variants.length > 0 ? `R$ ${product.variants[0].price}` : '';
+    const mainImage = product.images && product.images.length > 0 ? product.images[0].src : null;
+
+    if (!mainImage) {
+        throw new Error('Este produto não possui imagem cadastrada.');
+    }
+
+    const igAccountId = await igService.getInstagramAccountId(fbPageId, metaToken);
+    if (!igAccountId) {
+        throw new Error('Não foi possível encontrar a conta do Instagram vinculada à Página do Facebook.');
+    }
+
+    const feedCaption = buildFeedCaption(settings?.feed_caption_template, productName, productLink, productPrice);
+    
+    // 1. Publica no Feed
+    console.log(`🚀 [Auto-Publish] Publicando Feed para o produto ${product.id}`);
+    const feedContainerId = await igService.createFeedContainer(igAccountId, mainImage, feedCaption, metaToken);
+    const feedPostId = await igService.publishMedia(igAccountId, feedContainerId, metaToken);
+    console.log(`✅ [Auto-Publish] Feed postado: ${feedPostId}`);
+
+    // 2. Publica no Story
+    try {
+        console.log(`🚀 [Auto-Publish] Publicando Story para o produto ${product.id}`);
+        const storyImage = await prepareStoryImage(mainImage);
+        const storyContainerId = await igService.createStoryContainer(igAccountId, storyImage, productLink, metaToken);
+        const storyPostId = await igService.publishMedia(igAccountId, storyContainerId, metaToken);
+        console.log(`✅ [Auto-Publish] Story postado: ${storyPostId}`);
+    } catch (storyErr) {
+        console.error('⚠️ [Auto-Publish] Falha ao publicar Story automático:', storyErr.message);
+    }
+
+    return { id: feedPostId };
+}
+
+/**
  * POSTAGEM MANUAL NO INSTAGRAM
  * Recebe productId (ou imageUrl+caption diretamente) e posta no Feed e/ou Story
  */
