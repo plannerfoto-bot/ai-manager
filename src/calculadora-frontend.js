@@ -366,10 +366,11 @@
         });
       };
 
+      var isEnvieSuaArte = window.location.pathname.indexOf('/fundo-fotografico-envie-sua-arte') !== -1;
       var original = getOriginalOrientation();
       var current = l > a ? 'landscape' : 'portrait';
       
-      if (original !== 'unknown' && original !== current) {
+      if (!isEnvieSuaArte && original !== 'unknown' && original !== current) {
         var el = document.getElementById('cloth-calc-result');
         var msg = original === 'landscape' ? 
           'Para manter a proporção original da imagem (Horizontal), as medidas precisam ser invertidas para <strong>' + a.toFixed(2).replace('.', ',') + 'm Largura x ' + l.toFixed(2).replace('.', ',') + 'm Altura</strong>.' :
@@ -570,15 +571,21 @@
       }
     }
 
-    var isLandscape = mainImg.naturalWidth > mainImg.naturalHeight;
+    var isEnvieSuaArte = window.location.pathname.indexOf('/fundo-fotografico-envie-sua-arte') !== -1;
     var finalW, finalH;
     
-    if (isLandscape) {
-      finalW = Math.max(w, h);
-      finalH = Math.min(w, h);
+    if (isEnvieSuaArte) {
+      finalW = w;
+      finalH = h;
     } else {
-      finalH = Math.max(w, h);
-      finalW = Math.min(w, h);
+      var isLandscape = mainImg.naturalWidth > mainImg.naturalHeight;
+      if (isLandscape) {
+        finalW = Math.max(w, h);
+        finalH = Math.min(w, h);
+      } else {
+        finalH = Math.max(w, h);
+        finalW = Math.min(w, h);
+      }
     }
 
     var newRatio = finalW + ' / ' + finalH;
