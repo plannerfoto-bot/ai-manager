@@ -2544,6 +2544,8 @@ function getScriptSettings() {
 function saveScriptSettings(settings) {
   try {
     fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2), 'utf-8');
+    const localSettings = path.join(__dirname, 'script_settings.json');
+    fs.writeFileSync(localSettings, JSON.stringify(settings, null, 2), 'utf-8');
   } catch(e) {
     console.error("Erro ao salvar settings:", e);
   }
@@ -2632,7 +2634,19 @@ app.get('/api/store-script-settings', requireAuth, (req, res) => {
 
 app.post('/api/store-script-settings', requireAuth, async (req, res) => {
   const { enabled, whatsapp, promocaoAlineAtiva } = req.body;
-  saveScriptSettings({ enabled, whatsapp, promocaoAlineAtiva: promocaoAlineAtiva === true });
+  const currentSettings = getScriptSettings();
+  
+  const finalEnabled = enabled !== undefined ? (enabled === true) : (currentSettings.enabled !== false);
+  const finalWhatsapp = whatsapp || currentSettings.whatsapp || '5511999999999';
+  const finalPromocaoAlineAtiva = promocaoAlineAtiva !== undefined 
+    ? (promocaoAlineAtiva === true) 
+    : (currentSettings.promocaoAlineAtiva === true);
+
+  saveScriptSettings({ 
+    enabled: finalEnabled, 
+    whatsapp: finalWhatsapp, 
+    promocaoAlineAtiva: finalPromocaoAlineAtiva 
+  });
 
 
   try {
