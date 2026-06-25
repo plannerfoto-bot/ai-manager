@@ -215,7 +215,7 @@
       }
     }
 
-    // 2. Verifica se há elementos HTML de desconto/promoção no DOM do carrinho
+    // 2. Verifica se há elementos HTML de desconto/promoção reais e visíveis no DOM do carrinho
     var discountSelectors = [
       '.js-cart-discount',
       '.cart-discount',
@@ -224,11 +224,24 @@
     ];
     var discountEls = document.querySelectorAll(discountSelectors.join(','));
     for (var i = 0; i < discountEls.length; i++) {
-      var txt = discountEls[i].innerText || '';
-      if (txt.match(/\d/)) {
+      var el = discountEls[i];
+      // Ignora se estiver invisível na tela
+      if (el.offsetParent === null) {
+        continue;
+      }
+      var style = window.getComputedStyle ? window.getComputedStyle(el) : null;
+      if (style && style.display === 'none') {
+        continue;
+      }
+      
+      var txt = el.innerText || '';
+      var numbers = txt.replace(/\D/g, ''); // Mantém apenas os números
+      var val = parseInt(numbers, 10) || 0;
+      if (val > 0) { // Só oculta o frete se o desconto for real e maior que zero
         return true;
       }
     }
+
 
     return false;
   }
