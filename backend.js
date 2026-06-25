@@ -2606,10 +2606,15 @@ function serveScript(res, enabled, whatsapp) {
                 '\n\n/* --- Frete Dinamico Injetado --- */\n\n' + freteContent +
                 '\n\n/* --- Busca Inteligente Injetada --- */\n\n' + searchContent;
     
+    const localSettings = getScriptSettings();
+    const promocaoAlineAtiva = localSettings.promocaoAlineAtiva === true;
+
     jsContent = jsContent
       .replace(/__ENABLED__/g, enabled.toString())
       .replace(/__WHATSAPP__/g, whatsapp.toString())
+      .replace(/__PROMOCAO_ALINE_ATIVA__/g, promocaoAlineAtiva.toString())
       .replace(/__PUBLIC_URL__/g, process.env.PUBLIC_URL || 'https://ai-manager-nuvemshop.onrender.com');
+
   } catch (err) {
     console.error("Erro ao ler front script:", err);
     jsContent = "console.error('Calculadora indiponível ou erro ao ler script');";
@@ -2626,8 +2631,9 @@ app.get('/api/store-script-settings', requireAuth, (req, res) => {
 
 
 app.post('/api/store-script-settings', requireAuth, async (req, res) => {
-  const { enabled, whatsapp } = req.body;
-  saveScriptSettings({ enabled, whatsapp });
+  const { enabled, whatsapp, promocaoAlineAtiva } = req.body;
+  saveScriptSettings({ enabled, whatsapp, promocaoAlineAtiva: promocaoAlineAtiva === true });
+
 
   try {
     const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;

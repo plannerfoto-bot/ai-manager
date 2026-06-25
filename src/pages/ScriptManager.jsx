@@ -1,14 +1,36 @@
-import React, { useState } from 'react';
-import { ExternalLink, CheckCircle, ShieldCheck, Zap, Calculator, Phone, Rocket, AlertCircle, Globe } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ExternalLink, CheckCircle, ShieldCheck, Zap, Calculator, Phone, Rocket, AlertCircle, Globe, Percent, Sparkles } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
 
 const ScriptManager = ({ storeId, apiBase }) => {
   const [enabled, setEnabled] = useState(true);
   const [whatsapp, setWhatsapp] = useState('5511999999999');
+  const [promocaoAlineAtiva, setPromocaoAlineAtiva] = useState(false);
   const [loading, setLoading] = useState(false);
   const [activating, setActivating] = useState(false);
   const [scriptStatus, setScriptStatus] = useState(null); // { success, scriptUrl, error }
+
+  // Busca configurações salvas na nuvem ao montar o componente
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const resp = await axios.get(`${apiBase}/api/store-script-settings`, {
+          headers: { 'x-store-id': storeId }
+        });
+        if (resp.data) {
+          setEnabled(resp.data.enabled !== false);
+          setWhatsapp(resp.data.whatsapp || '5511999999999');
+          setPromocaoAlineAtiva(resp.data.promocaoAlineAtiva === true);
+        }
+      } catch (err) {
+        console.warn("Erro ao buscar configurações no ScriptManager:", err);
+      }
+    };
+    if (storeId) {
+      loadSettings();
+    }
+  }, [storeId, apiBase]);
 
   // Inicia o fluxo de instalação nativa (OAuth)
   const handleConnectApp = () => {
@@ -21,8 +43,12 @@ const ScriptManager = ({ storeId, apiBase }) => {
     setActivating(true);
     setScriptStatus(null);
     try {
-      // Passo 1: Salva as configurações (whatsapp, enabled)
-      await axios.post(`${apiBase}/api/store-script-settings`, { enabled, whatsapp }, {
+      // Passo 1: Salva as configurações (whatsapp, enabled, promocaoAlineAtiva)
+      await axios.post(`${apiBase}/api/store-script-settings`, { 
+        enabled, 
+        whatsapp,
+        promocaoAlineAtiva
+      }, {
         headers: { 'x-store-id': storeId }
       });
       // Passo 2: Injeta o script na loja via API Nuvemshop
@@ -30,7 +56,7 @@ const ScriptManager = ({ storeId, apiBase }) => {
         headers: { 'x-store-id': storeId }
       });
       setScriptStatus({ success: true, scriptUrl: resp.data.scriptUrl });
-      toast.success('🚀 Calculadora ativada na loja!');
+      toast.success('🚀 Calculadora e Termômetro ativados na loja!');
     } catch (error) {
       const msg = error.response?.data?.error || error.message;
       setScriptStatus({ success: false, error: msg });
@@ -45,7 +71,8 @@ const ScriptManager = ({ storeId, apiBase }) => {
     try {
       await axios.post(`${apiBase}/api/store-script-settings`, {
         enabled,
-        whatsapp
+        whatsapp,
+        promocaoAlineAtiva
       }, {
         headers: { 'x-store-id': storeId }
       });
@@ -103,6 +130,19 @@ const ScriptManager = ({ storeId, apiBase }) => {
               >
                 <span className="font-bold">{enabled ? 'ATIVADA' : 'DESATIVADA'}</span>
                 <Calculator className={`w-5 h-5 ${enabled ? 'text-[var(--accent)]' : 'text-slate-700'}`} />
+              </button>
+            </div>
+
+            <div>
+              <label className="text-xs text-[var(--text-muted)] uppercase font-black mb-3 block">Promoção Aline Martins</label>
+              <button
+                onClick={() => setPromocaoAlineAtiva(!promocaoAlineAtiva)}
+                className={`w-full flex items-center justify-between p-4 rounded-2xl border transition-all ${
+                  promocaoAlineAtiva ? 'bg-pink-950/40 border-pink-500/35 text-pink-300 shadow-[0_0_15px_rgba(236,72,153,0.1)]' : 'bg-[var(--surface-glass)] border-[var(--border-soft)] text-[var(--text-muted)]'
+                }`}
+              >
+                <span className="font-bold">{promocaoAlineAtiva ? 'ATIVA' : 'INATIVA'}</span>
+                <Percent className={`w-5 h-5 ${promocaoAlineAtiva ? 'text-pink-400' : 'text-slate-700'}`} />
               </button>
             </div>
 

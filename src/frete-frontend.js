@@ -136,6 +136,109 @@
     return count;
   }
 
+  var isAlinePromoActiveOnStore = __PROMOCAO_ALINE_ATIVA__;
+
+  function countAlineItemsInCart() {
+    var count = 0;
+    if (window.LS && window.LS.cart && Array.isArray(window.LS.cart.items)) {
+      window.LS.cart.items.forEach(function(item) {
+        var name = (item.name || '').toLowerCase();
+        var sku = (item.sku || '').toLowerCase();
+        if (name.indexOf('aline martins') !== -1 || sku.indexOf('aline martins') !== -1) {
+          count += parseInt(item.quantity || 1, 10);
+        }
+      });
+    }
+    
+    if (count === 0) {
+      var cartItemElements = document.querySelectorAll('.js-cart-item, .cart-item');
+      cartItemElements.forEach(function(el) {
+        var text = (el.innerText || '').toLowerCase();
+        if (text.indexOf('aline martins') !== -1) {
+          var qtyInput = el.querySelector('.js-cart-item-qty, input[type="number"], .cart-item-quantity');
+          var qty = qtyInput ? parseInt(qtyInput.value || 1, 10) : 1;
+          count += qty;
+        }
+      });
+    }
+    return count;
+  }
+
+  function countNonAlineItemsInCart() {
+    var totalQty = 0;
+    if (window.LS && window.LS.cart && Array.isArray(window.LS.cart.items)) {
+      window.LS.cart.items.forEach(function(item) {
+        var name = (item.name || '').toLowerCase();
+        var sku = (item.sku || '').toLowerCase();
+        if (!(name.indexOf('aline martins') !== -1 || sku.indexOf('aline martins') !== -1)) {
+          totalQty += parseInt(item.quantity || 1, 10);
+        }
+      });
+      return totalQty;
+    }
+    
+    var cartItemElements = document.querySelectorAll('.js-cart-item, .cart-item');
+    cartItemElements.forEach(function(el) {
+      var text = (el.innerText || '').toLowerCase();
+      if (text.indexOf('aline martins') === -1) {
+        var qtyInput = el.querySelector('.js-cart-item-qty, input[type="number"], .cart-item-quantity');
+        var qty = qtyInput ? parseInt(qtyInput.value || 1, 10) : 1;
+        totalQty += qty;
+      }
+    });
+    return totalQty;
+  }
+
+  function shouldHideFrete() {
+    // 1. Verifica por desconto promocional ou de cupom no objeto global do carrinho da Nuvemshop
+    if (window.LS && window.LS.cart) {
+      if (window.LS.cart.promotional_discount && parseFloat(window.LS.cart.promotional_discount) > 0) {
+        var alineQty = countAlineItemsInCart();
+        if (isAlinePromoActiveOnStore && alineQty > 0) {
+          return false;
+        }
+        return true;
+      }
+      if (window.LS.cart.coupon_discount && parseFloat(window.LS.cart.coupon_discount) > 0) {
+        return true;
+      }
+      var sub = parseFloat(window.LS.cart.subtotal) || 0;
+      var tot = parseFloat(window.LS.cart.total) || 0;
+      var shipping = parseFloat(window.LS.cart.shipping) || 0;
+      if (tot < (sub + shipping) - 1) {
+        var alineQty = countAlineItemsInCart();
+        if (isAlinePromoActiveOnStore && alineQty > 0) {
+          return false;
+        }
+        return true;
+      }
+    }
+
+    // 2. Verifica se há elementos HTML de desconto/promoção no DOM do carrinho (ignorando ocultos/zerados)
+    var discountSelectors = [
+      '.js-cart-discount',
+      '.cart-discount',
+      '.js-cart-coupon-discount',
+      '.coupon-discount'
+    ];
+    var discountEls = document.querySelectorAll(discountSelectors.join(','));
+    for (var i = 0; i < discountEls.length; i++) {
+      var el = discountEls[i];
+      if (el.offsetParent === null) continue;
+      var style = window.getComputedStyle ? window.getComputedStyle(el) : null;
+      if (style && style.display === 'none') continue;
+      
+      var txt = el.innerText || '';
+      var numbers = txt.replace(/\D/g, '');
+      var val = parseInt(numbers, 10) || 0;
+      if (val > 0) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
   function renderBar() {
     if (getCartItems() === 0) return;
 
@@ -144,6 +247,7 @@
     if (!targetContainer) return; 
 
     var banner = document.getElementById('ai-frete-cart-bar');
+
     if (!banner) {
       banner = document.createElement('div');
       banner.id = 'ai-frete-cart-bar';
@@ -181,7 +285,74 @@
     var textNode = document.getElementById('ai-frete-text');
     var progressFill = document.getElementById('ai-frete-fill');
     var suggestionNode = document.getElementById('ai-frete-suggestion');
-    if (!textNode || !progressFill) return;
+    var banner = document.getElementById('ai-frete-cart-bar');
+    if (!textNode || !progressFill || !banner) return;
+
+    if (shouldHideFrete()) {
+      banner.style.display = 'none';
+      return;
+    } else {
+      banner.style.display = 'block';
+    }
+
+    var alineQty = countAlineItemsInCart();
+
+    // Se a promoção estiver ativa na loja E houver itens da Aline no carrinho
+    if (isAlinePromoActiveOnStore && alineQty > 0) {
+      var percent = 0;
+      var textHTML = '';
+      var suggestionHTML = '';
+      var barColor = 'linear-gradient(90deg, #ec4899, #f43f5e)'; // Rosa vibrante Aline Martins
+      var nonAlineQty = countNonAlineItemsInCart();
+      
+      if (alineQty === 1) {
+        percent = 25;
+        textHTML = 'Adicione mais <strong>1 fundo</strong> da coleção Aline Martins para liberar <strong>5% de desconto</strong>!';
+        if (nonAlineQty > 0) {
+          suggestionHTML = '💡 <strong>Desconto Progressivo Ativo:</strong> Como você adicionou um fundo da coleção Aline Martins, o frete grátis foi substituído pelo nosso desconto progressivo exclusivo! Adicione mais <strong>1 item Aline Martins</strong> para ativar <strong>5% de desconto</strong> (ou adicione mais itens para o desconto ser ainda maior, chegando a até <strong>15% OFF</strong> nos itens da coleção)!';
+        } else {
+          suggestionHTML = '💡 <strong>Dica de Ouro:</strong> Com mais 1 fundo da Aline no carrinho, você já ganha 5% de desconto (e adicionando mais itens o desconto pode ser ainda maior, chegando a até 15% OFF)!';
+        }
+      } else if (alineQty === 2) {
+        percent = 50;
+        textHTML = '🎉 Você desbloqueou <strong>5% de desconto</strong>! Adicione mais <strong>1</strong> para liberar <strong>10% OFF</strong>!';
+        if (nonAlineQty > 0) {
+          suggestionHTML = '🎉 <strong>Desconto Progressivo Ativo:</strong> Você adicionou itens da Coleção Aline Martins e ativou <strong>5% OFF</strong> neles! Adicione mais <strong>1 item Aline Martins</strong> para subir o desconto para <strong>10% OFF</strong>!';
+        } else {
+          suggestionHTML = '💡 <strong>Dica:</strong> Vale muito a pena levar mais 1! Com 3 itens o desconto sobe para 10%!';
+        }
+      } else if (alineQty === 3) {
+        percent = 75;
+        textHTML = '🎉 Você desbloqueou <strong>10% de desconto</strong>! Adicione mais <strong>1</strong> para liberar <strong>15% OFF</strong>!';
+        if (nonAlineQty > 0) {
+          suggestionHTML = '🎉 <strong>Desconto Progressivo Ativo:</strong> Você já garantiu <strong>10% OFF</strong> nos itens Aline Martins! Adicione mais <strong>1 item Aline Martins</strong> para garantir o desconto máximo de <strong>15% OFF</strong>!';
+        } else {
+          suggestionHTML = '💡 <strong>Dica de Ouro:</strong> Adicione o 4º fundo da Aline no carrinho para o desconto máximo de 15%!';
+        }
+      } else {
+        percent = 100;
+        textHTML = '🎉 Parabéns! Você conquistou o desconto máximo de <strong>15% de desconto</strong> na coleção Aline Martins!';
+        barColor = 'linear-gradient(90deg, #10b981, #34d399)'; // Verde sucesso
+        if (nonAlineQty > 0) {
+          suggestionHTML = '🎉 <strong>Desconto Progressivo Ativo:</strong> Parabéns! Você conquistou o desconto máximo de <strong>15% OFF</strong> nos seus itens da Coleção Aline Martins!';
+        } else {
+          suggestionHTML = '';
+        }
+      }
+
+      textNode.innerHTML = textHTML;
+      progressFill.style.width = percent + '%';
+      progressFill.style.background = barColor;
+      
+      if (suggestionHTML) {
+        suggestionNode.innerHTML = suggestionHTML;
+        suggestionNode.style.display = 'inline-block';
+      } else {
+        suggestionNode.style.display = 'none';
+      }
+      return;
+    }
+
 
     var cartSubtotal = getCartSubtotal();
     var zipcode = sessionStorage.getItem('cc_shipping_zipcode') || '';
