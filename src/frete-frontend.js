@@ -140,11 +140,6 @@
   var isCheckingPromo = false;
 
   function checkAlinePromoStatus() {
-    var cached = sessionStorage.getItem('ai_aline_promo_active');
-    if (cached !== null) {
-      isAlinePromoActiveOnStore = (cached === 'true');
-      return;
-    }
     if (isCheckingPromo) return;
     isCheckingPromo = true;
 
@@ -159,7 +154,7 @@
       .then(function(res) { return res.json(); })
       .then(function(data) {
         isAlinePromoActiveOnStore = !!data.active;
-        sessionStorage.setItem('ai_aline_promo_active', isAlinePromoActiveOnStore ? 'true' : 'false');
+        console.log('[AI-Manager] Promocao Aline Martins ativa na loja?', isAlinePromoActiveOnStore);
         isCheckingPromo = false;
         updateLogic();
       })
@@ -248,15 +243,8 @@
     checkAlinePromoStatus();
 
     var banner = document.getElementById('ai-frete-cart-bar');
-    
-    if (shouldHideFrete()) {
-      if (banner) banner.style.display = 'none';
-      return;
-    } else {
-      if (banner) banner.style.display = 'block';
-    }
-
     if (!banner) {
+
       banner = document.createElement('div');
       banner.id = 'ai-frete-cart-bar';
       banner.className = 'ai-frete-glass';
@@ -294,7 +282,16 @@
     var textNode = document.getElementById('ai-frete-text');
     var progressFill = document.getElementById('ai-frete-fill');
     var suggestionNode = document.getElementById('ai-frete-suggestion');
-    if (!textNode || !progressFill) return;
+    var banner = document.getElementById('ai-frete-cart-bar');
+    if (!textNode || !progressFill || !banner) return;
+
+    if (shouldHideFrete()) {
+      banner.style.display = 'none';
+      return;
+    } else {
+      banner.style.display = 'block';
+    }
+
 
     var alineQty = countAlineItemsInCart();
 
