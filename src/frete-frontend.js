@@ -136,116 +136,6 @@
     return count;
   }
 
-  var isAlinePromoActiveOnStore = false;
-  var isCheckingPromo = false;
-
-  function checkAlinePromoStatus() {
-    if (isCheckingPromo) return;
-    isCheckingPromo = true;
-
-    var storeId = (window.LS && LS.store && LS.store.id) ? LS.store.id : '';
-    if (!storeId) {
-      isCheckingPromo = false;
-      return;
-    }
-
-    var publicUrl = '__PUBLIC_URL__';
-    fetch(publicUrl + '/api/promotions/status?store_id=' + storeId)
-      .then(function(res) { return res.json(); })
-      .then(function(data) {
-        isAlinePromoActiveOnStore = !!data.active;
-        console.log('[AI-Manager] Promocao Aline Martins ativa na loja?', isAlinePromoActiveOnStore);
-        isCheckingPromo = false;
-        updateLogic();
-      })
-      .catch(function(e) {
-        console.warn('[frete-promo] Falha ao verificar status:', e);
-        isCheckingPromo = false;
-      });
-  }
-
-  function countAlineItemsInCart() {
-    var count = 0;
-    if (window.LS && window.LS.cart && Array.isArray(window.LS.cart.items)) {
-      window.LS.cart.items.forEach(function(item) {
-        var name = (item.name || '').toLowerCase();
-        var sku = (item.sku || '').toLowerCase();
-        if (name.indexOf('aline martins') !== -1 || sku.indexOf('aline martins') !== -1) {
-          count += parseInt(item.quantity || 1, 10);
-        }
-      });
-    }
-    
-    if (count === 0) {
-      var cartItemElements = document.querySelectorAll('.js-cart-item, .cart-item');
-      cartItemElements.forEach(function(el) {
-        var text = (el.innerText || '').toLowerCase();
-        if (text.indexOf('aline martins') !== -1) {
-          var qtyInput = el.querySelector('.js-cart-item-qty, input[type="number"], .cart-item-quantity');
-          var qty = qtyInput ? parseInt(qtyInput.value || 1, 10) : 1;
-          count += qty;
-        }
-      });
-    }
-    return count;
-  }
-
-  function shouldHideFrete() {
-    // 1. Verifica por desconto promocional ou de cupom no objeto global do carrinho da Nuvemshop
-    if (window.LS && window.LS.cart) {
-      if (window.LS.cart.promotional_discount && parseFloat(window.LS.cart.promotional_discount) > 0) {
-        var alineQty = countAlineItemsInCart();
-        if (isAlinePromoActiveOnStore && alineQty > 0) {
-          return false; // Não esconde, pois vai mostrar o termômetro da Aline
-        }
-        return true;
-      }
-      if (window.LS.cart.coupon_discount && parseFloat(window.LS.cart.coupon_discount) > 0) {
-        return true;
-      }
-      var sub = parseFloat(window.LS.cart.subtotal) || 0;
-      var tot = parseFloat(window.LS.cart.total) || 0;
-      var shipping = parseFloat(window.LS.cart.shipping) || 0;
-      if (tot < (sub + shipping) - 1) {
-        var alineQty = countAlineItemsInCart();
-        if (isAlinePromoActiveOnStore && alineQty > 0) {
-          return false;
-        }
-        return true;
-      }
-    }
-
-    // 2. Verifica se há elementos HTML de desconto/promoção reais e visíveis no DOM do carrinho
-    var discountSelectors = [
-      '.js-cart-discount',
-      '.cart-discount',
-      '.js-cart-coupon-discount',
-      '.coupon-discount'
-    ];
-    var discountEls = document.querySelectorAll(discountSelectors.join(','));
-    for (var i = 0; i < discountEls.length; i++) {
-      var el = discountEls[i];
-      // Ignora se estiver invisível na tela
-      if (el.offsetParent === null) {
-        continue;
-      }
-      var style = window.getComputedStyle ? window.getComputedStyle(el) : null;
-      if (style && style.display === 'none') {
-        continue;
-      }
-      
-      var txt = el.innerText || '';
-      var numbers = txt.replace(/\D/g, ''); // Mantém apenas os números
-      var val = parseInt(numbers, 10) || 0;
-      if (val > 0) { // Só oculta o frete se o desconto for real e maior que zero
-        return true;
-      }
-    }
-
-
-    return false;
-  }
-
   function renderBar() {
     if (getCartItems() === 0) return;
 
@@ -253,11 +143,8 @@
     if (!targetContainer) targetContainer = document.querySelector('[data-store="cart-subtotal"], .js-cart-subtotal');
     if (!targetContainer) return; 
 
-    checkAlinePromoStatus();
-
     var banner = document.getElementById('ai-frete-cart-bar');
     if (!banner) {
-
       banner = document.createElement('div');
       banner.id = 'ai-frete-cart-bar';
       banner.className = 'ai-frete-glass';
@@ -290,63 +177,11 @@
     updateLogic();
   }
 
-
   function updateLogic() {
     var textNode = document.getElementById('ai-frete-text');
     var progressFill = document.getElementById('ai-frete-fill');
     var suggestionNode = document.getElementById('ai-frete-suggestion');
-    var banner = document.getElementById('ai-frete-cart-bar');
-    if (!textNode || !progressFill || !banner) return;
-
-    if (shouldHideFrete()) {
-      banner.style.display = 'none';
-      return;
-    } else {
-      banner.style.display = 'block';
-    }
-
-
-    var alineQty = countAlineItemsInCart();
-
-    // Se a promoção estiver ativa na loja E houver itens da Aline no carrinho
-    if (isAlinePromoActiveOnStore && alineQty > 0) {
-      var percent = 0;
-      var textHTML = '';
-      var suggestionHTML = '';
-      var barColor = 'linear-gradient(90deg, #ec4899, #f43f5e)'; // Rosa vibrante para Aline Martins
-      
-      if (alineQty === 1) {
-        percent = 25;
-        textHTML = 'Adicione mais <strong>1 fundo</strong> da coleção Aline Martins para liberar <strong>5% de desconto</strong>!';
-        suggestionHTML = '💡 <strong>Dica de Ouro:</strong> Com mais 1 fundo da Aline no carrinho, você já ganha 5% de desconto!';
-      } else if (alineQty === 2) {
-        percent = 50;
-        textHTML = '🎉 Você desbloqueou <strong>5% de desconto</strong>! Adicione mais <strong>1</strong> para liberar <strong>10% OFF</strong>!';
-        suggestionHTML = '💡 <strong>Dica:</strong> Vale muito a pena levar mais 1! Com 3 itens o desconto sobe para 10%!';
-      } else if (alineQty === 3) {
-        percent = 75;
-        textHTML = '🎉 Você desbloqueou <strong>10% de desconto</strong>! Adicione mais <strong>1</strong> para liberar <strong>15% OFF</strong>!';
-        suggestionHTML = '💡 <strong>Dica de Ouro:</strong> Adicione o 4º fundo da Aline no carrinho para o desconto máximo de 15%!';
-      } else {
-        percent = 100;
-        textHTML = '🎉 Parabéns! Você conquistou o desconto máximo de <strong>15% de desconto</strong> na coleção Aline Martins!';
-        barColor = 'linear-gradient(90deg, #10b981, #34d399)'; // Verde sucesso
-        suggestionHTML = '';
-      }
-
-      textNode.innerHTML = textHTML;
-      progressFill.style.width = percent + '%';
-      progressFill.style.background = barColor;
-      
-      if (suggestionHTML) {
-        suggestionNode.innerHTML = suggestionHTML;
-        suggestionNode.style.display = 'inline-block';
-      } else {
-        suggestionNode.style.display = 'none';
-      }
-      return;
-    }
-
+    if (!textNode || !progressFill) return;
 
     var cartSubtotal = getCartSubtotal();
     var zipcode = sessionStorage.getItem('cc_shipping_zipcode') || '';

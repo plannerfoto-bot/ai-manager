@@ -2559,31 +2559,6 @@ app.get('/test', (req, res) => {
   }
 });
 
-// Rota pública para verificar se a promoção da Aline Martins está ativa na Nuvemshop
-app.get('/api/promotions/status', async (req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  const storeId = req.query.store_id || DEFAULT_STORE_ID;
-  if (!storeId) {
-    return res.json({ active: false, error: 'Store ID nao fornecido.' });
-  }
-  try {
-    const client = await getApiClient(storeId);
-    const response = await client.get('/promotions');
-    const promotions = response.data || [];
-    
-    // Procura se existe alguma promoção ativa com "aline" no nome
-    const isAlinePromoActive = promotions.some(p => {
-      const name = (p.name ? (p.name.pt || p.name.es || Object.values(p.name)[0] || '') : '').toLowerCase();
-      return name.indexOf('aline') !== -1;
-    });
-    
-    res.json({ active: isAlinePromoActive });
-  } catch (err) {
-    console.warn('[promotions-status] Erro ao buscar status de promoções:', err.message);
-    res.json({ active: false, error: err.message });
-  }
-});
-
 // Rota antiga para compatibilidade
 app.get('/api/script.js', (req, res) => {
   const localSettings = getScriptSettings();
