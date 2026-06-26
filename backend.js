@@ -582,13 +582,13 @@ app.post('/api/create-variant', async (req, res) => {
       }
       // Grava timestamp no SKU para identificar e limpar apos 24h
       const payload = {
-        price: price.toFixed(2),
+        price: price ? price.toFixed(2) : '0.00',
         stock: 999,
         weight: baseVariant ? baseVariant.weight : 0.5,
         values: targetValues,
         sku: createdMark  // ex: "calc:1711405200000" - identificador de limpeza
       };
-      console.log('[Variante] Criando: ' + measure + ' / ' + gramLabel + ' = R$' + price.toFixed(2) + ' | SKU: ' + createdMark);
+      console.log('[Variante] Criando: ' + measure + ' / ' + gramLabel + ' = R$' + (price ? price.toFixed(2) : '0.00') + ' | SKU: ' + createdMark);
       const createRes = await client.post(`/products/${productId}/variants`, payload);
       product.variants.push(createRes.data);
       return createRes.data.id;
@@ -600,9 +600,14 @@ app.post('/api/create-variant', async (req, res) => {
     if (measureType === 'special_seamless') {
       chosenId = await findOrCreate(measureStr, gram120label, price120);
     } else {
-      const variant120Id = await findOrCreate(measureStr, gram120label, price120);
-      const variant160Id = await findOrCreate(measureStr, gram160label, price160);
-      chosenId = (gramatura === '160g') ? variant160Id : variant120Id;
+      if (hasAlineTag) {
+        // Coleção Aline Martins não permite 120g, então cria apenas a variante de 160g
+        chosenId = await findOrCreate(measureStr, gram160label, price160);
+      } else {
+        const variant120Id = await findOrCreate(measureStr, gram120label, price120);
+        const variant160Id = await findOrCreate(measureStr, gram160label, price160);
+        chosenId = (gramatura === '160g') ? variant160Id : variant120Id;
+      }
     }
 
     res.json({ success: true, variant_id: chosenId, price: priceStr, measureType });
