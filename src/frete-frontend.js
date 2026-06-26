@@ -192,20 +192,28 @@
   function shouldHideFrete() {
     // 1. Verifica por desconto promocional ou de cupom no objeto global do carrinho da Nuvemshop
     if (window.LS && window.LS.cart) {
-      if (window.LS.cart.promotional_discount && parseFloat(window.LS.cart.promotional_discount) > 0) {
-        var alineQty = countAlineItemsInCart();
-        if (isAlinePromoActiveOnStore && alineQty > 0) {
-          return false;
+      var promoDiscount = 0;
+      if (window.LS.cart.promotional_discount) {
+        if (typeof window.LS.cart.promotional_discount === 'object') {
+          promoDiscount = parseFloat(window.LS.cart.promotional_discount.total_discount_amount) || 0;
+        } else {
+          promoDiscount = parseFloat(window.LS.cart.promotional_discount) || 0;
         }
-        return true;
       }
-      if (window.LS.cart.coupon_discount && parseFloat(window.LS.cart.coupon_discount) > 0) {
-        return true;
+      
+      var couponDiscount = 0;
+      if (window.LS.cart.coupon_discount) {
+        if (typeof window.LS.cart.coupon_discount === 'object') {
+          couponDiscount = parseFloat(window.LS.cart.coupon_discount.total_discount_amount) || 0;
+        } else {
+          couponDiscount = parseFloat(window.LS.cart.coupon_discount) || 0;
+        }
       }
+
       var sub = parseFloat(window.LS.cart.subtotal) || 0;
       var tot = parseFloat(window.LS.cart.total) || 0;
-      var shipping = parseFloat(window.LS.cart.shipping) || 0;
-      if (tot < (sub + shipping) - 1) {
+      
+      if (promoDiscount > 0 || couponDiscount > 0 || tot < sub - 1) {
         var alineQty = countAlineItemsInCart();
         if (isAlinePromoActiveOnStore && alineQty > 0) {
           return false;
