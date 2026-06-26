@@ -234,7 +234,7 @@
       var sub = parseCartValue(window.LS.cart.subtotal);
       var tot = parseCartValue(window.LS.cart.total);
       
-      if (promoDiscount > 0 || couponDiscount > 0 || tot < sub - 1) {
+      if (promoDiscount > 0 || couponDiscount > 0 || (tot > 0 && tot < sub - 1)) {
         var alineQty = countAlineItemsInCart();
         if (isAlinePromoActiveOnStore && alineQty > 0) {
           return false;
