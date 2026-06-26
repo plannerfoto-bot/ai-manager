@@ -201,17 +201,36 @@
 
   function countAlineItemsInCart() {
     var cartItemElements = document.querySelectorAll('.js-cart-item, .cart-item');
+    var count = 0;
+
     if (cartItemElements.length > 0) {
-      var count = 0;
       cartItemElements.forEach(function(el) {
         var text = (el.innerText || '').toLowerCase();
         if (text.indexOf('aline martins') !== -1) {
           count += getItemQty(el);
         }
       });
+      
+      // Atualiza o estado persistente de sessão
+      if (count > 0) {
+        sessionStorage.setItem('cc_cart_has_aline', 'true');
+        sessionStorage.setItem('cc_cart_aline_qty', count);
+      } else {
+        sessionStorage.removeItem('cc_cart_has_aline');
+        sessionStorage.removeItem('cc_cart_aline_qty');
+      }
       return count;
     }
 
+    // Se o DOM do carrinho estiver temporariamente vazio (ex: transição Ajax/Loading)
+    // Se o subtotal ainda for maior que zero, confiamos no estado salvo no sessionStorage
+    var subtotal = getCartSubtotal();
+    if (subtotal > 0 && sessionStorage.getItem('cc_cart_has_aline') === 'true') {
+      var savedQty = parseInt(sessionStorage.getItem('cc_cart_aline_qty'), 10) || 1;
+      return savedQty;
+    }
+
+    // Fallback do objeto global
     var countFallback = 0;
     if (window.LS && window.LS.cart && Array.isArray(window.LS.cart.items)) {
       window.LS.cart.items.forEach(function(item) {
@@ -222,20 +241,40 @@
         }
       });
     }
-    return countFallback;
+
+    if (countFallback > 0) {
+      sessionStorage.setItem('cc_cart_has_aline', 'true');
+      sessionStorage.setItem('cc_cart_aline_qty', countFallback);
+      return countFallback;
+    }
+
+    return 0;
   }
 
   function countNonAlineItemsInCart() {
     var cartItemElements = document.querySelectorAll('.js-cart-item, .cart-item');
+    var totalQty = 0;
+
     if (cartItemElements.length > 0) {
-      var totalQty = 0;
       cartItemElements.forEach(function(el) {
         var text = (el.innerText || '').toLowerCase();
         if (text.indexOf('aline martins') === -1) {
           totalQty += getItemQty(el);
         }
       });
+      
+      if (totalQty > 0) {
+        sessionStorage.setItem('cc_cart_non_aline_qty', totalQty);
+      } else {
+        sessionStorage.removeItem('cc_cart_non_aline_qty');
+      }
       return totalQty;
+    }
+
+    var subtotal = getCartSubtotal();
+    if (subtotal > 0 && sessionStorage.getItem('cc_cart_non_aline_qty')) {
+      var savedQty = parseInt(sessionStorage.getItem('cc_cart_non_aline_qty'), 10) || 0;
+      return savedQty;
     }
 
     var totalQtyFallback = 0;
@@ -250,6 +289,8 @@
     }
     return totalQtyFallback;
   }
+
+
 
   function parseCartValue(val) {
     if (val === null || val === undefined) return 0;
