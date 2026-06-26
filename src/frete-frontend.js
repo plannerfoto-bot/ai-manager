@@ -189,29 +189,50 @@
     return totalQty;
   }
 
+  function parseCartValue(val) {
+    if (val === null || val === undefined) return 0;
+    if (typeof val === 'number') {
+      return val > 100000 ? val / 100 : val;
+    }
+    if (typeof val === 'string') {
+      var match = val.match(/[\d.,]+/);
+      if (match) {
+        var clean = match[0];
+        if (clean.indexOf('.') !== -1 && clean.indexOf(',') !== -1) {
+          clean = clean.replace(/\./g, '').replace(',', '.');
+        } else if (clean.indexOf(',') !== -1) {
+          clean = clean.replace(',', '.');
+        }
+        var parsed = parseFloat(clean);
+        return isNaN(parsed) ? 0 : (parsed > 100000 ? parsed / 100 : parsed);
+      }
+    }
+    return 0;
+  }
+
   function shouldHideFrete() {
     // 1. Verifica por desconto promocional ou de cupom no objeto global do carrinho da Nuvemshop
     if (window.LS && window.LS.cart) {
       var promoDiscount = 0;
       if (window.LS.cart.promotional_discount) {
         if (typeof window.LS.cart.promotional_discount === 'object') {
-          promoDiscount = parseFloat(window.LS.cart.promotional_discount.total_discount_amount) || 0;
+          promoDiscount = parseCartValue(window.LS.cart.promotional_discount.total_discount_amount);
         } else {
-          promoDiscount = parseFloat(window.LS.cart.promotional_discount) || 0;
+          promoDiscount = parseCartValue(window.LS.cart.promotional_discount);
         }
       }
       
       var couponDiscount = 0;
       if (window.LS.cart.coupon_discount) {
         if (typeof window.LS.cart.coupon_discount === 'object') {
-          couponDiscount = parseFloat(window.LS.cart.coupon_discount.total_discount_amount) || 0;
+          couponDiscount = parseCartValue(window.LS.cart.coupon_discount.total_discount_amount);
         } else {
-          couponDiscount = parseFloat(window.LS.cart.coupon_discount) || 0;
+          couponDiscount = parseCartValue(window.LS.cart.coupon_discount);
         }
       }
 
-      var sub = parseFloat(window.LS.cart.subtotal) || 0;
-      var tot = parseFloat(window.LS.cart.total) || 0;
+      var sub = parseCartValue(window.LS.cart.subtotal);
+      var tot = parseCartValue(window.LS.cart.total);
       
       if (promoDiscount > 0 || couponDiscount > 0 || tot < sub - 1) {
         var alineQty = countAlineItemsInCart();
