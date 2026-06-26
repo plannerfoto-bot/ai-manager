@@ -124,6 +124,17 @@
   }
 
   function getCartItems() {
+    var cartItemElements = document.querySelectorAll('.js-cart-item, .cart-item');
+    if (cartItemElements.length > 0) {
+      var totalQty = 0;
+      cartItemElements.forEach(function(el) {
+        var qtyInput = el.querySelector('.js-cart-item-qty, input[type="number"], .cart-item-quantity');
+        var qty = qtyInput ? parseInt(qtyInput.value || 1, 10) : 1;
+        totalQty += qty;
+      });
+      return totalQty;
+    }
+
     var count = -1;
     var countEl = document.querySelector('.js-cart-count, .js-cart-widget-amount, [data-cart-count]');
     if (countEl) {
@@ -139,19 +150,9 @@
   var isAlinePromoActiveOnStore = __PROMOCAO_ALINE_ATIVA__;
 
   function countAlineItemsInCart() {
-    var count = 0;
-    if (window.LS && window.LS.cart && Array.isArray(window.LS.cart.items)) {
-      window.LS.cart.items.forEach(function(item) {
-        var name = (item.name || '').toLowerCase();
-        var sku = (item.sku || '').toLowerCase();
-        if (name.indexOf('aline martins') !== -1 || sku.indexOf('aline martins') !== -1) {
-          count += parseInt(item.quantity || 1, 10);
-        }
-      });
-    }
-    
-    if (count === 0) {
-      var cartItemElements = document.querySelectorAll('.js-cart-item, .cart-item');
+    var cartItemElements = document.querySelectorAll('.js-cart-item, .cart-item');
+    if (cartItemElements.length > 0) {
+      var count = 0;
       cartItemElements.forEach(function(el) {
         var text = (el.innerText || '').toLowerCase();
         if (text.indexOf('aline martins') !== -1) {
@@ -160,33 +161,48 @@
           count += qty;
         }
       });
+      return count;
     }
-    return count;
+
+    var countFallback = 0;
+    if (window.LS && window.LS.cart && Array.isArray(window.LS.cart.items)) {
+      window.LS.cart.items.forEach(function(item) {
+        var name = (item.name || '').toLowerCase();
+        var sku = (item.sku || '').toLowerCase();
+        if (name.indexOf('aline martins') !== -1 || sku.indexOf('aline martins') !== -1) {
+          countFallback += parseInt(item.quantity || 1, 10);
+        }
+      });
+    }
+    return countFallback;
   }
 
   function countNonAlineItemsInCart() {
-    var totalQty = 0;
+    var cartItemElements = document.querySelectorAll('.js-cart-item, .cart-item');
+    if (cartItemElements.length > 0) {
+      var totalQty = 0;
+      cartItemElements.forEach(function(el) {
+        var text = (el.innerText || '').toLowerCase();
+        if (text.indexOf('aline martins') === -1) {
+          var qtyInput = el.querySelector('.js-cart-item-qty, input[type="number"], .cart-item-quantity');
+          var qty = qtyInput ? parseInt(qtyInput.value || 1, 10) : 1;
+          totalQty += qty;
+        }
+      });
+      return totalQty;
+    }
+
+    var totalQtyFallback = 0;
     if (window.LS && window.LS.cart && Array.isArray(window.LS.cart.items)) {
       window.LS.cart.items.forEach(function(item) {
         var name = (item.name || '').toLowerCase();
         var sku = (item.sku || '').toLowerCase();
         if (!(name.indexOf('aline martins') !== -1 || sku.indexOf('aline martins') !== -1)) {
-          totalQty += parseInt(item.quantity || 1, 10);
+          totalQtyFallback += parseInt(item.quantity || 1, 10);
         }
       });
-      return totalQty;
     }
-    
-    var cartItemElements = document.querySelectorAll('.js-cart-item, .cart-item');
-    cartItemElements.forEach(function(el) {
-      var text = (el.innerText || '').toLowerCase();
-      if (text.indexOf('aline martins') === -1) {
-        var qtyInput = el.querySelector('.js-cart-item-qty, input[type="number"], .cart-item-quantity');
-        var qty = qtyInput ? parseInt(qtyInput.value || 1, 10) : 1;
-        totalQty += qty;
-      }
-    });
-    return totalQty;
+    return totalQtyFallback;
   }
 
   function parseCartValue(val) {
@@ -211,7 +227,33 @@
   }
 
   function shouldHideFrete() {
-    // 1. Verifica por desconto promocional ou de cupom no objeto global do carrinho da Nuvemshop
+    // 1. Tenta verificar primeiro no DOM se há elementos de desconto visíveis com valor > 0
+    var discountSelectors = [
+      '.js-cart-discount',
+      '.cart-discount',
+      '.js-cart-coupon-discount',
+      '.coupon-discount'
+    ];
+    var discountEls = document.querySelectorAll(discountSelectors.join(','));
+    for (var i = 0; i < discountEls.length; i++) {
+      var el = discountEls[i];
+      if (el.offsetParent === null) continue;
+      var style = window.getComputedStyle ? window.getComputedStyle(el) : null;
+      if (style && style.display === 'none') continue;
+      
+      var txt = el.innerText || '';
+      var numbers = txt.replace(/\D/g, '');
+      var val = parseInt(numbers, 10) || 0;
+      if (val > 0) {
+        var alineQty = countAlineItemsInCart();
+        if (isAlinePromoActiveOnStore && alineQty > 0) {
+          return false;
+        }
+        return true;
+      }
+    }
+
+    // 2. Fallback para o objeto global caso o DOM não tenha elementos de desconto ativos
     if (window.LS && window.LS.cart) {
       var promoDiscount = 0;
       if (window.LS.cart.promotional_discount) {
@@ -239,28 +281,6 @@
         if (isAlinePromoActiveOnStore && alineQty > 0) {
           return false;
         }
-        return true;
-      }
-    }
-
-    // 2. Verifica se há elementos HTML de desconto/promoção no DOM do carrinho (ignorando ocultos/zerados)
-    var discountSelectors = [
-      '.js-cart-discount',
-      '.cart-discount',
-      '.js-cart-coupon-discount',
-      '.coupon-discount'
-    ];
-    var discountEls = document.querySelectorAll(discountSelectors.join(','));
-    for (var i = 0; i < discountEls.length; i++) {
-      var el = discountEls[i];
-      if (el.offsetParent === null) continue;
-      var style = window.getComputedStyle ? window.getComputedStyle(el) : null;
-      if (style && style.display === 'none') continue;
-      
-      var txt = el.innerText || '';
-      var numbers = txt.replace(/\D/g, '');
-      var val = parseInt(numbers, 10) || 0;
-      if (val > 0) {
         return true;
       }
     }
