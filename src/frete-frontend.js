@@ -128,8 +128,15 @@
     if (cartItemElements.length > 0) {
       var totalQty = 0;
       cartItemElements.forEach(function(el) {
-        var qtyInput = el.querySelector('.js-cart-item-qty, input[type="number"], .cart-item-quantity');
-        var qty = qtyInput ? parseInt(qtyInput.value || 1, 10) : 1;
+        var qty = 1;
+        var qtyInput = el.querySelector('.js-cart-item-qty, input[type="number"], input[type="text"], .cart-item-quantity');
+        if (qtyInput) {
+          var valStr = qtyInput.value || qtyInput.innerText || qtyInput.textContent || '';
+          var valMatch = valStr.match(/\d+/);
+          if (valMatch) {
+            qty = parseInt(valMatch[0], 10) || 1;
+          }
+        }
         totalQty += qty;
       });
       return totalQty;
@@ -156,8 +163,15 @@
       cartItemElements.forEach(function(el) {
         var text = (el.innerText || '').toLowerCase();
         if (text.indexOf('aline martins') !== -1) {
-          var qtyInput = el.querySelector('.js-cart-item-qty, input[type="number"], .cart-item-quantity');
-          var qty = qtyInput ? parseInt(qtyInput.value || 1, 10) : 1;
+          var qty = 1;
+          var qtyInput = el.querySelector('.js-cart-item-qty, input[type="number"], input[type="text"], .cart-item-quantity');
+          if (qtyInput) {
+            var valStr = qtyInput.value || qtyInput.innerText || qtyInput.textContent || '';
+            var valMatch = valStr.match(/\d+/);
+            if (valMatch) {
+              qty = parseInt(valMatch[0], 10) || 1;
+            }
+          }
           count += qty;
         }
       });
@@ -184,8 +198,15 @@
       cartItemElements.forEach(function(el) {
         var text = (el.innerText || '').toLowerCase();
         if (text.indexOf('aline martins') === -1) {
-          var qtyInput = el.querySelector('.js-cart-item-qty, input[type="number"], .cart-item-quantity');
-          var qty = qtyInput ? parseInt(qtyInput.value || 1, 10) : 1;
+          var qty = 1;
+          var qtyInput = el.querySelector('.js-cart-item-qty, input[type="number"], input[type="text"], .cart-item-quantity');
+          if (qtyInput) {
+            var valStr = qtyInput.value || qtyInput.innerText || qtyInput.textContent || '';
+            var valMatch = valStr.match(/\d+/);
+            if (valMatch) {
+              qty = parseInt(valMatch[0], 10) || 1;
+            }
+          }
           totalQty += qty;
         }
       });
