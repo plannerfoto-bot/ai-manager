@@ -123,21 +123,64 @@
     return isNaN(subtotal) ? 0 : subtotal;
   }
 
+  function getItemQty(el) {
+    // 1. Prioridade absoluta para inputs específicos de quantidade
+    var qtyInput = el.querySelector('input.js-cart-item-qty, input[name*="quantity"], input[name*="qty"]');
+    if (qtyInput) {
+      var val = parseInt(qtyInput.value, 10);
+      if (!isNaN(val) && val > 0) return val;
+    }
+    
+    // 2. Qualquer input de texto ou numérico que possa ser a quantidade
+    var inputs = el.querySelectorAll('input[type="number"], input[type="text"]');
+    for (var i = 0; i < inputs.length; i++) {
+      var val = parseInt(inputs[i].value, 10);
+      if (!isNaN(val) && val > 0) return val;
+    }
+
+    // 3. Elementos textuais com classes de quantidade
+    var qtyText = el.querySelector('.js-cart-item-qty, .cart-item-quantity, .js-cart-qty, .qty, .quantity');
+    if (qtyText) {
+      var valStr = qtyText.innerText || qtyText.textContent || '';
+      var valMatch = valStr.match(/\d+/);
+      if (valMatch) {
+        var val = parseInt(valMatch[0], 10);
+        if (!isNaN(val) && val > 0) return val;
+      }
+    }
+
+    // 4. Procurar no próprio container de quantidade se houver
+    var qtyContainer = el.querySelector('.js-qty, .qty-container, .quantity-container, .js-quantity, .js-cart-item-qty-container');
+    if (qtyContainer) {
+      var valStr = qtyContainer.innerText || qtyContainer.textContent || '';
+      var valMatch = valStr.match(/\d+/);
+      if (valMatch) {
+        var val = parseInt(valMatch[0], 10);
+        if (!isNaN(val) && val > 0) return val;
+      }
+    }
+
+    // 5. Fallback para varrer todos os spans/divs pequenos do item buscando um número pequeno solto que possa ser a quantidade
+    var childs = el.querySelectorAll('span, div');
+    for (var i = 0; i < childs.length; i++) {
+      var txt = (childs[i].innerText || childs[i].textContent || '').trim();
+      if (/^\d+$/.test(txt)) {
+        var val = parseInt(txt, 10);
+        if (val > 0 && val < 100) { // Quantidade razoável no carrinho
+          return val;
+        }
+      }
+    }
+
+    return 1;
+  }
+
   function getCartItems() {
     var cartItemElements = document.querySelectorAll('.js-cart-item, .cart-item');
     if (cartItemElements.length > 0) {
       var totalQty = 0;
       cartItemElements.forEach(function(el) {
-        var qty = 1;
-        var qtyInput = el.querySelector('.js-cart-item-qty, input[type="number"], input[type="text"], .cart-item-quantity');
-        if (qtyInput) {
-          var valStr = qtyInput.value || qtyInput.innerText || qtyInput.textContent || '';
-          var valMatch = valStr.match(/\d+/);
-          if (valMatch) {
-            qty = parseInt(valMatch[0], 10) || 1;
-          }
-        }
-        totalQty += qty;
+        totalQty += getItemQty(el);
       });
       return totalQty;
     }
@@ -163,16 +206,7 @@
       cartItemElements.forEach(function(el) {
         var text = (el.innerText || '').toLowerCase();
         if (text.indexOf('aline martins') !== -1) {
-          var qty = 1;
-          var qtyInput = el.querySelector('.js-cart-item-qty, input[type="number"], input[type="text"], .cart-item-quantity');
-          if (qtyInput) {
-            var valStr = qtyInput.value || qtyInput.innerText || qtyInput.textContent || '';
-            var valMatch = valStr.match(/\d+/);
-            if (valMatch) {
-              qty = parseInt(valMatch[0], 10) || 1;
-            }
-          }
-          count += qty;
+          count += getItemQty(el);
         }
       });
       return count;
@@ -198,16 +232,7 @@
       cartItemElements.forEach(function(el) {
         var text = (el.innerText || '').toLowerCase();
         if (text.indexOf('aline martins') === -1) {
-          var qty = 1;
-          var qtyInput = el.querySelector('.js-cart-item-qty, input[type="number"], input[type="text"], .cart-item-quantity');
-          if (qtyInput) {
-            var valStr = qtyInput.value || qtyInput.innerText || qtyInput.textContent || '';
-            var valMatch = valStr.match(/\d+/);
-            if (valMatch) {
-              qty = parseInt(valMatch[0], 10) || 1;
-            }
-          }
-          totalQty += qty;
+          totalQty += getItemQty(el);
         }
       });
       return totalQty;
