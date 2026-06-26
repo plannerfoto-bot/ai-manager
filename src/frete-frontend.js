@@ -269,13 +269,18 @@
   }
 
   function renderBar() {
-    if (getCartItems() === 0) return;
+    var banner = document.getElementById('ai-frete-cart-bar');
+    if (getCartItems() <= 0) {
+      if (banner) banner.style.display = 'none';
+      return;
+    }
 
     var targetContainer = document.querySelector('#ajax-cart-details .js-cart-subtotal, #ajax-cart-details [data-store="cart-subtotal"], .js-ajax-cart-list .js-cart-subtotal, .cart-subtotal');
     if (!targetContainer) targetContainer = document.querySelector('[data-store="cart-subtotal"], .js-cart-subtotal');
-    if (!targetContainer) return; 
-
-    var banner = document.getElementById('ai-frete-cart-bar');
+    if (!targetContainer) {
+      if (banner) banner.style.display = 'none';
+      return; 
+    }
 
     if (!banner) {
       banner = document.createElement('div');
@@ -497,8 +502,19 @@
     }
     
     var cartContainer = document.querySelector('#ajax-cart-details, .js-ajax-cart-list') || document.body;
-    var cartObserver = new MutationObserver(function() {
-      if (!document.getElementById('ai-frete-cart-bar') && getCartItems() > 0) {
+    var cartObserver = new MutationObserver(function(mutations) {
+      var isOurMutation = false;
+      for (var i = 0; i < mutations.length; i++) {
+        var added = mutations[i].addedNodes;
+        for (var j = 0; j < added.length; j++) {
+          if (added[j].id === 'ai-frete-cart-bar' || (added[j].querySelector && added[j].querySelector('#ai-frete-cart-bar'))) {
+            isOurMutation = true;
+            break;
+          }
+        }
+        if (isOurMutation) break;
+      }
+      if (!isOurMutation) {
         renderBar();
         bindNativeZipcode();
       }
