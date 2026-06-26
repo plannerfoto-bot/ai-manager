@@ -516,7 +516,17 @@ app.post('/api/create-variant', async (req, res) => {
       return res.status(400).json({ error: 'Esta medida e disponivel apenas em TECIDO 120g (sem emenda).' });
     }
     
-    const priceStr = (gramatura === '160g' ? price160 : price120).toFixed(2);
+    // Garantia de segurança contra gramaturas inválidas ou nulas
+    const selectedGram = (gramatura || '').toLowerCase();
+    const targetPrice = selectedGram.includes('160') ? price160 : price120;
+    
+    if (targetPrice === null || targetPrice === undefined) {
+      return res.status(400).json({ 
+        error: `A gramatura '${gramatura || 'não especificada'}' não está disponível para este produto. Por favor, escolha uma opção de tecido válida.` 
+      });
+    }
+    
+    const priceStr = targetPrice.toFixed(2);
     const measureStr = `${w.toFixed(2).replace('.', ',')}m x ${h.toFixed(2).replace('.', ',')}m`;
     
     // Timestamp atual para identificar variantes criadas pelo sistema (para limpeza 24h)

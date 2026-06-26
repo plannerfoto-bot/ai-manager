@@ -212,7 +212,9 @@
     var btns = document.querySelectorAll('.cc-buy-btn');
     for(var i=0; i<btns.length; i++) {
         btns[i].addEventListener('click', function(e) {
-            handleBuyClick(e.target.getAttribute('data-gram'), l, a, e.target);
+            var currentBtn = e.currentTarget || this;
+            var gram = currentBtn.getAttribute('data-gram');
+            handleBuyClick(gram, l, a, currentBtn);
         });
     }
   }
