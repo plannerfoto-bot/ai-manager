@@ -608,13 +608,22 @@ app.post('/api/create-variant', async (req, res) => {
     // Para medidas normais, cria os DOIS pares de gramatura
     let chosenId;
     if (measureType === 'special_seamless') {
-      chosenId = await findOrCreate(measureStr, gram120label, layoutLabel, price120);
+      const varSP = await findOrCreate(measureStr, gram120label, 'Só Parede', price120);
+      const varPC = await findOrCreate(measureStr, gram120label, 'Parede e Chão', price120);
+      chosenId = layoutLabel === 'Parede e Chão' ? varPC : varSP;
     } else {
-      const variant120Id = await findOrCreate(measureStr, gram120label, layoutLabel, price120);
-      const variant160Id = await findOrCreate(measureStr, gram160label, layoutLabel, price160);
-      chosenId = (gramatura === '160g') ? variant160Id : variant120Id;
+      const var120SP = await findOrCreate(measureStr, gram120label, 'Só Parede', price120);
+      const var120PC = await findOrCreate(measureStr, gram120label, 'Parede e Chão', price120);
+      
+      const var160SP = await findOrCreate(measureStr, gram160label, 'Só Parede', price160);
+      const var160PC = await findOrCreate(measureStr, gram160label, 'Parede e Chão', price160);
+      
+      if (gramatura === '160g') {
+        chosenId = layoutLabel === 'Parede e Chão' ? var160PC : var160SP;
+      } else {
+        chosenId = layoutLabel === 'Parede e Chão' ? var120PC : var120SP;
+      }
     }
-
     res.json({ success: true, variant_id: chosenId, price: priceStr, measureType });
     
   } catch (error) {
