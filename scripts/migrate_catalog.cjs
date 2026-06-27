@@ -195,11 +195,12 @@ async function main() {
           
           if (has120g) {
             console.log(`     🔄 Produto já possui variantes 120g. Realizando o swap de valores para ordenar nativamente.`);
+            
+            // Passo 1: Mudar de 160g para temporário
             for (const variant of variants) {
               const vals = variant.values || [];
               let sizeVal = '1,50x2,00';
               let is160 = false;
-              let is120 = false;
               let layoutVal = 'Só Parede';
               
               attributes.forEach((attr, idx) => {
@@ -212,28 +213,50 @@ async function main() {
                   const attrName = (attr.pt || '').toLowerCase();
                   if (attrName.includes('gramatura') || attrName.includes('tecido')) {
                     if (valPt.includes('160')) is160 = true;
-                    if (valPt.includes('120')) is120 = true;
                   }
                 }
               });
               
               if (is160) {
-                // Era 160g (primeiro criado, primeira posição). Vira 120g!
-                const newValues = buildValues(sizeVal, gram120label, layoutVal);
+                const tempLabel = 'temp-120' + gramSuffix;
+                const tempValues = buildValues(sizeVal, tempLabel, layoutVal);
                 const price120 = ALINE_120G_PRICES[sizeVal];
                 const priceStr = price120 ? price120.toFixed(2) : null;
                 const newSku = baseVariant.sku ? `AM-${sizeVal.replace('x', '')}-120-${layoutVal === 'Só Parede' ? 'SP' : 'PC'}` : null;
                 
                 await client.put(`/products/${product.id}/variants/${variant.id}`, {
-                  values: newValues,
+                  values: tempValues,
                   price: priceStr,
                   compare_at_price: priceStr,
                   sku: newSku
                 });
-                console.log(`       🔄 Variante ${variant.id} (${sizeVal} / 160g) alterada para 120g (Preço: R$ ${priceStr}).`);
+                console.log(`       🔄 Passo 1: Variante 160g (${variant.id}) -> temporário 120g.`);
                 await sleep(500);
-              } else if (is120) {
-                // Era 120g (criado depois, posição posterior). Vira 160g!
+              }
+            }
+
+            // Passo 2: Mudar de 120g para 160g definitivo
+            for (const variant of variants) {
+              const vals = variant.values || [];
+              let sizeVal = '1,50x2,00';
+              let is120 = false;
+              let layoutVal = 'Só Parede';
+              
+              attributes.forEach((attr, idx) => {
+                const valPt = vals[idx] ? vals[idx].pt : '';
+                if (idx === layoutAttrIdx) {
+                  layoutVal = valPt;
+                } else if (idx === 0) {
+                  sizeVal = valPt;
+                } else {
+                  const attrName = (attr.pt || '').toLowerCase();
+                  if (attrName.includes('gramatura') || attrName.includes('tecido')) {
+                    if (valPt.includes('120') && !valPt.includes('temp')) is120 = true;
+                  }
+                }
+              });
+              
+              if (is120) {
                 const newValues = buildValues(sizeVal, gram160label, layoutVal);
                 const price160 = ALINE_160G_PRICES[sizeVal];
                 const priceStr = price160 ? price160.toFixed(2) : null;
@@ -245,7 +268,41 @@ async function main() {
                   compare_at_price: priceStr,
                   sku: newSku
                 });
-                console.log(`       🔄 Variante ${variant.id} (${sizeVal} / 120g) alterada para 160g (Preço: R$ ${priceStr}).`);
+                console.log(`       🔄 Passo 2: Variante 120g (${variant.id}) -> 160g final.`);
+                await sleep(500);
+              }
+            }
+
+            // Passo 3: Mudar de temporário para 120g definitivo
+            const reloadRes = await client.get(`/products/${product.id}`);
+            const freshVariants = reloadRes.data.variants || [];
+            
+            for (const variant of freshVariants) {
+              const vals = variant.values || [];
+              let sizeVal = '1,50x2,00';
+              let isTemp = false;
+              let layoutVal = 'Só Parede';
+              
+              attributes.forEach((attr, idx) => {
+                const valPt = vals[idx] ? vals[idx].pt : '';
+                if (idx === layoutAttrIdx) {
+                  layoutVal = valPt;
+                } else if (idx === 0) {
+                  sizeVal = valPt;
+                } else {
+                  const attrName = (attr.pt || '').toLowerCase();
+                  if (attrName.includes('gramatura') || attrName.includes('tecido')) {
+                    if (valPt.includes('temp-120')) isTemp = true;
+                  }
+                }
+              });
+              
+              if (isTemp) {
+                const newValues = buildValues(sizeVal, gram120label, layoutVal);
+                await client.put(`/products/${product.id}/variants/${variant.id}`, {
+                  values: newValues
+                });
+                console.log(`       🔄 Passo 3: Variante temporária (${variant.id}) -> 120g final.`);
                 await sleep(500);
               }
             }
