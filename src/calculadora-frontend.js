@@ -836,104 +836,20 @@
       }
     });
   }
-  function reorderGramaturaOptions() {
-    var isAlineMartins = false;
-    var titleEl = document.querySelector('h1, .product-title, .js-product-name');
-    var titleText = titleEl ? titleEl.innerText.toLowerCase() : '';
-    if (titleText.indexOf('aline martins') !== -1 || window.location.pathname.toLowerCase().indexOf('aline-martins') !== -1) {
-      isAlineMartins = true;
-    }
-    
-    if (isAlineMartins) {
-      document.querySelectorAll('select.js-variation-option').forEach(function(select) {
-        var label = select.closest('.form-group, .js-variant-container, .variant-container, .product-variant') || select.parentElement;
-        var labelText = label ? (label.innerText || '').toLowerCase() : '';
-        
-        if (labelText.indexOf('gramatura') !== -1 || labelText.indexOf('tecido') !== -1) {
-          var options = Array.from(select.options);
-          var has120 = options.some(opt => opt.value.indexOf('120') !== -1);
-          var has160 = options.some(opt => opt.value.indexOf('160') !== -1);
-          
-          if (has120 && has160) {
-            options.sort(function(a, b) {
-              var valA = a.value.toLowerCase().indexOf('120') !== -1 ? 0 : 1;
-              var valB = b.value.toLowerCase().indexOf('120') !== -1 ? 0 : 1;
-              return valA - valB;
-            });
-            var currentVal = select.value;
-            select.innerHTML = '';
-            options.forEach(opt => select.appendChild(opt));
-            select.value = currentVal;
-          }
-        }
-      });
-      
-      document.querySelectorAll('.js-insta-variant').forEach(function(btn) {
-        var parent = btn.parentElement;
-        if (!parent || parent.dataset.reorderedGram) return;
-        
-        var labelText = '';
-        var prev = parent.previousElementSibling;
-        if (prev) labelText = (prev.innerText || '').toLowerCase();
-        if (!labelText) {
-          var formGroup = parent.closest('.form-group, .js-variant-container, .variant-container, .product-variant');
-          if (formGroup) {
-            var label = formGroup.querySelector('label');
-            if (label) labelText = (label.innerText || '').toLowerCase();
-          }
-        }
-        
-        if (labelText.indexOf('gramatura') !== -1 || labelText.indexOf('tecido') !== -1) {
-          parent.dataset.reorderedGram = 'true';
-          
-          var buttons = Array.from(parent.querySelectorAll('.js-insta-variant'));
-          var has120 = buttons.some(b => (b.getAttribute('data-option') || '').indexOf('120') !== -1);
-          var has160 = buttons.some(b => (b.getAttribute('data-option') || '').indexOf('160') !== -1);
-          
-          if (has120 && has160) {
-            buttons.sort(function(a, b) {
-              var valA = (a.getAttribute('data-option') || '').toLowerCase().indexOf('120') !== -1 ? 0 : 1;
-              var valB = (b.getAttribute('data-option') || '').toLowerCase().indexOf('120') !== -1 ? 0 : 1;
-              return valA - valB;
-            });
-            
-            buttons.forEach(function(b) {
-              parent.appendChild(b);
-            });
-            
-            if (!sessionStorage.getItem('cc_just_created')) {
-               var activeBtn = parent.querySelector('.js-insta-variant.selected');
-               if (activeBtn && (activeBtn.getAttribute('data-option') || '').indexOf('160') !== -1) {
-                  var btn120 = buttons.find(b => (b.getAttribute('data-option') || '').indexOf('120') !== -1);
-                  if (btn120 && !window.location.hash) {
-                     setTimeout(function() {
-                       btn120.click();
-                     }, 250);
-                  }
-               }
-            }
-          }
-        }
-      });
-    }
-  }
-
   // Evento de clique para o image adjuster
   document.addEventListener('click', function(e){
     if (e.target.closest('.js-variant-option, .js-insta-variant, .variant-option, .cc-custom-btn')) {
       setTimeout(initImageAdjuster, 100);
       setTimeout(checkLayoutWarning, 150);
-      setTimeout(reorderGramaturaOptions, 180);
     }
   });
 
-  document.readyState==='loading' ? document.addEventListener('DOMContentLoaded', function(){ inject(); initImageAdjuster(); initQuickShopPriceUpdater(); initLayoutWarning(); reorderGramaturaOptions(); }) : (function(){ inject(); initImageAdjuster(); initQuickShopPriceUpdater(); initLayoutWarning(); reorderGramaturaOptions(); })();
+  document.readyState==='loading' ? document.addEventListener('DOMContentLoaded', function(){ inject(); initImageAdjuster(); initQuickShopPriceUpdater(); initLayoutWarning(); }) : (function(){ inject(); initImageAdjuster(); initQuickShopPriceUpdater(); initLayoutWarning(); })();
   
   setInterval(function(){
     inject();
     initImageAdjuster();
     checkLayoutWarning();
-    reorderGramaturaOptions();
   }, 3000);
 })();
 

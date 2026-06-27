@@ -17,6 +17,15 @@ const ALINE_120G_PRICES = {
   "3,00x2,50": 325.00
 };
 
+// Tabelas de preço de 160g para produtos Aline Martins
+const ALINE_160G_PRICES = {
+  "1,50x2,00": 156.00,
+  "1,50x2,20": 163.00,
+  "2,50x2,00": 287.00,
+  "3,00x2,00": 357.00,
+  "3,00x2,50": 369.00
+};
+
 // Auxiliar para atrasar chamadas e evitar Rate Limiting da API Nuvemshop
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -174,131 +183,192 @@ async function main() {
           }
         }
 
-        // Atualiza as variantes existentes do produto
-        for (const variant of variants) {
-          const vals = variant.values || [];
-          if (vals.length > layoutAttrIdx && vals[layoutAttrIdx] && (vals[layoutAttrIdx].pt.includes('Parede') || vals[layoutAttrIdx].pt.includes('Chão'))) {
-            continue; 
-          }
+        const gram120label = '120' + gramSuffix;
+        const gram160label = '160' + gramSuffix;
 
-          let sizeVal = '1,50x2,00';
-          let gramVal = '160' + gramSuffix;
-
-          attributes.forEach((attr, idx) => {
-            if (idx === layoutAttrIdx) return;
-            const attrName = (attr.pt || '').toLowerCase();
-            const valPt = vals[idx] ? vals[idx].pt : '';
-            if (attrName.includes('gramatura') || attrName.includes('tecido')) {
-              gramVal = valPt;
-            } else if (attrName.includes('tamanho') || attrName.includes('medida')) {
-              sizeVal = valPt;
-            } else if (idx === 0) {
-              sizeVal = valPt;
-            } else if (idx === 1) {
-              gramVal = valPt;
-            }
-          });
-
-          // Atualiza para Só Parede
-          const updatedValues = buildValues(sizeVal, gramVal, 'Só Parede');
-          await client.put(`/products/${product.id}/variants/${variant.id}`, {
-            values: updatedValues
-          });
-          console.log(`     ✅ Variante ${variant.id} (${sizeVal} / ${gramVal}) atualizada para "Só Parede".`);
-          await sleep(500);
-
-          // Cria a irmã gêmea de Parede e Chão mantendo o estoque intacto
-          const siblingValues = buildValues(sizeVal, gramVal, 'Parede e Chão');
-          const siblingPayload = {
-            price: variant.price,
-            promotional_price: variant.promotional_price || null,
-            stock: variant.stock, // Mantém exatamente o estoque atual
-            weight: variant.weight || 0.5,
-            sku: variant.sku ? `${variant.sku}-PC` : null,
-            values: siblingValues
-          };
-          await client.post(`/products/${product.id}/variants`, siblingPayload);
-          console.log(`     ➕ Variante criada para "Parede e Chão" (${sizeVal} / ${gramVal}).`);
-          await sleep(500);
-        }
-
-        // Se for Aline Martins, garante gramatura 120g com estoque infinito (stock: null)
         if (hasAlineTag) {
-          console.log(`   🎀 [Aline Martins] Cadastrando opções de tecido 120g...`);
-          const sizesToCreate = Object.keys(ALINE_120G_PRICES);
+          console.log(`   🎀 [Aline Martins] Processando ordenação nativa (120g antes de 160g)...`);
+          
+          const has120g = variants.some(v => {
+            return v.values.some(val => (val.pt || '').toLowerCase().includes('120'));
+          });
+          
+          if (has120g) {
+            console.log(`     🔄 Produto já possui variantes 120g. Realizando o swap de valores para ordenar nativamente.`);
+            for (const variant of variants) {
+              const vals = variant.values || [];
+              let sizeVal = '1,50x2,00';
+              let is160 = false;
+              let is120 = false;
+              let layoutVal = 'Só Parede';
+              
+              attributes.forEach((attr, idx) => {
+                const valPt = vals[idx] ? vals[idx].pt : '';
+                if (idx === layoutAttrIdx) {
+                  layoutVal = valPt;
+                } else if (idx === 0) {
+                  sizeVal = valPt;
+                } else {
+                  const attrName = (attr.pt || '').toLowerCase();
+                  if (attrName.includes('gramatura') || attrName.includes('tecido')) {
+                    if (valPt.includes('160')) is160 = true;
+                    if (valPt.includes('120')) is120 = true;
+                  }
+                }
+              });
+              
+              if (is160) {
+                // Era 160g (primeiro criado, primeira posição). Vira 120g!
+                const newValues = buildValues(sizeVal, gram120label, layoutVal);
+                const price120 = ALINE_120G_PRICES[sizeVal];
+                const priceStr = price120 ? price120.toFixed(2) : null;
+                const newSku = baseVariant.sku ? `AM-${sizeVal.replace('x', '')}-120-${layoutVal === 'Só Parede' ? 'SP' : 'PC'}` : null;
+                
+                await client.put(`/products/${product.id}/variants/${variant.id}`, {
+                  values: newValues,
+                  price: priceStr,
+                  compare_at_price: priceStr,
+                  sku: newSku
+                });
+                console.log(`       🔄 Variante ${variant.id} (${sizeVal} / 160g) alterada para 120g (Preço: R$ ${priceStr}).`);
+                await sleep(500);
+              } else if (is120) {
+                // Era 120g (criado depois, posição posterior). Vira 160g!
+                const newValues = buildValues(sizeVal, gram160label, layoutVal);
+                const price160 = ALINE_160G_PRICES[sizeVal];
+                const priceStr = price160 ? price160.toFixed(2) : null;
+                const newSku = variant.sku ? variant.sku.replace('120', '160') : null;
+                
+                await client.put(`/products/${product.id}/variants/${variant.id}`, {
+                  values: newValues,
+                  price: priceStr,
+                  compare_at_price: priceStr,
+                  sku: newSku
+                });
+                console.log(`       🔄 Variante ${variant.id} (${sizeVal} / 120g) alterada para 160g (Preço: R$ ${priceStr}).`);
+                await sleep(500);
+              }
+            }
+          } else {
+            console.log(`     🆕 Produto novo. Criando variantes ordenadas nativamente (120g primeiro).`);
+            for (const variant of variants) {
+              const vals = variant.values || [];
+              let sizeVal = '1,50x2,00';
+              
+              attributes.forEach((attr, idx) => {
+                const attrName = (attr.pt || '').toLowerCase();
+                const valPt = vals[idx] ? vals[idx].pt : '';
+                if (attrName.includes('tamanho') || attrName.includes('medida') || idx === 0) {
+                  sizeVal = valPt;
+                }
+              });
+              
+              const price120 = ALINE_120G_PRICES[sizeVal];
+              const price120Str = price120 ? price120.toFixed(2) : null;
+              const price160 = variant.price;
+              
+              // A. Atualiza variante original para 120g Só Parede
+              const vals120SP = buildValues(sizeVal, gram120label, 'Só Parede');
+              const sku120SP = baseVariant.sku ? `AM-${sizeVal.replace('x', '')}-120-SP` : null;
+              await client.put(`/products/${product.id}/variants/${variant.id}`, {
+                values: vals120SP,
+                price: price120Str,
+                compare_at_price: price120Str,
+                sku: sku120SP,
+                stock: null
+              });
+              console.log(`       ✅ Variante existente ${variant.id} (${sizeVal}) atualizada para 120g Só Parede.`);
+              await sleep(500);
+              
+              // B. Cria 120g Parede e Chão
+              const vals120PC = buildValues(sizeVal, gram120label, 'Parede e Chão');
+              const sku120PC = baseVariant.sku ? `AM-${sizeVal.replace('x', '')}-120-PC` : null;
+              await client.post(`/products/${product.id}/variants`, {
+                price: price120Str,
+                stock: null,
+                weight: variant.weight || 0.250,
+                sku: sku120PC,
+                values: vals120PC
+              });
+              console.log(`       ➕ Criada variante 120g Parede e Chão (${sizeVal}).`);
+              await sleep(500);
+              
+              // C. Cria 160g Só Parede
+              const vals160SP = buildValues(sizeVal, gram160label, 'Só Parede');
+              const sku160SP = variant.sku ? `${variant.sku}-160-SP` : null;
+              await client.post(`/products/${product.id}/variants`, {
+                price: price160,
+                promotional_price: variant.promotional_price || null,
+                stock: variant.stock,
+                weight: variant.weight || 0.330,
+                sku: sku160SP,
+                values: vals160SP
+              });
+              console.log(`       ➕ Criada variante 160g Só Parede (${sizeVal}).`);
+              await sleep(500);
+              
+              // D. Cria 160g Parede e Chão
+              const vals160PC = buildValues(sizeVal, gram160label, 'Parede e Chão');
+              const sku160PC = variant.sku ? `${variant.sku}-160-PC` : null;
+              await client.post(`/products/${product.id}/variants`, {
+                price: price160,
+                promotional_price: variant.promotional_price || null,
+                stock: variant.stock,
+                weight: variant.weight || 0.330,
+                sku: sku160PC,
+                values: vals160PC
+              });
+              console.log(`       ➕ Criada variante 160g Parede e Chão (${sizeVal}).`);
+              await sleep(500);
+            }
+          }
+        } else {
+          // Atualiza as variantes existentes do produto não Aline Martins
+          for (const variant of variants) {
+            const vals = variant.values || [];
+            if (vals.length > layoutAttrIdx && vals[layoutAttrIdx] && (vals[layoutAttrIdx].pt.includes('Parede') || vals[layoutAttrIdx].pt.includes('Chão'))) {
+              continue; 
+            }
 
-          for (const size of sizesToCreate) {
-            const price120 = ALINE_120G_PRICES[size];
+            let sizeVal = '1,50x2,00';
+            let gramVal = '160' + gramSuffix;
 
-            const has120gVariant = freshProduct.variants.some(v => {
-              const sizeMatch = v.values.some(val => val.pt.replace(/\s+/g, '') === size);
-              const gramMatch = v.values.some(val => val.pt.toLowerCase().includes('120'));
-              return sizeMatch && gramMatch;
+            attributes.forEach((attr, idx) => {
+              if (idx === layoutAttrIdx) return;
+              const attrName = (attr.pt || '').toLowerCase();
+              const valPt = vals[idx] ? vals[idx].pt : '';
+              if (attrName.includes('gramatura') || attrName.includes('tecido')) {
+                gramVal = valPt;
+              } else if (attrName.includes('tamanho') || attrName.includes('medida')) {
+                sizeVal = valPt;
+              } else if (idx === 0) {
+                sizeVal = valPt;
+              } else if (idx === 1) {
+                gramVal = valPt;
+              }
             });
 
-            if (!has120gVariant) {
-              const gramLabel = '120' + gramSuffix;
+            // Atualiza para Só Parede
+            const updatedValues = buildValues(sizeVal, gramVal, 'Só Parede');
+            await client.put(`/products/${product.id}/variants/${variant.id}`, {
+              values: updatedValues
+            });
+            console.log(`     ✅ Variante ${variant.id} (${sizeVal} / ${gramVal}) atualizada para "Só Parede".`);
+            await sleep(500);
 
-              // 120g Só Parede - estoque infinito
-              const valsSP = buildValues(size, gramLabel, 'Só Parede');
-              const payloadSP = {
-                price: price120.toFixed(2),
-                stock: null, // infinito
-                weight: baseVariant ? baseVariant.weight : 0.5,
-                sku: baseVariant.sku ? `AM-${size.replace('x', '')}-120-SP` : null,
-                values: valsSP
-              };
-              await client.post(`/products/${product.id}/variants`, payloadSP);
-              console.log(`     ➕ Tecido 120g criado: ${size} / Só Parede (R$ ${price120.toFixed(2)})`);
-              await sleep(500);
-
-              // 120g Parede e Chão - estoque infinito
-              const valsPC = buildValues(size, gramLabel, 'Parede e Chão');
-              const payloadPC = {
-                price: price120.toFixed(2),
-                stock: null, // infinito
-                weight: baseVariant ? baseVariant.weight : 0.5,
-                sku: baseVariant.sku ? `AM-${size.replace('x', '')}-120-PC` : null,
-                values: valsPC
-              };
-              await client.post(`/products/${product.id}/variants`, payloadPC);
-              console.log(`     ➕ Tecido 120g criado: ${size} / Parede e Chão (R$ ${price120.toFixed(2)})`);
-              await sleep(500);
-            }
-          }
-
-          // Reordenar as variantes: 120g primeiro, depois 160g
-          console.log(`   🔢 [Aline Martins] Reordenando variantes para colocar 120g antes de 160g...`);
-          const freshResFinal = await client.get(`/products/${product.id}`);
-          const finalVariants = freshResFinal.data.variants || [];
-
-          const sortedVariants = [...finalVariants].sort((a, b) => {
-            const getGram = (v) => {
-              const val = v.values.find((val, idx) => {
-                const attrName = (attributes[idx]?.pt || '').toLowerCase();
-                return attrName.includes('gramatura') || attrName.includes('tecido') || attrName.includes('material');
-              });
-              return val ? (val.pt || '').toLowerCase() : '';
+            // Cria a irmã gêmea de Parede e Chão mantendo o estoque intacto
+            const siblingValues = buildValues(sizeVal, gramVal, 'Parede e Chão');
+            const siblingPayload = {
+              price: variant.price,
+              promotional_price: variant.promotional_price || null,
+              stock: variant.stock, // Mantém exatamente o estoque atual
+              weight: variant.weight || 0.5,
+              sku: variant.sku ? `${variant.sku}-PC` : null,
+              values: siblingValues
             };
-            const gramA = getGram(a);
-            const gramB = getGram(b);
-            const is120A = gramA.includes('120');
-            const is120B = gramB.includes('120');
-            if (is120A && !is120B) return -1;
-            if (!is120A && is120B) return 1;
-            return 0; // mantém a ordem relativa
-          });
-
-          for (let i = 0; i < sortedVariants.length; i++) {
-            const v = sortedVariants[i];
-            const newPos = i + 1;
-            if (v.position !== newPos) {
-              await client.put(`/products/${product.id}/variants/${v.id}`, {
-                position: newPos
-              });
-              console.log(`     🔢 Posição da variante ${v.id} (${v.values.map(val => val.pt).join(' / ')}) atualizada para ${newPos}.`);
-              await sleep(300);
-            }
+            await client.post(`/products/${product.id}/variants`, siblingPayload);
+            console.log(`     ➕ Variante criada para "Parede e Chão" (${sizeVal} / ${gramVal}).`);
+            await sleep(500);
           }
         }
 
