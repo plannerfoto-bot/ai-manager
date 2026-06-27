@@ -374,6 +374,41 @@ async function main() {
                 { gram: gram160label, layout: 'Parede e Chão', price: price160Str, stock: group[3]?.stock ?? group[0].stock, skuSuffix: '160-PC' }
               ];
 
+              // Verificar se o grupo já está 100% de acordo com os alvos para pular
+              let alreadyCorrect = true;
+              for (let i = 0; i < 4; i++) {
+                const variant = group[i];
+                const target = targets[i];
+                
+                let curGram = '';
+                let curLayout = '';
+                let curSize = '';
+                variant.values.forEach((vVal, vIdx) => {
+                  const attrName = (attributes[vIdx]?.pt || '').toLowerCase();
+                  if (attrName.includes('gramatura') || attrName.includes('tecido') || vIdx === 1) {
+                    curGram = vVal.pt;
+                  } else if (attrName.includes('layout') || attrName.includes('cenario') || vIdx === layoutAttrIdx) {
+                    curLayout = vVal.pt;
+                  } else if (attrName.includes('tamanho') || attrName.includes('medida') || vIdx === 0) {
+                    curSize = vVal.pt;
+                  }
+                });
+
+                const priceMatch = (variant.price === target.price) || (parseFloat(variant.price) === parseFloat(target.price));
+                const stockMatch = target.stock === null ? variant.stock === null : true;
+                const skuMatch = variant.sku === (baseVariant.sku ? `AM-${sizeVal.replace('x', '')}-${target.skuSuffix}` : null);
+                
+                if (curGram !== target.gram || curLayout !== target.layout || curSize !== sizeVal || !priceMatch || !stockMatch || !skuMatch) {
+                  alreadyCorrect = false;
+                  break;
+                }
+              }
+
+              if (alreadyCorrect) {
+                console.log(`       ✅ [Skip] Tamanho ${sizeVal} já está perfeitamente configurado e ordenado.`);
+                continue;
+              }
+
               // Fase 1: Renomear todas as 4 variantes para nomes temporários únicos para evitar colisões
               for (let i = 0; i < 4; i++) {
                 const variant = group[i];
