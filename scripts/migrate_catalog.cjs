@@ -78,6 +78,10 @@ async function main() {
 
   console.log(`✅ Total de produtos encontrados: ${products.length}`);
 
+  // Inverte a lista de produtos para processar os criados recentemente primeiro (mais novos)
+  products.reverse();
+  console.log('🔄 Lista de produtos invertida para processar do mais novo para o mais antigo.');
+
   for (let pIdx = 0; pIdx < products.length; pIdx++) {
     const product = products[pIdx];
     const name = product.name ? (product.name.pt || Object.values(product.name)[0]) : `ID: ${product.id}`;
@@ -87,7 +91,6 @@ async function main() {
     console.log(`\n🔄 [${pIdx + 1}/${products.length}] Processando produto: "${name}" (ID: ${product.id})`);
 
     try {
-      // 2. Garantir que as propriedades do produto possuam "Layout do Cenário"
       let attributes = product.attributes || [];
       let layoutAttrIdx = attributes.findIndex(attr => {
         const pt = (attr.pt || '').toLowerCase();
