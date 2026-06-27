@@ -227,11 +227,14 @@
     var storeId = (window.LS && LS.store && LS.store.id) ? LS.store.id : '';
     var productId = (window.LS && LS.product && LS.product.id) ? LS.product.id : '';
     if (!productId) { var meta = document.querySelector('meta[property="product:id"]'); if(meta) productId = meta.content; }
+    
+    // Captura o layout selecionado no tema do produto
+    var layout = getSelectedLayout();
 
     fetch(API_BASE_URL + '/api/create-variant', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-store-id': storeId },
-        body: JSON.stringify({ productId: productId, width: width, height: height, gramatura: gramatura })
+        body: JSON.stringify({ productId: productId, width: width, height: height, gramatura: gramatura, layout: layout })
     })
     .then(res => res.json())
     .then(data => {
@@ -259,9 +262,6 @@
         btn.innerHTML = ogHtml;
     });
   }
-
-
-
   function bind(){
     var b = document.getElementById('cloth-calc-btn');
     if(!b) return;
@@ -735,17 +735,105 @@
     });
   }
 
-  // Evento instantâneo no clique
+  function getSelectedLayout() {
+    var sel = 'select, input[type="radio"]:checked';
+    var els = document.querySelectorAll(sel);
+    for (var i = 0; i < els.length; i++) {
+      var el = els[i];
+      var name = '';
+      if (el.tagName === 'SELECT') {
+        var label = el.closest('.form-group, .js-variant-container, .variant-container, .product-variant') || el.parentElement;
+        name = label ? (label.innerText || '').toLowerCase() : '';
+      } else {
+        var label = document.querySelector('label[for="' + el.id + '"]') || el.parentElement;
+        name = label ? (label.innerText || '').toLowerCase() : '';
+        if (el.name) name += ' ' + el.name.toLowerCase();
+      }
+
+      var text = el.value || '';
+      if (el.tagName !== 'SELECT' && label) text = label.innerText;
+
+      if (name.indexOf('layout') !== -1 || name.indexOf('cenario') !== -1 || name.indexOf('cenário') !== -1 || name.indexOf('formato') !== -1) {
+        var normText = text.toLowerCase();
+        if (normText.indexOf('chão') !== -1 || normText.indexOf('chao') !== -1) {
+          return 'Parede e Chão';
+        }
+        return 'Só Parede';
+      }
+    }
+
+    var activeVariants = document.querySelectorAll('.js-variant-option.selected, .variant-option.active, .js-variant-option.active, .selected-variant');
+    for (var i = 0; i < activeVariants.length; i++) {
+      var txt = (activeVariants[i].innerText || '').toLowerCase();
+      if (txt.indexOf('chão') !== -1 || txt.indexOf('chao') !== -1) {
+        return 'Parede e Chão';
+      }
+    }
+
+    return 'Só Parede';
+  }
+
+  function checkLayoutWarning() {
+    var layout = getSelectedLayout();
+    var warningId = 'cc-layout-cenario-warning';
+    var existing = document.getElementById(warningId);
+
+    if (layout === 'Parede e Chão') {
+      if (existing) return;
+      
+      var container = document.querySelector('.js-product-buy-container, .product-buy-container, .js-variant-container, .variant-container, .product-variants');
+      if (!container) container = document.querySelector('.js-product-form') || document.body;
+
+      var warning = document.createElement('div');
+      warning.id = warningId;
+      warning.style.cssText = 'background:#0f172a; border:1.5px solid #f59e0b; border-radius:12px; padding:12px 16px; margin:12px 0; font-family:inherit; animation:clothIn 0.3s ease; box-shadow:0 4px 24px rgba(37,99,235,0.1); width:100%; box-sizing:border-box; clear:both;';
+      warning.innerHTML = 
+        '<div style="display:flex; align-items:flex-start; gap:10px;">' +
+          '<span style="font-size:18px; margin-top:2px;">💬</span>' +
+          '<div style="flex:1;">' +
+            '<p style="color:#f59e0b; font-size:12px; font-weight:800; margin:0 0 4px; text-transform:uppercase; letter-spacing:0.05em;">Aviso Cenográfico</p>' +
+            '<p style="color:#cbd5e1; font-size:12px; margin:4px 0 0 0; line-height:1.5;">Para saber como fica o enquadramento desta imagem dividida em Parede e Chão, entre em contato conosco pelo WhatsApp! Caso contrário, o fundo será produzido de forma contínua seguindo o padrão da imagem sendo 50% Parede e 50% chão.</p>' +
+          '</div>' +
+        '</div>';
+
+      if (container) {
+        if (container.nextSibling) {
+          container.parentNode.insertBefore(warning, container.nextSibling);
+        } else {
+          container.parentNode.appendChild(warning);
+        }
+      }
+    } else {
+      if (existing) {
+        existing.remove();
+      }
+    }
+  }
+
+  function initLayoutWarning() {
+    checkLayoutWarning();
+    window.addEventListener('change', checkLayoutWarning);
+    document.addEventListener('click', function(e) {
+      if (e.target.closest('.js-variant-option, .js-insta-variant, .variant-option, .cc-custom-btn')) {
+        setTimeout(checkLayoutWarning, 150);
+      }
+    });
+  }
+
+  // Evento de clique para o image adjuster
   document.addEventListener('click', function(e){
     if (e.target.closest('.js-variant-option, .js-insta-variant, .variant-option, .cc-custom-btn')) {
       setTimeout(initImageAdjuster, 100);
+      setTimeout(checkLayoutWarning, 150);
     }
   });
 
-  document.readyState==='loading' ? document.addEventListener('DOMContentLoaded', function(){ inject(); initImageAdjuster(); initQuickShopPriceUpdater(); }) : (function(){ inject(); initImageAdjuster(); initQuickShopPriceUpdater(); })();
+  document.readyState==='loading' ? document.addEventListener('DOMContentLoaded', function(){ inject(); initImageAdjuster(); initQuickShopPriceUpdater(); initLayoutWarning(); }) : (function(){ inject(); initImageAdjuster(); initQuickShopPriceUpdater(); initLayoutWarning(); })();
   
   setInterval(function(){
     inject();
     initImageAdjuster();
+    checkLayoutWarning();
   }, 3000);
 })();
+

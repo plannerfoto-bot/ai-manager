@@ -407,10 +407,8 @@ function calcMeasure(w, h, hasAlineTag = false) {
   const isSpecial = (inSpecialRange(w) && h > 1.55) || (inSpecialRange(h) && w > 1.55);
   
   if (isSpecial) {
-    if (hasAlineTag) {
-      return { error: 'Não é possível fazer nesta medida porque a Cloth Sublimação só tem disponível para essa medida o tecido de 120g, o que não é permitida venda na coleção da Aline Martins.' };
-    }
     let price = (w * h * 24.90) + 65.00;
+    if (hasAlineTag) { price += 50.00; }
     return { price120: price, price160: null, measureType: 'special_seamless', isSpecial: true };
   }
 
@@ -421,7 +419,7 @@ function calcMeasure(w, h, hasAlineTag = false) {
   if (min <= 1.55) {
     let p120 = (max * 22.50) + 3.00 + 45.00;
     let p160 = (max * 26.00) + 3.00 + 45.00;
-    if (hasAlineTag) { p120 = null; p160 += 50.00; }
+    if (hasAlineTag) { p120 += 50.00; p160 += 50.00; }
     return {
       price120: p120,
       price160: p160,
@@ -432,7 +430,7 @@ function calcMeasure(w, h, hasAlineTag = false) {
   // Regra B: ambas as dimensões > 1,56m (e não na faixa especial)
   let p120b = (((max * 2) * 22.50) + 15.00) * 1.80;
   let p160b = (((max * 2) * 26.00) + 15.00) * 1.80;
-  if (hasAlineTag) { p120b = null; p160b += 50.00; }
+  if (hasAlineTag) { p120b += 50.00; p160b += 50.00; }
   return {
     price120: p120b,
     price160: p160b,
@@ -479,11 +477,10 @@ app.post('/api/simulate-price', async (req, res) => {
   }
 });
 
-
 // --- CRIAR VARIACAO DINAMICA SOB MEDIDA ---
 app.post('/api/create-variant', async (req, res) => {
   try {
-    const { productId, width, height, gramatura } = req.body;
+    const { productId, width, height, gramatura, layout } = req.body;
     const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
     if (!storeId || !productId) return res.status(400).json({ error: 'Loja ou Produto nao identificado.' });
     
@@ -529,6 +526,9 @@ app.post('/api/create-variant', async (req, res) => {
     const priceStr = targetPrice.toFixed(2);
     const measureStr = `${w.toFixed(2).replace('.', ',')}m x ${h.toFixed(2).replace('.', ',')}m`;
     
+    // Sanitização e definição do Layout do Cenário
+    const layoutLabel = layout || 'Só Parede';
+    
     // Timestamp atual para identificar variantes criadas pelo sistema (para limpeza 24h)
     const nowTs = Date.now();
     const createdMark = 'calc:' + nowTs; // fica no campo SKU da variante
@@ -547,30 +547,40 @@ app.post('/api/create-variant', async (req, res) => {
     
     // Garante atributos do produto
     let attributes = product.attributes || [];
+    let hasLayoutAttr = attributes.some(attr => {
+      const name = (attr.pt || '').toLowerCase();
+      return name.includes('layout') || name.includes('cenario') || name.includes('cenário') || name.includes('formato');
+    });
+
     if (attributes.length === 0) {
-      attributes = [{ pt: 'Tamanho' }, { pt: 'Gramatura' }];
+      attributes = [{ pt: 'Tamanho' }, { pt: 'Gramatura' }, { pt: 'Layout do Cenário' }];
+      await client.put(`/products/${productId}`, { attributes });
+    } else if (!hasLayoutAttr) {
+      attributes.push({ pt: 'Layout do Cenário' });
       await client.put(`/products/${productId}`, { attributes });
     }
     
     const baseVariant = (product.variants || [])[0] || null;
-    const buildValues = (measure, gram) => attributes.map((attr, idx) => {
+    const buildValues = (measure, gram, layoutVal) => attributes.map((attr, idx) => {
       const attrName = (attr.pt || attr.es || attr.en || '').toLowerCase();
       if (attrName.includes('gramatura') || attrName.includes('tecido') || attrName.includes('material')) return { pt: gram };
       if (attrName.includes('tamanho') || attrName.includes('medida') || attrName.includes('dimens')) return { pt: measure };
+      if (attrName.includes('layout') || attrName.includes('cenario') || attrName.includes('cenário') || attrName.includes('formato')) return { pt: layoutVal };
       if (idx === 0) return { pt: measure };
       if (idx === 1) return { pt: gram };
+      if (idx === 2) return { pt: layoutVal };
       return (baseVariant && baseVariant.values && baseVariant.values[idx]) ? baseVariant.values[idx] : { pt: '-' };
     });
 
     const norm = (s) => (s || '').trim().toLowerCase();
-    const findOrCreate = async (measure, gramLabel, price) => {
-      const targetValues = buildValues(measure, gramLabel);
+    const findOrCreate = async (measure, gramLabel, layoutVal, price) => {
+      const targetValues = buildValues(measure, gramLabel, layoutVal);
       const existing = product.variants.find(v => {
         if (!v.values) return false;
         return targetValues.every((tv, i) => v.values[i] && norm(v.values[i].pt) === norm(tv.pt));
       });
       if (existing) {
-        console.log('[Variante] Ja existe: ' + measure + ' / ' + gramLabel + ' id=' + existing.id);
+        console.log('[Variante] Ja existe: ' + measure + ' / ' + gramLabel + ' / ' + layoutVal + ' id=' + existing.id);
         return existing.id;
       }
       if (product.variants.length > 80) {
@@ -588,7 +598,7 @@ app.post('/api/create-variant', async (req, res) => {
         values: targetValues,
         sku: createdMark  // ex: "calc:1711405200000" - identificador de limpeza
       };
-      console.log('[Variante] Criando: ' + measure + ' / ' + gramLabel + ' = R$' + (price ? price.toFixed(2) : '0.00') + ' | SKU: ' + createdMark);
+      console.log('[Variante] Criando: ' + measure + ' / ' + gramLabel + ' / ' + layoutVal + ' = R$' + (price ? price.toFixed(2) : '0.00') + ' | SKU: ' + createdMark);
       const createRes = await client.post(`/products/${productId}/variants`, payload);
       product.variants.push(createRes.data);
       return createRes.data.id;
@@ -598,16 +608,11 @@ app.post('/api/create-variant', async (req, res) => {
     // Para medidas normais, cria os DOIS pares de gramatura
     let chosenId;
     if (measureType === 'special_seamless') {
-      chosenId = await findOrCreate(measureStr, gram120label, price120);
+      chosenId = await findOrCreate(measureStr, gram120label, layoutLabel, price120);
     } else {
-      if (hasAlineTag) {
-        // Coleção Aline Martins não permite 120g, então cria apenas a variante de 160g
-        chosenId = await findOrCreate(measureStr, gram160label, price160);
-      } else {
-        const variant120Id = await findOrCreate(measureStr, gram120label, price120);
-        const variant160Id = await findOrCreate(measureStr, gram160label, price160);
-        chosenId = (gramatura === '160g') ? variant160Id : variant120Id;
-      }
+      const variant120Id = await findOrCreate(measureStr, gram120label, layoutLabel, price120);
+      const variant160Id = await findOrCreate(measureStr, gram160label, layoutLabel, price160);
+      chosenId = (gramatura === '160g') ? variant160Id : variant120Id;
     }
 
     res.json({ success: true, variant_id: chosenId, price: priceStr, measureType });
