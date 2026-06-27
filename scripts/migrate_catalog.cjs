@@ -266,6 +266,40 @@ async function main() {
               await sleep(500);
             }
           }
+
+          // Reordenar as variantes: 120g primeiro, depois 160g
+          console.log(`   🔢 [Aline Martins] Reordenando variantes para colocar 120g antes de 160g...`);
+          const freshResFinal = await client.get(`/products/${product.id}`);
+          const finalVariants = freshResFinal.data.variants || [];
+
+          const sortedVariants = [...finalVariants].sort((a, b) => {
+            const getGram = (v) => {
+              const val = v.values.find((val, idx) => {
+                const attrName = (attributes[idx]?.pt || '').toLowerCase();
+                return attrName.includes('gramatura') || attrName.includes('tecido') || attrName.includes('material');
+              });
+              return val ? (val.pt || '').toLowerCase() : '';
+            };
+            const gramA = getGram(a);
+            const gramB = getGram(b);
+            const is120A = gramA.includes('120');
+            const is120B = gramB.includes('120');
+            if (is120A && !is120B) return -1;
+            if (!is120A && is120B) return 1;
+            return 0; // mantém a ordem relativa
+          });
+
+          for (let i = 0; i < sortedVariants.length; i++) {
+            const v = sortedVariants[i];
+            const newPos = i + 1;
+            if (v.position !== newPos) {
+              await client.put(`/products/${product.id}/variants/${v.id}`, {
+                position: newPos
+              });
+              console.log(`     🔢 Posição da variante ${v.id} (${v.values.map(val => val.pt).join(' / ')}) atualizada para ${newPos}.`);
+              await sleep(300);
+            }
+          }
         }
 
       } catch (productError) {
