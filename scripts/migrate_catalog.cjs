@@ -249,143 +249,35 @@ async function main() {
         const gram160label = '160' + gramSuffix;
 
         if (hasAlineTag) {
-          console.log(`   🎀 [Aline Martins] Processando ordenação nativa (120g antes de 160g)...`);
+          console.log(`   🎀 [Aline Martins] Processando ordenação nativa e estruturação autocura (120g antes de 160g)...`);
           
-          const has120g = variants.some(v => {
-            return v.values.some(val => (val.pt || '').toLowerCase().includes('120'));
-          });
-          
-          if (has120g) {
-            console.log(`     🔄 Produto já possui variantes 120g. Realizando o swap de valores para ordenar nativamente.`);
-            
-            // Passo 1: Mudar de 160g para temporário
-            for (const variant of variants) {
-              const vals = variant.values || [];
-              let sizeVal = '1,50x2,00';
-              let is160 = false;
-              let layoutVal = 'Só Parede';
-              
-              attributes.forEach((attr, idx) => {
-                const valPt = vals[idx] ? vals[idx].pt : '';
-                if (idx === layoutAttrIdx) {
-                  layoutVal = valPt;
-                } else if (idx === 0) {
-                  sizeVal = valPt;
-                } else {
-                  const attrName = (attr.pt || '').toLowerCase();
-                  if (attrName.includes('gramatura') || attrName.includes('tecido')) {
-                    if (valPt.includes('160')) is160 = true;
-                  }
-                }
-              });
-              
-              if (is160) {
-                const tempLabel = 'temp-120' + gramSuffix;
-                const tempValues = buildValues(sizeVal, tempLabel, layoutVal);
-                const price120 = ALINE_120G_PRICES[sizeVal];
-                const priceStr = price120 ? price120.toFixed(2) : null;
-                const newSku = baseVariant.sku ? `AM-${sizeVal.replace('x', '')}-120-${layoutVal === 'Só Parede' ? 'SP' : 'PC'}` : null;
-                
-                await client.put(`/products/${product.id}/variants/${variant.id}`, {
-                  values: tempValues,
-                  price: priceStr,
-                  compare_at_price: priceStr,
-                  sku: newSku
-                });
-                console.log(`       🔄 Passo 1: Variante 160g (${variant.id}) -> temporário 120g.`);
-                await sleep(500);
+          // 1. Agrupar as variantes atuais por tamanho
+          const sizeGroups = {};
+          for (const variant of variants) {
+            const vals = variant.values || [];
+            let sizeVal = '1,50x2,00';
+            attributes.forEach((attr, idx) => {
+              const attrName = (attr.pt || '').toLowerCase();
+              const valPt = vals[idx] ? vals[idx].pt : '';
+              if (attrName.includes('tamanho') || attrName.includes('medida') || idx === 0) {
+                sizeVal = valPt;
               }
-            }
+            });
+            if (!sizeGroups[sizeVal]) sizeGroups[sizeVal] = [];
+            sizeGroups[sizeVal].push(variant);
+          }
 
-            // Passo 2: Mudar de 120g para 160g definitivo
-            for (const variant of variants) {
-              const vals = variant.values || [];
-              let sizeVal = '1,50x2,00';
-              let is120 = false;
-              let layoutVal = 'Só Parede';
-              
-              attributes.forEach((attr, idx) => {
-                const valPt = vals[idx] ? vals[idx].pt : '';
-                if (idx === layoutAttrIdx) {
-                  layoutVal = valPt;
-                } else if (idx === 0) {
-                  sizeVal = valPt;
-                } else {
-                  const attrName = (attr.pt || '').toLowerCase();
-                  if (attrName.includes('gramatura') || attrName.includes('tecido')) {
-                    if (valPt.includes('120') && !valPt.includes('temp')) is120 = true;
-                  }
-                }
-              });
-              
-              if (is120) {
-                const newValues = buildValues(sizeVal, gram160label, layoutVal);
-                const price160 = ALINE_160G_PRICES[sizeVal];
-                const priceStr = price160 ? price160.toFixed(2) : null;
-                const newSku = variant.sku ? variant.sku.replace('120', '160') : null;
-                
-                await client.put(`/products/${product.id}/variants/${variant.id}`, {
-                  values: newValues,
-                  price: priceStr,
-                  compare_at_price: priceStr,
-                  sku: newSku
-                });
-                console.log(`       🔄 Passo 2: Variante 120g (${variant.id}) -> 160g final.`);
-                await sleep(500);
-              }
-            }
-
-            // Passo 3: Mudar de temporário para 120g definitivo
-            const reloadRes = await client.get(`/products/${product.id}`);
-            const freshVariants = reloadRes.data.variants || [];
+          // 2. Para cada tamanho, garantir que tenhamos exatamente 4 variantes
+          for (const sizeVal of Object.keys(sizeGroups)) {
+            const group = sizeGroups[sizeVal];
             
-            for (const variant of freshVariants) {
-              const vals = variant.values || [];
-              let sizeVal = '1,50x2,00';
-              let isTemp = false;
-              let layoutVal = 'Só Parede';
-              
-              attributes.forEach((attr, idx) => {
-                const valPt = vals[idx] ? vals[idx].pt : '';
-                if (idx === layoutAttrIdx) {
-                  layoutVal = valPt;
-                } else if (idx === 0) {
-                  sizeVal = valPt;
-                } else {
-                  const attrName = (attr.pt || '').toLowerCase();
-                  if (attrName.includes('gramatura') || attrName.includes('tecido')) {
-                    if (valPt.includes('temp-120')) isTemp = true;
-                  }
-                }
-              });
-              
-              if (isTemp) {
-                const newValues = buildValues(sizeVal, gram120label, layoutVal);
-                await client.put(`/products/${product.id}/variants/${variant.id}`, {
-                  values: newValues
-                });
-                console.log(`       🔄 Passo 3: Variante temporária (${variant.id}) -> 120g final.`);
-                await sleep(500);
-              }
-            }
-          } else {
-            console.log(`     🆕 Produto novo. Criando variantes ordenadas nativamente (120g primeiro).`);
-            for (const variant of variants) {
-              const vals = variant.values || [];
-              let sizeVal = '1,50x2,00';
-              
-              attributes.forEach((attr, idx) => {
-                const attrName = (attr.pt || '').toLowerCase();
-                const valPt = vals[idx] ? vals[idx].pt : '';
-                if (attrName.includes('tamanho') || attrName.includes('medida') || idx === 0) {
-                  sizeVal = valPt;
-                }
-              });
-              
+            // Se houver apenas 1 variante (novo produto), criamos as outras 3 diretamente sem complicação
+            if (group.length === 1) {
+              const variant = group[0];
               const price120 = ALINE_120G_PRICES[sizeVal];
               const price120Str = price120 ? price120.toFixed(2) : null;
               const price160 = variant.price;
-              
+
               // A. Atualiza variante original para 120g Só Parede
               const vals120SP = buildValues(sizeVal, gram120label, 'Só Parede');
               const sku120SP = baseVariant.sku ? `AM-${sizeVal.replace('x', '')}-120-SP` : null;
@@ -439,6 +331,80 @@ async function main() {
               });
               console.log(`       ➕ Criada variante 160g Parede e Chão (${sizeVal}).`);
               await sleep(500);
+            } 
+            else {
+              // Se tivermos mais de 1 variante (já migrado ou em estado inconsistente/parcial), aplicamos autocura baseada em ID
+              
+              // Primeiro, vamos garantir que existam exatamente 4 variantes para este tamanho.
+              // Se tivermos menos de 4, criamos variantes adicionais (com nomes temporários únicos) para atingir 4.
+              while (group.length < 4) {
+                const base = group[0];
+                const tempLabel = `temp-need-${group.length}-${gramSuffix}`;
+                const tempValues = buildValues(sizeVal, tempLabel, 'Só Parede');
+                const resCreate = await client.post(`/products/${product.id}/variants`, {
+                  price: base.price,
+                  stock: base.stock,
+                  weight: base.weight || 0.330,
+                  values: tempValues
+                });
+                group.push(resCreate.data);
+                console.log(`       ➕ [Autocura] Variante temporária extra criada para ${sizeVal} (para atingir as 4 necessárias).`);
+                await sleep(500);
+              }
+
+              // Ordenamos as 4 variantes por ID crescente
+              group.sort((a, b) => a.id - b.id);
+
+              // Alvos definitivos para as 4 variantes:
+              // index 0 -> 120g / Só Parede (estoque infinito, preço 120)
+              // index 1 -> 120g / Parede e Chão (estoque infinito, preço 120)
+              // index 2 -> 160g / Só Parede (estoque original, preço 160)
+              // index 3 -> 160g / Parede e Chão (estoque original, preço 160)
+              
+              const price120 = ALINE_120G_PRICES[sizeVal];
+              const price120Str = price120 ? price120.toFixed(2) : null;
+              
+              const price160 = ALINE_160G_PRICES[sizeVal];
+              const price160Str = price160 ? price160.toFixed(2) : null;
+
+              const targets = [
+                { gram: gram120label, layout: 'Só Parede', price: price120Str, stock: null, skuSuffix: '120-SP' },
+                { gram: gram120label, layout: 'Parede e Chão', price: price120Str, stock: null, skuSuffix: '120-PC' },
+                { gram: gram160label, layout: 'Só Parede', price: price160Str, stock: group[2]?.stock ?? group[0].stock, skuSuffix: '160-SP' },
+                { gram: gram160label, layout: 'Parede e Chão', price: price160Str, stock: group[3]?.stock ?? group[0].stock, skuSuffix: '160-PC' }
+              ];
+
+              // Fase 1: Renomear todas as 4 variantes para nomes temporários únicos para evitar colisões
+              for (let i = 0; i < 4; i++) {
+                const variant = group[i];
+                const tempLabel = `temp-swap-${i}-${gramSuffix}`;
+                const tempVals = buildValues(sizeVal, tempLabel, targets[i].layout);
+                const tempSku = baseVariant.sku ? `AM-${sizeVal.replace('x', '')}-${targets[i].skuSuffix}-temp` : null;
+                
+                await client.put(`/products/${product.id}/variants/${variant.id}`, {
+                  values: tempVals,
+                  price: targets[i].price,
+                  compare_at_price: targets[i].price,
+                  sku: tempSku,
+                  stock: targets[i].stock
+                });
+                console.log(`       🔄 [Autocura Fase 1] Variante ${variant.id} (${sizeVal}) -> temporário index ${i}`);
+                await sleep(500);
+              }
+
+              // Fase 2: Aplicar os nomes finais definitivos (livres de qualquer colisão)
+              for (let i = 0; i < 4; i++) {
+                const variant = group[i];
+                const finalVals = buildValues(sizeVal, targets[i].gram, targets[i].layout);
+                const finalSku = baseVariant.sku ? `AM-${sizeVal.replace('x', '')}-${targets[i].skuSuffix}` : null;
+                
+                await client.put(`/products/${product.id}/variants/${variant.id}`, {
+                  values: finalVals,
+                  sku: finalSku
+                });
+                console.log(`       🔄 [Autocura Fase 2] Variante ${variant.id} (${sizeVal}) -> definitiva (${targets[i].gram} / ${targets[i].layout})`);
+                await sleep(500);
+              }
             }
           }
         } else {
