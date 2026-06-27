@@ -67,6 +67,14 @@ async function main() {
   const originalPut = client.put;
   const originalPost = client.post;
 
+  const getResetTimeMs = (headers) => {
+    let raw = parseInt(headers?.['x-rate-limit-reset'] || '30', 10);
+    if (raw <= 120) {
+      return raw * 1000;
+    }
+    return raw;
+  };
+
   client.get = async function(url, config) {
     let attempts = 0;
     while (attempts < 10) {
@@ -74,9 +82,10 @@ async function main() {
         return await originalGet.call(client, url, config);
       } catch (error) {
         if (error.response?.status === 429) {
-          const resetTime = parseInt(error.response.headers['x-rate-limit-reset'] || '30', 10);
-          console.log(`⚠️ [Rate Limit 429] Limite atingido em GET ${url}. Aguardando ${resetTime}s...`);
-          await sleep(resetTime * 1000 + 1000);
+          const resetTimeMs = getResetTimeMs(error.response.headers);
+          const resetTimeSec = Math.ceil(resetTimeMs / 1000);
+          console.log(`⚠️ [Rate Limit 429] Limite atingido em GET ${url}. Aguardando ${resetTimeSec}s...`);
+          await sleep(resetTimeMs + 1000);
           attempts++;
         } else {
           throw error;
@@ -93,9 +102,10 @@ async function main() {
         return await originalPut.call(client, url, data, config);
       } catch (error) {
         if (error.response?.status === 429) {
-          const resetTime = parseInt(error.response.headers['x-rate-limit-reset'] || '30', 10);
-          console.log(`⚠️ [Rate Limit 429] Limite atingido em PUT ${url}. Aguardando ${resetTime}s...`);
-          await sleep(resetTime * 1000 + 1000);
+          const resetTimeMs = getResetTimeMs(error.response.headers);
+          const resetTimeSec = Math.ceil(resetTimeMs / 1000);
+          console.log(`⚠️ [Rate Limit 429] Limite atingido em PUT ${url}. Aguardando ${resetTimeSec}s...`);
+          await sleep(resetTimeMs + 1000);
           attempts++;
         } else {
           throw error;
@@ -112,9 +122,10 @@ async function main() {
         return await originalPost.call(client, url, data, config);
       } catch (error) {
         if (error.response?.status === 429) {
-          const resetTime = parseInt(error.response.headers['x-rate-limit-reset'] || '30', 10);
-          console.log(`⚠️ [Rate Limit 429] Limite atingido em POST ${url}. Aguardando ${resetTime}s...`);
-          await sleep(resetTime * 1000 + 1000);
+          const resetTimeMs = getResetTimeMs(error.response.headers);
+          const resetTimeSec = Math.ceil(resetTimeMs / 1000);
+          console.log(`⚠️ [Rate Limit 429] Limite atingido em POST ${url}. Aguardando ${resetTimeSec}s...`);
+          await sleep(resetTimeMs + 1000);
           attempts++;
         } else {
           throw error;
