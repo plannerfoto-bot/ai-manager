@@ -773,6 +773,7 @@
     return 'Só Parede';
   }
 
+
   function checkLayoutWarning() {
     var layout = getSelectedLayout();
     var warningId = 'cc-layout-cenario-warning';
@@ -781,8 +782,16 @@
     if (layout === 'Parede e Chão') {
       if (existing) return;
       
-      var container = document.querySelector('.js-product-buy-container, .product-buy-container, .js-variant-container, .variant-container, .product-variants');
-      if (!container) container = document.querySelector('.js-product-form') || document.body;
+      // Busca o container da opção "Layout do Cenário" para inserir o balão imediatamente abaixo dele
+      var layoutSelectorContainer = null;
+      var options = document.querySelectorAll('.js-variant-option, .variant-option, label, .js-product-variant-option');
+      for (var i = 0; i < options.length; i++) {
+        var optText = (options[i].innerText || '').toLowerCase();
+        if (optText.indexOf('parede') !== -1 || optText.indexOf('chão') !== -1 || optText.indexOf('chao') !== -1) {
+          layoutSelectorContainer = options[i].closest('.insta-variations, .js-variant-container, .variant-container, .product-variant, .form-group') || options[i].parentElement;
+          break;
+        }
+      }
 
       var warning = document.createElement('div');
       warning.id = warningId;
@@ -796,11 +805,17 @@
           '</div>' +
         '</div>';
 
-      if (container) {
-        if (container.nextSibling) {
-          container.parentNode.insertBefore(warning, container.nextSibling);
-        } else {
-          container.parentNode.appendChild(warning);
+      if (layoutSelectorContainer) {
+        layoutSelectorContainer.parentNode.insertBefore(warning, layoutSelectorContainer.nextSibling);
+      } else {
+        var container = document.querySelector('.js-product-buy-container, .product-buy-container, .js-variant-container, .variant-container, .product-variants');
+        if (!container) container = document.querySelector('.js-product-form') || document.body;
+        if (container) {
+          if (container.nextSibling) {
+            container.parentNode.insertBefore(warning, container.nextSibling);
+          } else {
+            container.parentNode.appendChild(warning);
+          }
         }
       }
     } else {
@@ -808,7 +823,6 @@
         existing.remove();
       }
     }
-  }
 
   function initLayoutWarning() {
     checkLayoutWarning();
