@@ -62,6 +62,68 @@ async function main() {
     }
   });
 
+  // Sobrescrever os métodos do client para interceptar e fazer retry automático em caso de 429
+  const originalGet = client.get;
+  const originalPut = client.put;
+  const originalPost = client.post;
+
+  client.get = async function(url, config) {
+    let attempts = 0;
+    while (attempts < 10) {
+      try {
+        return await originalGet.call(client, url, config);
+      } catch (error) {
+        if (error.response?.status === 429) {
+          const resetTime = parseInt(error.response.headers['x-rate-limit-reset'] || '30', 10);
+          console.log(`⚠️ [Rate Limit 429] Limite atingido em GET ${url}. Aguardando ${resetTime}s...`);
+          await sleep(resetTime * 1000 + 1000);
+          attempts++;
+        } else {
+          throw error;
+        }
+      }
+    }
+    throw new Error(`Máximo de retries em GET ${url}`);
+  };
+
+  client.put = async function(url, data, config) {
+    let attempts = 0;
+    while (attempts < 10) {
+      try {
+        return await originalPut.call(client, url, data, config);
+      } catch (error) {
+        if (error.response?.status === 429) {
+          const resetTime = parseInt(error.response.headers['x-rate-limit-reset'] || '30', 10);
+          console.log(`⚠️ [Rate Limit 429] Limite atingido em PUT ${url}. Aguardando ${resetTime}s...`);
+          await sleep(resetTime * 1000 + 1000);
+          attempts++;
+        } else {
+          throw error;
+        }
+      }
+    }
+    throw new Error(`Máximo de retries em PUT ${url}`);
+  };
+
+  client.post = async function(url, data, config) {
+    let attempts = 0;
+    while (attempts < 10) {
+      try {
+        return await originalPost.call(client, url, data, config);
+      } catch (error) {
+        if (error.response?.status === 429) {
+          const resetTime = parseInt(error.response.headers['x-rate-limit-reset'] || '30', 10);
+          console.log(`⚠️ [Rate Limit 429] Limite atingido em POST ${url}. Aguardando ${resetTime}s...`);
+          await sleep(resetTime * 1000 + 1000);
+          attempts++;
+        } else {
+          throw error;
+        }
+      }
+    }
+    throw new Error(`Máximo de retries em POST ${url}`);
+  };
+
   // 1. Fazer uma requisição leve de teste para determinar a ordenação e total de produtos
   console.log('📦 Analisando estrutura de ordenação da API Nuvemshop...');
   let totalProducts = 0;
