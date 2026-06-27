@@ -745,7 +745,13 @@
         var label = el.closest('.form-group, .js-variant-container, .variant-container, .product-variant') || el.parentElement;
         name = label ? (label.innerText || '').toLowerCase() : '';
       } else {
-        var label = document.querySelector('label[for="' + el.id + '"]') || el.parentElement;
+        var label = null;
+        if (el.id) {
+          try {
+            label = document.querySelector('label[for="' + el.id.replace(/["\\]/g, '\\$&') + '"]');
+          } catch (e) {}
+        }
+        if (!label) label = el.parentElement;
         name = label ? (label.innerText || '').toLowerCase() : '';
         if (el.name) name += ' ' + el.name.toLowerCase();
       }
@@ -765,18 +771,14 @@
     var activeVariants = document.querySelectorAll('.js-variant-option.selected, .variant-option.active, .js-variant-option.active, .selected-variant');
     for (var i = 0; i < activeVariants.length; i++) {
       var txt = (activeVariants[i].innerText || '').toLowerCase();
-      if (txt.indexOf('chão') !== -1 || txt.indexOf('chao') !== -1) {
-        return 'Parede e Chão';
-      }
+      if (txt.indexOf('chão') !== -1 || txt.indexOf('chao') !== -1) return 'Parede e Chão';
     }
-
     return 'Só Parede';
   }
 
-
   function checkLayoutWarning() {
+    var warningId = 'layout-warning-banner';
     var layout = getSelectedLayout();
-    var warningId = 'cc-layout-cenario-warning';
     var existing = document.getElementById(warningId);
 
     if (layout === 'Parede e Chão') {
@@ -823,6 +825,7 @@
         existing.remove();
       }
     }
+  }
 
   function initLayoutWarning() {
     checkLayoutWarning();
@@ -833,7 +836,6 @@
       }
     });
   }
-
   // Evento de clique para o image adjuster
   document.addEventListener('click', function(e){
     if (e.target.closest('.js-variant-option, .js-insta-variant, .variant-option, .cc-custom-btn')) {
