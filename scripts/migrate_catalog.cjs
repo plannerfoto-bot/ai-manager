@@ -291,7 +291,7 @@ async function main() {
 
               // A. Atualiza variante original para 120g Só Parede
               const vals120SP = buildValues(sizeVal, gram120label, 'Só Parede');
-              const sku120SP = baseVariant.sku ? `AM-${sizeVal.replace('x', '')}-120-SP` : null;
+              const sku120SP = baseVariant.sku ? name : null;
               await client.put(`/products/${product.id}/variants/${variant.id}`, {
                 values: vals120SP,
                 price: price120Str,
@@ -304,7 +304,7 @@ async function main() {
               
               // B. Cria 120g Parede e Chão
               const vals120PC = buildValues(sizeVal, gram120label, 'Parede e Chão');
-              const sku120PC = baseVariant.sku ? `AM-${sizeVal.replace('x', '')}-120-PC` : null;
+              const sku120PC = baseVariant.sku ? name : null;
               await client.post(`/products/${product.id}/variants`, {
                 price: price120Str,
                 stock: null,
@@ -317,7 +317,7 @@ async function main() {
               
               // C. Cria 160g Só Parede
               const vals160SP = buildValues(sizeVal, gram160label, 'Só Parede');
-              const sku160SP = variant.sku ? `${variant.sku}-160-SP` : null;
+              const sku160SP = baseVariant.sku ? name : null;
               await client.post(`/products/${product.id}/variants`, {
                 price: price160,
                 promotional_price: variant.promotional_price || null,
@@ -331,7 +331,7 @@ async function main() {
               
               // D. Cria 160g Parede e Chão
               const vals160PC = buildValues(sizeVal, gram160label, 'Parede e Chão');
-              const sku160PC = variant.sku ? `${variant.sku}-160-PC` : null;
+              const sku160PC = baseVariant.sku ? name : null;
               await client.post(`/products/${product.id}/variants`, {
                 price: price160,
                 promotional_price: variant.promotional_price || null,
@@ -407,7 +407,7 @@ async function main() {
 
                 const priceMatch = (variant.price === target.price) || (parseFloat(variant.price) === parseFloat(target.price));
                 const stockMatch = target.stock === null ? variant.stock === null : true;
-                const skuMatch = variant.sku === (baseVariant.sku ? `AM-${sizeVal.replace('x', '')}-${target.skuSuffix}` : null);
+                const skuMatch = variant.sku === (baseVariant.sku ? name : null);
                 
                 if (curGram !== target.gram || curLayout !== target.layout || curSize !== sizeVal || !priceMatch || !stockMatch || !skuMatch) {
                   alreadyCorrect = false;
@@ -425,7 +425,7 @@ async function main() {
                 const variant = group[i];
                 const tempLabel = `temp-swap-${i}-${gramSuffix}`;
                 const tempVals = buildValues(sizeVal, tempLabel, targets[i].layout);
-                const tempSku = baseVariant.sku ? `AM-${sizeVal.replace('x', '')}-${targets[i].skuSuffix}-temp` : null;
+                const tempSku = baseVariant.sku ? `${name}-temp` : null;
                 
                 await client.put(`/products/${product.id}/variants/${variant.id}`, {
                   values: tempVals,
@@ -442,7 +442,7 @@ async function main() {
               for (let i = 0; i < 4; i++) {
                 const variant = group[i];
                 const finalVals = buildValues(sizeVal, targets[i].gram, targets[i].layout);
-                const finalSku = baseVariant.sku ? `AM-${sizeVal.replace('x', '')}-${targets[i].skuSuffix}` : null;
+                const finalSku = baseVariant.sku ? name : null;
                 
                 await client.put(`/products/${product.id}/variants/${variant.id}`, {
                   values: finalVals,
@@ -464,10 +464,21 @@ async function main() {
             let sizeVal = '1,50x2,00';
             let gramVal = '160' + gramSuffix;
 
+            // Tenta extrair tamanho e gramatura direto do nome do produto (ex: "(1,50x2,00 160g)")
+            const sizeMatch = name.match(/(\d+,\d+x\d+,\d+)/);
+            if (sizeMatch) {
+              sizeVal = sizeMatch[1];
+            }
+            const gramMatch = name.match(/(\d+)\s*g/i);
+            if (gramMatch) {
+              gramVal = gramMatch[1] + gramSuffix;
+            }
+
             attributes.forEach((attr, idx) => {
               if (idx === layoutAttrIdx) return;
               const attrName = (attr.pt || '').toLowerCase();
               const valPt = vals[idx] ? vals[idx].pt : '';
+              if (!valPt) return; // Não sobrescreve com vazio se a variante original não possuir o atributo
               if (attrName.includes('gramatura') || attrName.includes('tecido')) {
                 gramVal = valPt;
               } else if (attrName.includes('tamanho') || attrName.includes('medida')) {
@@ -494,7 +505,7 @@ async function main() {
               promotional_price: variant.promotional_price || null,
               stock: variant.stock, // Mantém exatamente o estoque atual
               weight: variant.weight || 0.5,
-              sku: variant.sku ? `${variant.sku}-PC` : null,
+              sku: variant.sku ? name : null,
               values: siblingValues
             };
             await client.post(`/products/${product.id}/variants`, siblingPayload);

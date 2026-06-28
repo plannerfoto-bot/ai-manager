@@ -69,6 +69,13 @@
         color: #1d4ed8;
         font-weight: 800;
       }
+      /* Oculta o banner de desconto em quantidade ("Até 15% OFF") no mobile para liberar a visualização do produto */
+      @media (max-width: 768px) {
+        [data-store="product-item-promotion-label"],
+        .label-accent {
+          display: none !important;
+        }
+      }
     `;
     document.head.appendChild(style);
   }

@@ -36,6 +36,15 @@ module.exports = {
       cwd: 'c:/Users/Bigas/NuvemShop - MCP - ANTIGRAVITY/ai-manager/visualizer/frontend',
       autorestart: true,
       env: { NODE_ENV: 'development' }
+    },
+    {
+      name: 'migrate-catalog',
+      script: 'scripts/migrate_catalog.cjs',
+      cwd: 'c:/Users/Bigas/NuvemShop - MCP - ANTIGRAVITY/ai-manager',
+      autorestart: false,
+      env: { NODE_ENV: 'production' },
+      log_file: 'logs/pm2-migrate-catalog.log',
+      time: true
     }
   ]
 };
