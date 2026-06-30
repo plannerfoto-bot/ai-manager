@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { DollarSign, CheckCircle2, AlertCircle, Calendar, FileText, History, Clock, RefreshCw } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const API_BASE_URL = window.location.hostname === 'localhost' 
   ? 'http://localhost:3001' 
@@ -87,6 +89,118 @@ const Commissions = () => {
     });
   };
 
+  const downloadPDF = () => {
+    if (!reportData) return;
+    
+    try {
+      const doc = new jsPDF();
+      
+      // Título do Relatório
+      doc.setFontSize(18);
+      doc.setTextColor(16, 185, 129); // Cor verde esmeralda
+      doc.text('Relatorio de Vendas - Colecao Aline Martins', 14, 20);
+      
+      // Data de Geração
+      doc.setFontSize(10);
+      doc.setTextColor(100, 116, 139); // Cinza
+      doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, 14, 28);
+      
+      // Período do Relatório
+      const dateStart = reportData.startDate ? new Date(reportData.startDate).toLocaleDateString('pt-BR') : 'Inicio';
+      const dateEnd = reportData.endDate ? new Date(reportData.endDate).toLocaleDateString('pt-BR') : new Date().toLocaleDateString('pt-BR');
+      doc.text(`Periodo do Relatorio: ${dateStart} ate ${dateEnd}`, 14, 34);
+      
+      // Resumo de Métricas
+      const totalOrders = reportData.pendingOrders.length + reportData.paidOrders.length;
+      const totalItems = reportData.itemsCount + (reportData.paidOrders.reduce((acc, po) => acc + po.collectionItemsSold, 0));
+      const totalCommission = reportData.pendingAmount + (reportData.paidOrders.reduce((acc, po) => acc + po.commissionValue, 0));
+      
+      doc.setFillColor(241, 245, 249);
+      doc.rect(14, 40, 182, 20, 'F');
+      doc.setFontSize(10);
+      doc.setTextColor(15, 23, 42); // Escuro
+      doc.text(`Total de Pedidos: ${totalOrders}`, 18, 52);
+      doc.text(`Total de Produtos: ${totalItems} un.`, 75, 52);
+      doc.text(`Total de Comissoes: R$ ${totalCommission.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`, 130, 52);
+
+      const allOrders = [...reportData.pendingOrders, ...reportData.paidOrders]
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+      const tableRows = [];
+      allOrders.forEach(o => {
+        const items = o.items || [];
+        if (items.length === 0) {
+          tableRows.push([
+            `#${o.orderNumber}`,
+            new Date(o.createdAt).toLocaleDateString('pt-BR'),
+            o.customerName,
+            'Produtos da colecao (Aline)',
+            'N/A',
+            `${o.collectionItemsSold}`,
+            `R$ ${o.collectionRevenue.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`,
+            `R$ ${o.commissionValue.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`
+          ]);
+        } else {
+          items.forEach((item, itemIdx) => {
+            // Remove acentos e caracteres especiais para evitar problemas de fontes nativas do PDF
+            const cleanName = (item.name || '')
+              .normalize('NFD')
+              .replace(/[\u0300-\u036f]/g, '')
+              .replace(/[^\x00-\x7F]/g, '');
+            const cleanCustName = (o.customerName || '')
+              .normalize('NFD')
+              .replace(/[\u0300-\u036f]/g, '')
+              .replace(/[^\x00-\x7F]/g, '');
+
+            tableRows.push([
+              itemIdx === 0 ? `#${o.orderNumber}` : '',
+              itemIdx === 0 ? new Date(o.createdAt).toLocaleDateString('pt-BR') : '',
+              itemIdx === 0 ? cleanCustName : '',
+              cleanName,
+              item.size || 'N/A',
+              `${item.quantity}`,
+              `R$ ${item.price.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`,
+              `R$ ${(item.quantity * 50).toLocaleString('pt-BR', {minimumFractionDigits: 2})}`
+            ]);
+          });
+        }
+      });
+
+      autoTable(doc, {
+        startY: 68,
+        head: [['Pedido', 'Data', 'Cliente', 'Produto da Colecao', 'Medida', 'Qtd', 'Preco Unit.', 'Comissao']],
+        body: tableRows,
+        theme: 'grid',
+        headStyles: {
+          fillColor: [30, 41, 59], // Slate 800
+          textColor: [255, 255, 255],
+          fontSize: 9,
+          fontStyle: 'bold'
+        },
+        styles: {
+          fontSize: 8,
+          cellPadding: 3
+        },
+        columnStyles: {
+          0: { cellWidth: 15 }, // Pedido
+          1: { cellWidth: 20 }, // Data
+          2: { cellWidth: 30 }, // Cliente
+          3: { cellWidth: 50 }, // Produto
+          4: { cellWidth: 20 }, // Medida
+          5: { cellWidth: 10, halign: 'center' }, // Qtd
+          6: { cellWidth: 22, halign: 'right' }, // Preço Unit.
+          7: { cellWidth: 22, halign: 'right' }  // Comissão
+        }
+      });
+
+      doc.save(`Relatorio_Vendas_Aline_Martins_${new Date().toISOString().slice(0, 10)}.pdf`);
+      toast.success('PDF baixado com sucesso!');
+    } catch (err) {
+      console.error('Erro ao gerar PDF:', err);
+      toast.error('Erro ao gerar PDF.');
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -99,14 +213,24 @@ const Commissions = () => {
             Controle de pagamento de comissões exclusivas da coleção Aline Martins (R$ 50,00 por produto).
           </p>
         </div>
-        <button
-          onClick={() => fetchReport(true)}
-          disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 bg-[var(--surface-glass)] hover:bg-[var(--border-soft)] border border-[var(--border-soft)] text-[var(--text-primary)] font-bold text-sm rounded-xl transition-all duration-200 shadow disabled:opacity-50"
-        >
-          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          {loading ? 'Sincronizando...' : 'Sincronizar Nuvemshop'}
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={downloadPDF}
+            disabled={loading || !reportData}
+            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm rounded-xl transition-all duration-200 shadow disabled:opacity-50"
+          >
+            <FileText className="w-4 h-4" />
+            Baixar Relatório PDF
+          </button>
+          <button
+            onClick={() => fetchReport(true)}
+            disabled={loading}
+            className="flex items-center gap-2 px-4 py-2 bg-[var(--surface-glass)] hover:bg-[var(--border-soft)] border border-[var(--border-soft)] text-[var(--text-primary)] font-bold text-sm rounded-xl transition-all duration-200 shadow disabled:opacity-50"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            {loading ? 'Sincronizando...' : 'Sincronizar Nuvemshop'}
+          </button>
+        </div>
       </div>
 
       <div className="flex gap-4 border-b border-[var(--border-soft)] mb-6">

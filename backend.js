@@ -2177,7 +2177,7 @@ app.get('/api/commissions/report', requireAuth, cacheMiddleware('commissions_rep
       return res.status(500).json({ error: oError.message });
     }
 
-    let pendingOrders = [];
+     let pendingOrders = [];
     let paidOrders = [];
     let totalPendingCommission = 0;
     let totalPendingItems = 0;
@@ -2188,6 +2188,7 @@ app.get('/api/commissions/report', requireAuth, cacheMiddleware('commissions_rep
       
       let collectionItemCount = 0;
       let collectionRevenue = 0;
+      const itemsList = [];
       
       for (const item of orderProducts) {
         // Garantindo comparação como string/número independente do tipo armazenado
@@ -2195,6 +2196,20 @@ app.get('/api/commissions/report', requireAuth, cacheMiddleware('commissions_rep
           const qty = parseInt(item.quantity || 1, 10);
           collectionItemCount += qty;
           collectionRevenue += (parseFloat(item.price || 0) * qty);
+
+          const variantName = item.variant_values
+            ? (Array.isArray(item.variant_values) ? item.variant_values.join(' / ') : item.variant_values)
+            : (item.name || '');
+          const dims = detectDimensions(variantName) || detectDimensions(item.name || '');
+          const sizeVal = dims ? `${dims[0].toFixed(2)}x${dims[1].toFixed(2)}` : 'N/A';
+
+          itemsList.push({
+            name: item.name || 'Produto sem nome',
+            quantity: qty,
+            price: parseFloat(item.price || 0),
+            size: sizeVal,
+            variant: variantName
+          });
         }
       }
 
@@ -2208,7 +2223,8 @@ app.get('/api/commissions/report', requireAuth, cacheMiddleware('commissions_rep
           status: order.status,
           collectionItemsSold: collectionItemCount,
           collectionRevenue: collectionRevenue,
-          commissionValue: orderCommission
+          commissionValue: orderCommission,
+          items: itemsList
         };
 
         const isPaid = lastPaidAt && new Date(order.created_at) <= new Date(lastPaidAt);

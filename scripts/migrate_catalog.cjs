@@ -173,6 +173,12 @@ async function main() {
     for (let p = 1; p <= totalPages; p++) pagesQueue.push(p);
   }
 
+  // Ajuste temporário: Processar apenas as páginas de 7 a 1 que sofreram queda de conexão
+  const startPage = Math.min(7, totalPages);
+  const filteredPages = pagesQueue.filter(p => p <= startPage);
+  pagesQueue.length = 0;
+  pagesQueue.push(...filteredPages);
+
   console.log(`🚀 Iniciando processamento das páginas na ordem: [${pagesQueue.join(', ')}]`);
 
   let processedCount = 0;
