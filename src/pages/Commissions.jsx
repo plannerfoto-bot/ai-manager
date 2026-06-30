@@ -103,68 +103,77 @@ const Commissions = () => {
       // Data de Geração
       doc.setFontSize(10);
       doc.setTextColor(100, 116, 139); // Cinza
-      doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, 14, 28);
+      doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, 14, 27);
       
-      // Período do Relatório
-      const dateStart = reportData.startDate ? new Date(reportData.startDate).toLocaleDateString('pt-BR') : 'Inicio';
-      const dateEnd = reportData.endDate ? new Date(reportData.endDate).toLocaleDateString('pt-BR') : new Date().toLocaleDateString('pt-BR');
-      doc.text(`Periodo do Relatorio: ${dateStart} ate ${dateEnd}`, 14, 34);
+      // Detalhamento de Auditoria de Contas
+      const lastSettlement = reportData.startDate ? new Date(reportData.startDate).toLocaleString('pt-BR') : 'Inicio do sistema';
       
-      // Resumo de Métricas
-      const totalOrders = reportData.pendingOrders.length + reportData.paidOrders.length;
-      const totalItems = reportData.itemsCount + (reportData.paidOrders.reduce((acc, po) => acc + po.collectionItemsSold, 0));
-      const totalCommission = reportData.pendingAmount + (reportData.paidOrders.reduce((acc, po) => acc + po.commissionValue, 0));
+      // Encontrar o pedido pendente mais antigo (início cronológico deste ciclo)
+      const pendingOrdersSorted = [...reportData.pendingOrders].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+      const firstPendingOrder = pendingOrdersSorted[0];
+      const startSaleInfo = firstPendingOrder 
+        ? `#${firstPendingOrder.orderNumber} (${firstPendingOrder.customerName || 'N/A'}) em ${new Date(firstPendingOrder.createdAt).toLocaleDateString('pt-BR')}`
+        : 'Nenhum pedido pendente';
+
+      doc.setFontSize(9);
+      doc.setTextColor(15, 23, 42); // Escuro
+      doc.text(`Ultimo acerto de contas realizado em: ${lastSettlement}`, 14, 34);
+      doc.text(`Inicio da nova contagem a partir da venda: ${startSaleInfo}`, 14, 40);
+      
+      // Resumo de Métricas (Apenas Pendentes)
+      const totalOrders = reportData.pendingOrders.length;
+      const totalItems = reportData.itemsCount;
+      const totalCommission = reportData.pendingAmount;
       
       doc.setFillColor(241, 245, 249);
-      doc.rect(14, 40, 182, 20, 'F');
-      doc.setFontSize(10);
-      doc.setTextColor(15, 23, 42); // Escuro
-      doc.text(`Total de Pedidos: ${totalOrders}`, 18, 52);
-      doc.text(`Total de Produtos: ${totalItems} un.`, 75, 52);
-      doc.text(`Total de Comissoes: R$ ${totalCommission.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`, 130, 52);
-
-      const allOrders = [...reportData.pendingOrders, ...reportData.paidOrders]
-        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      doc.rect(14, 46, 182, 16, 'F');
+      doc.setFontSize(9);
+      doc.setTextColor(15, 23, 42);
+      doc.text(`Pedidos Pendentes: ${totalOrders}`, 18, 56);
+      doc.text(`Total de Produtos: ${totalItems} un.`, 75, 56);
+      doc.text(`Total a Pagar (Comissoes): R$ ${totalCommission.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`, 125, 56);
 
       const tableRows = [];
-      allOrders.forEach(o => {
-        const items = o.items || [];
-        if (items.length === 0) {
-          tableRows.push([
-            `#${o.orderNumber}`,
-            new Date(o.createdAt).toLocaleDateString('pt-BR'),
-            o.customerName,
-            'Produtos da colecao (Aline)',
-            'N/A',
-            `${o.collectionItemsSold}`,
-            `R$ ${o.collectionRevenue.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`,
-            `R$ ${o.commissionValue.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`
-          ]);
-        } else {
-          items.forEach((item, itemIdx) => {
-            // Remove acentos e caracteres especiais para evitar problemas de fontes nativas do PDF
-            const cleanName = (item.name || '')
-              .normalize('NFD')
-              .replace(/[\u0300-\u036f]/g, '')
-              .replace(/[^\x00-\x7F]/g, '');
-            const cleanCustName = (o.customerName || '')
-              .normalize('NFD')
-              .replace(/[\u0300-\u036f]/g, '')
-              .replace(/[^\x00-\x7F]/g, '');
-
+      pendingOrdersSorted
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)) // Apresenta decrescente na tabela
+        .forEach(o => {
+          const items = o.items || [];
+          if (items.length === 0) {
             tableRows.push([
-              itemIdx === 0 ? `#${o.orderNumber}` : '',
-              itemIdx === 0 ? new Date(o.createdAt).toLocaleDateString('pt-BR') : '',
-              itemIdx === 0 ? cleanCustName : '',
-              cleanName,
-              item.size || 'N/A',
-              `${item.quantity}`,
-              `R$ ${item.price.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`,
-              `R$ ${(item.quantity * 50).toLocaleString('pt-BR', {minimumFractionDigits: 2})}`
+              `#${o.orderNumber}`,
+              new Date(o.createdAt).toLocaleDateString('pt-BR'),
+              o.customerName,
+              'Produtos da colecao (Aline)',
+              'N/A',
+              `${o.collectionItemsSold}`,
+              `R$ ${o.collectionRevenue.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`,
+              `R$ ${o.commissionValue.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`
             ]);
-          });
-        }
-      });
+          } else {
+            items.forEach((item, itemIdx) => {
+              // Remove acentos e caracteres especiais para evitar problemas de fontes nativas do PDF
+              const cleanName = (item.name || '')
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .replace(/[^\x00-\x7F]/g, '');
+              const cleanCustName = (o.customerName || '')
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .replace(/[^\x00-\x7F]/g, '');
+
+              tableRows.push([
+                itemIdx === 0 ? `#${o.orderNumber}` : '',
+                itemIdx === 0 ? new Date(o.createdAt).toLocaleDateString('pt-BR') : '',
+                itemIdx === 0 ? cleanCustName : '',
+                cleanName,
+                item.size || 'N/A',
+                `${item.quantity}`,
+                `R$ ${item.price.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`,
+                `R$ ${(item.quantity * 50).toLocaleString('pt-BR', {minimumFractionDigits: 2})}`
+              ]);
+            });
+          }
+        });
 
       autoTable(doc, {
         startY: 68,
