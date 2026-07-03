@@ -33,6 +33,7 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
     { id: 'marketing', label: 'Marketing', icon: Share2 },
     { id: 'commissions', label: 'Comissões', icon: DollarSign },
     { id: 'script-manager', label: 'Script da Loja', icon: Code2 },
+    { id: 'pedido-flex', label: 'PedidoFlex Beta', icon: Layers },
     { id: 'settings', label: 'Configurações', icon: Settings },
   ];
 

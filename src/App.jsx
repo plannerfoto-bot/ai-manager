@@ -15,6 +15,7 @@ import UnitaryRegistration from './pages/UnitaryRegistration';
 import Commissions from './pages/Commissions';
 import Finance from './pages/Finance';
 import Settings from './pages/Settings';
+import PedidoFlex from './pages/PedidoFlex';
 import { AnimatePresence, motion } from 'framer-motion';
 import BackgroundBlobs from './components/atoms/BackgroundBlobs';
 
@@ -232,6 +233,8 @@ const MainApp = () => {
         return <Commissions />;
       case 'settings':
         return <Settings />;
+      case 'pedido-flex':
+        return <PedidoFlex />;
       default:
         return <Dashboard stats={stats} />;
     }
