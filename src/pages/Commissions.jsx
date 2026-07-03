@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { DollarSign, CheckCircle2, AlertCircle, Calendar, FileText, History, Clock, RefreshCw } from 'lucide-react';
+import { DollarSign, CheckCircle2, AlertCircle, Calendar, FileText, History, Clock, RefreshCw, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -15,6 +15,11 @@ const Commissions = () => {
   const [reportData, setReportData] = useState(null);
   const [historyData, setHistoryData] = useState([]);
   const [paying, setPaying] = useState(false);
+
+  // States para dedução manual
+  const [deductionAmount, setDeductionAmount] = useState('');
+  const [deductionDescription, setDeductionDescription] = useState('');
+  const [submittingDeduction, setSubmittingDeduction] = useState(false);
 
   useEffect(() => {
     if (activeTab === 'pending' || activeTab === 'all') {
@@ -51,10 +56,60 @@ const Commissions = () => {
     }
   };
 
+  const handleAddDeduction = async (e) => {
+    e.preventDefault();
+    if (!deductionAmount || isNaN(deductionAmount) || parseFloat(deductionAmount) <= 0) {
+      toast.error('Por favor, insira um valor válido maior que zero.');
+      return;
+    }
+    if (!deductionDescription.trim()) {
+      toast.error('Por favor, informe uma descrição do abatimento.');
+      return;
+    }
+
+    setSubmittingDeduction(true);
+    try {
+      await axios.post(`${API_BASE_URL}/api/commissions/deductions`, {
+        amount: parseFloat(deductionAmount),
+        description: deductionDescription.trim()
+      });
+      toast.success('Abatimento adicionado com sucesso!');
+      setDeductionAmount('');
+      setDeductionDescription('');
+      fetchReport(true); // Forçar atualização do relatório
+    } catch (error) {
+      console.error('Erro ao adicionar abatimento:', error);
+      toast.error(error.response?.data?.error || 'Erro ao adicionar abatimento.');
+    } finally {
+      setSubmittingDeduction(false);
+    }
+  };
+
+  const handleDeleteDeduction = async (id) => {
+    if (!window.confirm('Tem certeza que deseja remover este abatimento?')) return;
+
+    try {
+      await axios.delete(`${API_BASE_URL}/api/commissions/deductions/${id}`);
+      toast.success('Abatimento removido com sucesso!');
+      fetchReport(true); // Atualizar relatório
+    } catch (error) {
+      console.error('Erro ao remover abatimento:', error);
+      toast.error('Erro ao remover abatimento.');
+    }
+  };
+
   const handlePay = async () => {
     if (!reportData || reportData.pendingAmount === 0) return;
     
-    if (!window.confirm(`Tem certeza que deseja registrar o pagamento de R$ ${reportData.pendingAmount.toFixed(2)} e zerar as pendências?`)) {
+    const baseComm = reportData.basePendingAmount || reportData.pendingAmount;
+    const totalDeds = reportData.totalDeductions || 0;
+    
+    let confirmMsg = `Tem certeza que deseja registrar o pagamento de R$ ${reportData.pendingAmount.toFixed(2)} e zerar as pendências?`;
+    if (totalDeds > 0) {
+      confirmMsg = `Tem certeza que deseja registrar o pagamento LÍQUIDO de R$ ${reportData.pendingAmount.toFixed(2)} (Comissão Bruta: R$ ${baseComm.toFixed(2)} - Abatimentos: R$ ${totalDeds.toFixed(2)}) e zerar as pendências?`;
+    }
+    
+    if (!window.confirm(confirmMsg)) {
       return;
     }
 
@@ -281,49 +336,154 @@ const Commissions = () => {
             <div className="p-12 flex justify-center"><div className="animate-spin rounded-full h-8 w-8 border-t-2 border-emerald-500"></div></div>
           ) : reportData ? (
             <>
-              {/* Resumo de Pendências */}
-              <div className="glass p-8 rounded-2xl border border-emerald-500/30 bg-gradient-to-br from-emerald-950/20 to-slate-900 flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
-                <div className="absolute -right-10 -top-10 text-emerald-500/5 rotate-12">
-                  <DollarSign className="w-64 h-64" />
-                </div>
-                
-                <div className="z-10">
-                  <p className="text-emerald-500/80 font-bold uppercase tracking-widest text-sm mb-2 flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4" /> Saldo Pendente
-                  </p>
-                  <p className="text-5xl font-black text-emerald-400 drop-shadow-lg">
-                    R$ {reportData.pendingAmount.toLocaleString('pt-BR', {minimumFractionDigits: 2})}
-                  </p>
-                  <p className="text-slate-400 mt-3 text-sm">
-                    Acumulado desde: <strong className="text-slate-300">{formatDate(reportData.startDate)}</strong>
-                  </p>
-                  <div className="flex gap-4 mt-4">
-                    <div className="bg-slate-800/50 px-4 py-2 rounded-lg border border-slate-700/50">
-                      <p className="text-xs text-slate-400 uppercase font-semibold">Produtos</p>
-                      <p className="text-lg font-bold text-slate-200">{reportData.itemsCount}</p>
+              {/* Grid de Resumo e Baixa Manual */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Resumo de Pendências (Esquerda) */}
+                <div className="glass p-8 rounded-2xl border border-emerald-500/30 bg-gradient-to-br from-emerald-950/20 to-slate-900 flex flex-col justify-between gap-6 relative overflow-hidden">
+                  <div className="absolute -right-10 -top-10 text-emerald-500/5 rotate-12 pointer-events-none">
+                    <DollarSign className="w-64 h-64" />
+                  </div>
+                  
+                  <div className="z-10 space-y-4 w-full">
+                    <p className="text-emerald-500/80 font-bold uppercase tracking-widest text-sm flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4" /> Saldo de Comissão
+                    </p>
+                    
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center text-sm text-slate-400">
+                        <span>Comissão Bruta:</span>
+                        <span className="font-semibold text-slate-200">
+                          R$ {(reportData.basePendingAmount || reportData.pendingAmount).toLocaleString('pt-BR', {minimumFractionDigits: 2})}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center text-sm text-rose-400">
+                        <span>Descontos / Abatimentos:</span>
+                        <span className="font-semibold">
+                          - R$ {(reportData.totalDeductions || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}
+                        </span>
+                      </div>
+                      <hr className="border-slate-800" />
+                      <div className="flex justify-between items-center">
+                        <span className="text-base font-bold text-emerald-400">Saldo Líquido a Pagar:</span>
+                        <span className="text-3xl font-black text-emerald-400 drop-shadow-lg">
+                          R$ {reportData.pendingAmount.toLocaleString('pt-BR', {minimumFractionDigits: 2})}
+                        </span>
+                      </div>
                     </div>
-                    <div className="bg-slate-800/50 px-4 py-2 rounded-lg border border-slate-700/50">
-                      <p className="text-xs text-slate-400 uppercase font-semibold">Pedidos</p>
-                      <p className="text-lg font-bold text-slate-200">{reportData.ordersCount}</p>
+
+                    <p className="text-slate-400 text-xs">
+                      Acumulado desde: <strong className="text-slate-300">{formatDate(reportData.startDate)}</strong>
+                    </p>
+                    
+                    <div className="flex gap-4">
+                      <div className="bg-slate-800/50 px-4 py-2 rounded-lg border border-slate-700/50 flex-1">
+                        <p className="text-xs text-slate-400 uppercase font-semibold">Produtos</p>
+                        <p className="text-lg font-bold text-slate-200">{reportData.itemsCount}</p>
+                      </div>
+                      <div className="bg-slate-800/50 px-4 py-2 rounded-lg border border-slate-700/50 flex-1">
+                        <p className="text-xs text-slate-400 uppercase font-semibold">Pedidos</p>
+                        <p className="text-lg font-bold text-slate-200">{reportData.ordersCount}</p>
+                      </div>
                     </div>
+                  </div>
+
+                  <div className="z-10 pt-4 w-full">
+                    <button 
+                      onClick={handlePay}
+                      disabled={paying || reportData.pendingAmount === 0}
+                      className="w-full px-8 py-4 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 disabled:text-slate-500 text-white font-black text-lg rounded-xl shadow-xl shadow-emerald-900/50 flex items-center justify-center gap-3 transition-all cursor-pointer"
+                    >
+                      {paying ? (
+                        <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-white"></div>
+                      ) : (
+                        <><CheckCircle2 className="w-6 h-6" /> Marcar como Pago (R$ {reportData.pendingAmount.toLocaleString('pt-BR', {minimumFractionDigits: 2})})</>
+                      )}
+                    </button>
+                    <p className="text-xs text-slate-500 text-center mt-3">
+                      Isso zerará o saldo pendente e salvará o acerto no histórico.
+                    </p>
                   </div>
                 </div>
 
-                <div className="z-10">
-                  <button 
-                    onClick={handlePay}
-                    disabled={paying || reportData.pendingAmount === 0}
-                    className="px-8 py-4 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 disabled:text-slate-500 text-white font-black text-lg rounded-xl shadow-xl shadow-emerald-900/50 flex items-center gap-3 transition-all"
-                  >
-                    {paying ? (
-                      <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-white"></div>
-                    ) : (
-                      <><CheckCircle2 className="w-6 h-6" /> Marcar Pendência como Paga</>
-                    )}
-                  </button>
-                  <p className="text-xs text-slate-500 text-center mt-3 max-w-[280px]">
-                    Isso zerará o saldo pendente e salvará o pagamento no histórico de acertos.
-                  </p>
+                {/* Baixa Manual / Abatimento de Custos (Direita) */}
+                <div className="glass p-8 rounded-2xl border border-[var(--border-soft)] bg-slate-900/50 flex flex-col justify-between gap-6">
+                  <div className="w-full">
+                    <h3 className="text-xl font-bold text-[var(--text-primary)] flex items-center gap-2 mb-2">
+                      <Trash2 className="w-5 h-5 text-rose-500" />
+                      Baixa Manual / Abatimento de Custos
+                    </h3>
+                    <p className="text-xs text-[var(--text-muted)] mb-6">
+                      Registre custos (ex: fretes extras, devoluções, trocas) que devem abater do saldo a pagar desta comissão.
+                    </p>
+
+                    {/* Form de Adicionar */}
+                    <form onSubmit={handleAddDeduction} className="space-y-4 mb-6">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div className="sm:col-span-2">
+                          <label className="block text-xs font-semibold text-slate-400 mb-1">Sobre o que é o custo? (Descrição)</label>
+                          <input
+                            type="text"
+                            placeholder="Ex: Custo frete pedido #1245 ou Troca de fundo"
+                            value={deductionDescription}
+                            onChange={(e) => setDeductionDescription(e.target.value)}
+                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-200 text-sm focus:outline-none focus:border-rose-500 transition-colors"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-400 mb-1">Valor (R$)</label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            placeholder="0,00"
+                            value={deductionAmount}
+                            onChange={(e) => setDeductionAmount(e.target.value)}
+                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-200 text-sm focus:outline-none focus:border-rose-500 transition-colors"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex justify-end">
+                        <button
+                          type="submit"
+                          disabled={submittingDeduction}
+                          className="px-4 py-2 bg-rose-600 hover:bg-rose-500 disabled:bg-slate-700 text-white font-bold text-xs rounded-lg flex items-center gap-2 transition-all cursor-pointer"
+                        >
+                          <Plus className="w-4 h-4" />
+                          Adicionar Abatimento
+                        </button>
+                      </div>
+                    </form>
+
+                    <hr className="border-slate-800 mb-4" />
+
+                    {/* Lista de Abatimentos do Ciclo */}
+                    <div>
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Abatimentos Registrados neste Ciclo ({reportData.pendingDeductions?.length || 0})</h4>
+                      <div className="space-y-2 max-h-[180px] overflow-y-auto pr-1">
+                        {!reportData.pendingDeductions || reportData.pendingDeductions.length === 0 ? (
+                          <p className="text-xs text-slate-500 italic py-4 text-center">Nenhum abatimento cadastrado para este período.</p>
+                        ) : (
+                          reportData.pendingDeductions.map((ded) => (
+                            <div key={ded.id} className="flex justify-between items-center p-3 bg-slate-800/40 border border-slate-800 rounded-xl hover:border-slate-700/60 transition-all">
+                              <div>
+                                <p className="text-sm font-semibold text-slate-200">{ded.description}</p>
+                                <p className="text-[10px] text-slate-500">{new Date(ded.created_at).toLocaleDateString('pt-BR')} às {new Date(ded.created_at).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})}</p>
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <span className="text-sm font-bold text-rose-400">- R$ {parseFloat(ded.amount).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
+                                <button
+                                  onClick={() => handleDeleteDeduction(ded.id)}
+                                  className="p-1.5 hover:bg-slate-750 text-slate-400 hover:text-rose-400 rounded-lg transition-all cursor-pointer"
+                                  title="Remover abatimento"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -496,7 +656,16 @@ const Commissions = () => {
                         <td className="px-6 py-4 text-center text-[var(--text-muted)]">{h.orders_count}</td>
                         <td className="px-6 py-4 text-center text-[var(--text-muted)]">{h.items_count}</td>
                         <td className="px-6 py-4 text-right text-[var(--text-primary)] font-black text-lg">
-                          R$ {parseFloat(h.amount).toLocaleString('pt-BR', {minimumFractionDigits:2})}
+                          <div>R$ {parseFloat(h.amount).toLocaleString('pt-BR', {minimumFractionDigits:2})}</div>
+                          {h.commission_deductions && h.commission_deductions.length > 0 && (
+                            <div className="text-[10px] text-rose-400 font-normal mt-1 space-y-0.5">
+                              {h.commission_deductions.map(d => (
+                                <div key={d.id} title={d.description}>
+                                  -{d.description.slice(0, 15)}{d.description.length > 15 ? '...' : ''}: R$ {parseFloat(d.amount).toFixed(2)}
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </td>
                       </tr>
                     ))}

@@ -13,6 +13,7 @@ import { createClient } from '@supabase/supabase-js';
 import igService from './src/instagramService.js';
 import { Jimp } from 'jimp';
 import multer from 'multer';
+import pedidoFlexRoutes from './backend/pedido-flex/routes.js';
 
 const upload = multer({ limits: { fileSize: 50 * 1024 * 1024 } }); // 50MB
 
@@ -82,6 +83,7 @@ function cacheMiddleware(cacheKeyFn, ttlMinutes = 5) {
 
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
+app.use('/api/pedido-flex', pedidoFlexRoutes);
 
 // Middleware de autenticação JWT com Supabase
 const requireAuth = async (req, res, next) => {
@@ -2239,18 +2241,124 @@ app.get('/api/commissions/report', requireAuth, cacheMiddleware('commissions_rep
       }
     }
 
+    // 4. Buscar deduções pendentes
+    const { data: dbDeductions, error: dedError } = await supabase
+      .from('commission_deductions')
+      .select('*')
+      .eq('store_id', storeId)
+      .is('payout_id', null);
+
+    if (dedError && dedError.code !== '42P01') {
+      console.warn('Erro ao buscar deduções (tabela pode não existir ainda):', dedError.message);
+    }
+
+    const pendingDeductions = dbDeductions || [];
+    const totalDeductions = pendingDeductions.reduce((sum, d) => sum + parseFloat(d.amount), 0);
+
     res.json({
-      pendingAmount: totalPendingCommission,
+      basePendingAmount: totalPendingCommission,
+      totalDeductions: totalDeductions,
+      pendingAmount: Math.max(0, totalPendingCommission - totalDeductions),
       itemsCount: totalPendingItems,
       ordersCount: pendingOrders.length,
       startDate: lastPaidAt,
       endDate: now,
       pendingOrders,
-      paidOrders
+      paidOrders,
+      pendingDeductions
     });
   } catch (error) {
     console.error('Error generating commissions report:', error.message);
     res.status(500).json({ error: error.message });
+  }
+});
+
+// Buscar deduções pendentes
+app.get('/api/commissions/deductions', requireAuth, async (req, res) => {
+  const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
+  try {
+    const { data, error } = await supabase
+      .from('commission_deductions')
+      .select('*')
+      .eq('store_id', storeId)
+      .is('payout_id', null)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      if (error.code === '42P01') {
+        return res.json([]);
+      }
+      throw error;
+    }
+    res.json(data || []);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Criar nova dedução manual
+app.post('/api/commissions/deductions', requireAuth, async (req, res) => {
+  const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
+  try {
+    const { amount, description } = req.body;
+    if (!amount || isNaN(amount) || parseFloat(amount) <= 0) {
+      return res.status(400).json({ error: "Valor inválido para dedução." });
+    }
+    if (!description || description.trim() === '') {
+      return res.status(400).json({ error: "Descrição é obrigatória." });
+    }
+
+    const { data, error } = await supabase
+      .from('commission_deductions')
+      .insert([{
+        store_id: storeId,
+        amount: parseFloat(amount),
+        description: description.trim(),
+        payout_id: null
+      }])
+      .select();
+
+    if (error) {
+      if (error.code === '42P01') {
+        return res.status(400).json({ error: "A tabela commission_deductions ainda não foi criada no Supabase." });
+      }
+      throw error;
+    }
+
+    // Invalidar cache do relatório de comissão para refletir o abatimento
+    await supabase.from('api_cache').delete().eq('key', `${storeId}_commissions_report`);
+
+    res.json({ success: true, data: data?.[0] });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Remover dedução manual
+app.delete('/api/commissions/deductions/:id', requireAuth, async (req, res) => {
+  const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
+  try {
+    const { id } = req.params;
+    const { error } = await supabase
+      .from('commission_deductions')
+      .delete()
+      .eq('id', id)
+      .eq('store_id', storeId)
+      .is('payout_id', null); // Garante que só pode deletar deduções não pagas/processadas
+
+    if (error) {
+      if (error.code === '42P01') {
+        return res.status(400).json({ error: "A tabela commission_deductions não existe." });
+      }
+      throw error;
+    }
+
+    // Invalidar cache do relatório
+    await supabase.from('api_cache').delete().eq('key', `${storeId}_commissions_report`);
+
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -2260,20 +2368,38 @@ app.post('/api/commissions/pay', requireAuth, async (req, res) => {
   try {
     const { amount, itemsCount, ordersCount, startDate, endDate } = req.body;
     
-    const { error } = await supabase.from('commissions_history').insert([{
-      store_id: storeId,
-      amount,
-      items_count: itemsCount,
-      orders_count: ordersCount,
-      start_date: startDate,
-      end_date: endDate
-    }]);
+    // Inserir registro de pagamento e obter o ID usando .select()
+    const { data: payData, error } = await supabase
+      .from('commissions_history')
+      .insert([{
+        store_id: storeId,
+        amount,
+        items_count: itemsCount,
+        orders_count: ordersCount,
+        start_date: startDate,
+        end_date: endDate
+      }])
+      .select();
 
     if (error) {
       if (error.code === '42P01') {
         return res.status(400).json({ error: "A tabela commissions_history ainda não foi criada no Supabase." });
       }
       throw error;
+    }
+
+    const payoutId = payData?.[0]?.id;
+    if (payoutId) {
+      // Atualizar todas as deduções pendentes para linkar com este pagamento
+      const { error: updateError } = await supabase
+        .from('commission_deductions')
+        .update({ payout_id: payoutId })
+        .eq('store_id', storeId)
+        .is('payout_id', null);
+
+      if (updateError && updateError.code !== '42P01') {
+        console.error('Erro ao vincular deduções ao pagamento:', updateError.message);
+      }
     }
 
     // Invalidar cache
@@ -2285,13 +2411,13 @@ app.post('/api/commissions/pay', requireAuth, async (req, res) => {
   }
 });
 
-// Buscar histórico de pagamentos
+// Buscar histórico de pagamentos com as deduções associadas
 app.get('/api/commissions/history', requireAuth, async (req, res) => {
   const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
   try {
     const { data, error } = await supabase
       .from('commissions_history')
-      .select('*')
+      .select('*, commission_deductions(*)')
       .eq('store_id', storeId)
       .order('created_at', { ascending: false });
       
