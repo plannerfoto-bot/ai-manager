@@ -124,6 +124,36 @@ const MetricCard = ({ title, value, icon: Icon, color, onClick, tooltip }) => (
 
 const KPISidebar = ({ activeKpi, onClose, data, extraData }) => {
   const d = data || {};
+  
+  // Estados para cálculo de custo de bobina por faixa de pedidos
+  const [startOrder, setStartOrder] = useState('');
+  const [endOrder, setEndOrder] = useState('');
+  const [rangeResult, setRangeResult] = useState(null);
+  const [rangeLoading, setRangeLoading] = useState(false);
+  const [rangeError, setRangeError] = useState(null);
+
+  const handleCalculateRange = async (e) => {
+    e.preventDefault();
+    if (!startOrder || !endOrder) {
+      toast.error("Por favor, preencha o pedido inicial e final.");
+      return;
+    }
+    setRangeLoading(true);
+    setRangeError(null);
+    try {
+      const res = await axios.get(`${API_BASE_URL}/api/finance/coil-cost-by-orders`, {
+        params: { startOrder, endOrder }
+      });
+      setRangeResult(res.data);
+    } catch (err) {
+      console.error(err);
+      setRangeError(err.response?.data?.error || "Erro ao calcular faixa.");
+      toast.error(err.response?.data?.error || "Erro ao calcular faixa.");
+    } finally {
+      setRangeLoading(false);
+    }
+  };
+
   const renderContent = () => {
     switch (activeKpi) {
       case 'lucro':
@@ -221,7 +251,82 @@ const KPISidebar = ({ activeKpi, onClose, data, extraData }) => {
             </div>
 
             <hr className="border-[var(--border-soft)]" />
-            <div className="flex justify-between text-[var(--text-primary)] font-bold text-[22px]"><span>Total Material:</span> <span>{fmtBRL(d.productionCost || 0)}</span></div>
+            <div className="flex justify-between text-[var(--text-primary)] font-bold text-[22px] mb-4">
+              <span>Total Material:</span>
+              <span>{fmtBRL(d.productionCost || 0)}</span>
+            </div>
+
+            {/* Filtrar por Faixa de Pedidos */}
+            <div className="bg-[var(--surface-glass)] p-5 rounded-2xl border border-[var(--border-soft)] space-y-4">
+              <h4 className="text-sm font-bold text-[var(--text-primary)] uppercase tracking-wider">Filtrar por Faixa de Pedidos</h4>
+              <p className="text-xs text-[var(--text-muted)]">Insira a faixa numérica de pedidos para calcular o custo acumulado de bobinas neles.</p>
+              
+              <form onSubmit={handleCalculateRange} className="space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-400 mb-1">Pedido Inicial</label>
+                    <input
+                      type="number"
+                      placeholder="Ex: 4400"
+                      value={startOrder}
+                      onChange={(e) => setStartOrder(e.target.value)}
+                      className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-200 text-sm focus:outline-none focus:border-emerald-500 transition-colors"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-400 mb-1">Pedido Final</label>
+                    <input
+                      type="number"
+                      placeholder="Ex: 4450"
+                      value={endOrder}
+                      onChange={(e) => setEndOrder(e.target.value)}
+                      className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-200 text-sm focus:outline-none focus:border-emerald-500 transition-colors"
+                    />
+                  </div>
+                </div>
+                <button
+                  type="submit"
+                  disabled={rangeLoading}
+                  className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer shadow-lg shadow-emerald-900/40"
+                >
+                  {rangeLoading ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-white"></div>
+                  ) : (
+                    "Calcular Custo da Faixa"
+                  )}
+                </button>
+              </form>
+
+              {rangeError && (
+                <p className="text-xs text-rose-400 font-medium bg-rose-950/10 p-2 border border-rose-900/30 rounded-lg">{rangeError}</p>
+              )}
+
+              {rangeResult && (
+                <div className="mt-4 p-4 bg-slate-900/40 rounded-xl border border-slate-850 space-y-2.5 text-xs animate-in fade-in slide-in-from-bottom-2 duration-300">
+                  <div className="flex justify-between text-slate-400">
+                    <span>Pedidos pagos na faixa:</span>
+                    <span className="font-semibold text-slate-200">{rangeResult.ordersCount}</span>
+                  </div>
+                  <div className="flex justify-between text-slate-400">
+                    <span>Total de itens:</span>
+                    <span className="font-semibold text-slate-200">{rangeResult.analyzedItems} un</span>
+                  </div>
+                  <div className="flex justify-between text-slate-400">
+                    <span>Metros 120g:</span>
+                    <span className="font-semibold text-slate-200">{rangeResult.meters120g} m (R$ {rangeResult.productionCost120g.toFixed(2)})</span>
+                  </div>
+                  <div className="flex justify-between text-slate-400">
+                    <span>Metros 160g:</span>
+                    <span className="font-semibold text-slate-200">{rangeResult.meters160g} m (R$ {rangeResult.productionCost160g.toFixed(2)})</span>
+                  </div>
+                  <hr className="border-slate-800" />
+                  <div className="flex justify-between text-[var(--text-primary)] font-bold text-sm">
+                    <span>Custo Total na Faixa:</span>
+                    <span className="text-emerald-400 text-base">{fmtBRL(rangeResult.productionCost)}</span>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         );
       case 'costura':

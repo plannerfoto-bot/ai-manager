@@ -2002,6 +2002,110 @@ app.get('/api/profit-stats', requireAuth, cacheMiddleware('profit_stats', 5), as
   }
 });
 
+// Calcular custo da bobina por faixa de pedidos
+app.get('/api/finance/coil-cost-by-orders', requireAuth, async (req, res) => {
+  const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
+  const { startOrder, endOrder } = req.query;
+
+  if (!startOrder || !endOrder) {
+    return res.status(400).json({ error: 'Os parâmetros startOrder e endOrder são obrigatórios.' });
+  }
+
+  try {
+    const startNum = parseInt(startOrder, 10);
+    const endNum = parseInt(endOrder, 10);
+
+    if (isNaN(startNum) || isNaN(endNum)) {
+      return res.status(400).json({ error: 'Os parâmetros de faixa de pedidos devem ser numéricos.' });
+    }
+
+    // Buscar pedidos pagos do banco de dados local (Supabase)
+    const { data: dbOrders, error: dbError } = await supabase
+      .from('nuvemshop_orders')
+      .select('raw_data, number')
+      .eq('store_id', storeId)
+      .eq('payment_status', 'paid');
+
+    if (dbError) throw dbError;
+
+    // Filtrar na faixa especificada
+    const ordersInRange = (dbOrders || []).filter(o => {
+      const num = parseInt(o.number || o.raw_data?.number, 10);
+      return !isNaN(num) && num >= startNum && num <= endNum;
+    });
+
+    let totalProductionCost = 0;
+    let totalProdCost120g = 0;
+    let totalProdCost160g = 0;
+    let totalMeters120g = 0;
+    let totalMeters160g = 0;
+    let analyzedItems = 0;
+    const settings = getSystemSettings().finance;
+
+    for (const dbOrder of ordersInRange) {
+      const order = dbOrder.raw_data || dbOrder;
+      const lineItems = order.products || order.line_items || [];
+      let orderProdCost = 0;
+      let orderStrips120g = [];
+      let orderStrips160g = [];
+
+      for (const item of lineItems) {
+        const result = analyzeLineItem(item, settings);
+        if (result) {
+          orderProdCost += result.prodCostEspecial || 0;
+          analyzedItems += parseInt(item.quantity || 1);
+          orderStrips120g.push(...result.strips120g);
+          orderStrips160g.push(...result.strips160g);
+        }
+      }
+
+      let m120 = 0;
+      if (orderStrips120g.length > 0) {
+        orderStrips120g.sort((a, b) => b.h - a.h || b.w - a.w);
+        let packer120 = new SkylinePacker(BOBINA_LARGURA);
+        for (let s of orderStrips120g) packer120.pack(s.w, s.h);
+        m120 = packer120.getMaxHeight();
+      }
+      
+      let m160 = 0;
+      if (orderStrips160g.length > 0) {
+        orderStrips160g.sort((a, b) => b.h - a.h || b.w - a.w);
+        let packer160 = new SkylinePacker(BOBINA_LARGURA);
+        for (let s of orderStrips160g) packer160.pack(s.w, s.h);
+        m160 = packer160.getMaxHeight();
+      }
+
+      const cost120 = m120 * settings.bobina120g;
+      const cost160 = m160 * settings.bobina160g;
+      
+      orderProdCost += cost120 + cost160;
+
+      totalProdCost120g += cost120;
+      totalProdCost160g += cost160;
+      totalMeters120g += m120;
+      totalMeters160g += m160;
+      totalProductionCost += orderProdCost;
+    }
+
+    res.json({
+      success: true,
+      startOrder: startNum,
+      endOrder: endNum,
+      ordersCount: ordersInRange.length,
+      analyzedItems,
+      productionCost: totalProductionCost,
+      productionCost120g: totalProdCost120g,
+      productionCost160g: totalProdCost160g,
+      meters120g: Number(totalMeters120g.toFixed(2)),
+      meters160g: Number(totalMeters160g.toFixed(2))
+    });
+
+  } catch (error) {
+    console.error('[coil-cost-by-orders] Erro:', error.message);
+    res.status(500).json({ error: 'Erro ao calcular custo da bobina por faixa: ' + error.message });
+  }
+});
+
 // Vendas (Orders)
 app.get('/api/orders', requireAuth, cacheMiddleware(req => 'orders_p' + (req.query.page || 1) + '_s' + (req.query.status || 'all'), 5), async (req, res) => {
   const storeId = req.headers['x-store-id'] || DEFAULT_STORE_ID;
