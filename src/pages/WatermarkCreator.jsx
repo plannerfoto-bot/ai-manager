@@ -297,8 +297,21 @@ export default function WatermarkCreator({
           canvas.width = w;
           canvas.height = h;
         } else {
-          canvas.width = originalImg.width;
-          canvas.height = originalImg.height;
+          const w = originalImg.width;
+          const h = originalImg.height;
+          const totalPixels = w * h;
+          const maxPixels = 20000000; // Limite seguro de 20 Megapixels (Nuvemshop aceita até 25 MP)
+
+          if (totalPixels > maxPixels) {
+            // Calcula o fator de escala mantendo a proporção exata da foto
+            const scale = Math.sqrt(maxPixels / totalPixels);
+            canvas.width = Math.round(w * scale);
+            canvas.height = Math.round(h * scale);
+            console.log(`[Marca D'água] Imagem redimensionada de ${w}x${h} (${(totalPixels / 1000000).toFixed(1)} MP) para ${canvas.width}x${canvas.height} (20.0 MP) para compatibilidade com a Nuvemshop.`);
+          } else {
+            canvas.width = w;
+            canvas.height = h;
+          }
         }
 
         // 1. Desenha a imagem de fundo original do cliente
