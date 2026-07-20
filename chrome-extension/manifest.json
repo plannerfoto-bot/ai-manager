@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "Duplicador de Produto Inteligente",
+  "version": "1.0.0",
+  "description": "Automatiza o preenchimento de campos repetidos na janela 'Duplicar produto' do painel da Nuvemshop.",
+  "permissions": [
+    "storage"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": "icon.png"
+  },
+  "icons": {
+    "128": "icon.png"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.nuvemshop.com.br/*",
+        "*://*.tiendanube.com/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_end"
+    }
+  ]
+}
