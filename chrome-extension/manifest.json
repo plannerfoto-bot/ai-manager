@@ -17,7 +17,9 @@
     {
       "matches": [
         "*://*.nuvemshop.com.br/*",
-        "*://*.tiendanube.com/*"
+        "*://*.lojavirtualnuvem.com.br/*",
+        "*://*.tiendanube.com/*",
+        "*://*.mitiendanube.com/*"
       ],
       "js": ["content.js"],
       "run_at": "document_end"
