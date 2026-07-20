@@ -251,7 +251,19 @@ export default function WatermarkCreator({
     }, [fileObj, selectedWatermark, opacity]); // eslint-disable-line
 
     return (
-      <div className="relative group glass-panel overflow-hidden border border-[var(--border-soft)] rounded-2xl flex flex-col aspect-square transition-all duration-300 hover:shadow-xl hover:shadow-[var(--accent-glow)]/10 hover:border-[var(--accent)]/30">
+      <div className={`relative group glass-panel overflow-hidden border rounded-2xl flex flex-col aspect-square transition-all duration-300 ${
+        fileObj.dragged 
+          ? 'border-emerald-500/20 shadow-md shadow-emerald-500/5' 
+          : 'border-[var(--border-soft)] hover:shadow-xl hover:shadow-[var(--accent-glow)]/10 hover:border-[var(--accent)]/30'
+      }`}>
+        {/* Badge Verde de "Enviada" para indicar que a imagem já foi arrastada */}
+        {fileObj.dragged && (
+          <div className="absolute top-3 left-3 bg-emerald-500 text-white text-[10px] font-black tracking-wider uppercase px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 shadow-lg shadow-emerald-500/25 border border-emerald-400/20 z-10 animate-fade-in">
+            <CheckCircle2 className="w-3.5 h-3.5" />
+            Enviada
+          </div>
+        )}
+
         {itemLoading ? (
           <div className="w-full h-full flex flex-col items-center justify-center bg-slate-950/20 text-slate-400 gap-2">
             <Loader2 className="w-6 h-6 animate-spin text-[var(--accent)]" />
@@ -263,14 +275,25 @@ export default function WatermarkCreator({
             alt={fileObj.name} 
             draggable="true"
             onDragStart={(e) => {
-              // Configura o cabeçalho de download do Chrome para arrastar a imagem com o nome de arquivo correto
               const mimeType = "image/jpeg";
               const fileName = fileObj.name.replace(/\.[^/.]+$/, "") + "_grade.jpg";
               const downloadUrl = `${mimeType}:${fileName}:${previewSrc}`;
               e.dataTransfer.setData("DownloadURL", downloadUrl);
             }}
-            className="w-full h-full object-contain bg-slate-950/60 cursor-grab active:cursor-grabbing"
-            title="Clique e arraste esta foto direto para a Nuvemshop!"
+            onDragEnd={() => {
+              // Quando o usuário termina de arrastar e solta a imagem com sucesso
+              setUploadedFiles(prev => prev.map(f => {
+                if (f.id === fileObj.id) {
+                  return { ...f, dragged: true };
+                }
+                return f;
+              }));
+              toast.success(`Foto "${fileObj.name.substring(0, 15)}..." marcada como enviada!`);
+            }}
+            className={`w-full h-full object-contain bg-slate-950/60 cursor-grab active:cursor-grabbing transition-all duration-300 ${
+              fileObj.dragged ? 'opacity-30 grayscale-[30%]' : ''
+            }`}
+            title={fileObj.dragged ? "Esta foto já foi arrastada!" : "Clique e arraste esta foto direto para a Nuvemshop!"}
           />
         )}
         
