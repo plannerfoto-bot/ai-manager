@@ -208,3 +208,101 @@ function executarCopiarCampos(btn, titulo) {
     btn.style.boxShadow = '0 4px 10px rgba(94, 106, 210, 0.25)';
   }, 2000);
 }
+
+// 7. Integração com o AI Manager - Recebe imagem com marca d'água via clique automático
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === 'INJECT_WATERMARK') {
+    if (!isExtensionEnabled) {
+      console.warn("[Duplicador] Extensão desativada, ignorando injeção de imagem.");
+      return false;
+    }
+    const { dataUrl, name } = message;
+    injetarFotoNuvemshop(dataUrl, name);
+    sendResponse({ status: "injected" });
+  }
+  return true;
+});
+
+// 8. Se estivermos na aba do AI Manager, escuta os cliques e envia para a extensão
+if (window.location.hostname.includes("onrender.com") || window.location.hostname.includes("localhost") || window.location.hostname.includes("127.0.0.1")) {
+  console.log("[Duplicador] Rodando no AI Manager. Pronto para encaminhar cliques de marca d'água.");
+  
+  window.addEventListener("ai-manager-watermark-click", (e) => {
+    const { dataUrl, name } = e.detail;
+    chrome.runtime.sendMessage({
+      type: "CLICK_WATERMARK",
+      dataUrl: dataUrl,
+      name: name
+    });
+  });
+}
+
+function injetarFotoNuvemshop(dataUrl, name) {
+  console.log(`[Duplicador] Iniciando injeção da foto: "${name}" na Nuvemshop`);
+  
+  // 1. Procura pela área de upload do tipo file na Nuvemshop
+  const inputs = [...document.querySelectorAll('input[type="file"]')];
+  if (inputs.length === 0) {
+    console.error("[Duplicador] Nenhum input do tipo file encontrado.");
+    alert("⚠️ Não foi possível encontrar a área de fotos do produto na Nuvemshop. Certifique-se de estar na página de edição/cadastro do produto.");
+    return;
+  }
+
+  // O input de fotos geralmente aceita multiplos arquivos ou está posicionado na seção principal
+  const inputFoto = inputs.find(i => i.multiple) || inputs[0];
+
+  // 2. Converte a DataURL em Blob para upload nativo
+  fetch(dataUrl)
+    .then(res => res.blob())
+    .then(blob => {
+      const file = new File([blob], name, { type: "image/jpeg" });
+      
+      const dataTransfer = new DataTransfer();
+      dataTransfer.items.add(file);
+      
+      // Define os arquivos no input
+      inputFoto.files = dataTransfer.files;
+      
+      // Dispara o evento change para notificar o React
+      inputFoto.dispatchEvent(new Event("change", { bubbles: true }));
+      
+      console.log(`[Duplicador] Foto "${name}" injetada com sucesso no input!`);
+      
+      // Balão flutuante estilizado de confirmação
+      exibirMensagemFlutuante(`Foto "${name.substring(0, 20)}..." adicionada com sucesso!`);
+    })
+    .catch(err => {
+      console.error("[Duplicador] Erro na conversão do DataURL:", err);
+    });
+}
+
+function exibirMensagemFlutuante(msg) {
+  // Evita duplicar mensagens
+  const antigas = document.querySelectorAll('.duplicador-toast-alert');
+  antigas.forEach(a => a.remove());
+
+  const container = document.createElement('div');
+  container.className = 'duplicador-toast-alert';
+  container.innerHTML = `⚡ ${msg}`;
+  container.style.position = 'fixed';
+  container.style.bottom = '30px';
+  container.style.right = '30px';
+  container.style.backgroundColor = '#10b981';
+  container.style.color = '#ffffff';
+  container.style.padding = '14px 24px';
+  container.style.borderRadius = '14px';
+  container.style.boxShadow = '0 10px 30px rgba(16, 185, 129, 0.4)';
+  container.style.zIndex = '999999999';
+  container.style.fontSize = '14px';
+  container.style.fontWeight = 'bold';
+  container.style.fontFamily = 'sans-serif';
+  container.style.transition = 'all 0.3s ease';
+  
+  document.body.appendChild(container);
+  
+  setTimeout(() => {
+    container.style.opacity = '0';
+    container.style.transform = 'translateY(12px)';
+    setTimeout(() => container.remove(), 300);
+  }, 3000);
+}

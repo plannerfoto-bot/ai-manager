@@ -105,10 +105,29 @@ const ImagePreviewItem = ({
             }));
             toast.success(`Foto "${fileObj.name.substring(0, 15)}..." marcada como enviada!`);
           }}
-          className={`w-full h-full object-contain bg-slate-950/60 cursor-grab active:cursor-grabbing transition-all duration-300 ${
+          onClick={() => {
+            // Dispara o evento customizado que a extensão do Chrome intercepta
+            const event = new CustomEvent('ai-manager-watermark-click', {
+              detail: {
+                dataUrl: previewSrc,
+                name: fileObj.name.replace(/\.[^/.]+$/, "") + "_grade.jpg"
+              }
+            });
+            window.dispatchEvent(event);
+
+            // Marca o arquivo como "dragged" para exibir o check verde e escurecer na tela
+            setUploadedFiles(prev => prev.map(f => {
+              if (f.id === fileObj.id) {
+                return { ...f, dragged: true };
+              }
+              return f;
+            }));
+            toast.success(`Enviando "${fileObj.name.substring(0, 15)}..." para a Nuvemshop!`);
+          }}
+          className={`w-full h-full object-contain bg-slate-950/60 cursor-pointer active:scale-95 transition-all duration-300 ${
             fileObj.dragged ? 'opacity-30 grayscale-[30%]' : ''
           }`}
-          title={fileObj.dragged ? "Esta foto já foi arrastada!" : "Clique e arraste esta foto direto para a Nuvemshop!"}
+          title={fileObj.dragged ? "Esta foto já foi enviada!" : "Dica: Clique para enviar AUTOMATICAMENTE para a Nuvemshop (ou arraste se preferir)!"}
         />
       )}
       
