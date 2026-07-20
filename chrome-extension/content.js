@@ -48,10 +48,14 @@ function iniciarObservador() {
 
 // 4. Lógica de detecção e injeção do botão de automação
 function detectarEInjetarBotao() {
-  // Localiza o cabeçalho/título da janela "Duplicar produto"
-  const titulo = [...document.querySelectorAll('h1, h2, h3, [role="heading"]')].find(elemento =>
-    elemento.textContent.trim().includes("Duplicar produto")
-  );
+  // Localiza o cabeçalho/título da janela "Duplicar produto" (com seletor robusto multi-tag)
+  const titulo = [...document.querySelectorAll('h1, h2, h3, h4, h5, h6, [role="heading"], div, span, p')].find(elemento => {
+    const texto = elemento.textContent.trim();
+    // Verifica se o texto é exatamente "Duplicar produto" e se o elemento é visível
+    return (texto === "Duplicar produto" || texto.includes("Duplicar produto")) && 
+           elemento.offsetHeight > 0 && 
+           elemento.children.length <= 1; // Garante pegar a tag folha interna
+  });
 
   if (!titulo) return;
 
