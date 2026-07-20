@@ -71,6 +71,16 @@ const MainApp = () => {
   const [loading, setLoading] = useState(false);
   const [calculatorEnabled, setCalculatorEnabled] = useState(true);
   const [whatsapp, setWhatsapp] = useState('5511999999999');
+  
+  // Estados persistidos para a aba de Marca d'Água (evita limpar ao trocar de aba)
+  const [watermarkFiles, setWatermarkFiles] = useState([]);
+  const [watermarkOpacity, setWatermarkOpacity] = useState(0.95); // Padrão 95%
+  const [watermarkSelected, setWatermarkSelected] = useState({
+    id: 'aline_martins',
+    name: 'Aline Martins + Cloth',
+    url: '/watermark_aline_martins.png',
+    desc: 'Grade completa contendo ambos os logotipos'
+  });
 
   // URL Dinâmica para API
   const API_BASE_URL = window.location.hostname === 'localhost' 
@@ -223,7 +233,16 @@ const MainApp = () => {
       case 'bulk-upload':
         return <BulkUpload />;
       case 'watermark':
-        return <WatermarkCreator />;
+        return (
+          <WatermarkCreator 
+            uploadedFiles={watermarkFiles}
+            setUploadedFiles={setWatermarkFiles}
+            opacity={watermarkOpacity}
+            setOpacity={setWatermarkOpacity}
+            selectedWatermark={watermarkSelected}
+            setSelectedWatermark={setWatermarkSelected}
+          />
+        );
       case 'script-manager':
         return <ScriptManager storeId={storeId} apiBase={API_BASE_URL} />;
       case 'marketing':

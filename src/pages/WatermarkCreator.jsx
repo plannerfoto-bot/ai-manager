@@ -29,10 +29,26 @@ const WATERMARKS = [
   }
 ];
 
-export default function WatermarkCreator() {
-  const [uploadedFiles, setUploadedFiles] = useState([]);
-  const [opacity, setOpacity] = useState(0.35); // Opacidade padrão (35%)
-  const [selectedWatermark, setSelectedWatermark] = useState(WATERMARKS[0]);
+export default function WatermarkCreator({
+  uploadedFiles: propUploadedFiles,
+  setUploadedFiles: propSetUploadedFiles,
+  opacity: propOpacity,
+  setOpacity: propSetOpacity,
+  selectedWatermark: propSelectedWatermark,
+  setSelectedWatermark: propSetSelectedWatermark
+}) {
+  // Fallbacks locais para manter o componente 100% autônomo se for usado sem props
+  const [localFiles, localSetFiles] = useState([]);
+  const [localOpacity, localSetOpacity] = useState(0.95); // Padrão 95%
+  const [localSelected, localSetSelected] = useState(WATERMARKS[0]);
+
+  const uploadedFiles = propUploadedFiles !== undefined ? propUploadedFiles : localFiles;
+  const setUploadedFiles = propSetUploadedFiles !== undefined ? propSetUploadedFiles : localSetFiles;
+  const opacity = propOpacity !== undefined ? propOpacity : localOpacity;
+  const setOpacity = propSetOpacity !== undefined ? propSetOpacity : localSetOpacity;
+  const selectedWatermark = propSelectedWatermark !== undefined ? propSelectedWatermark : localSelected;
+  const setSelectedWatermark = propSetSelectedWatermark !== undefined ? propSetSelectedWatermark : localSetSelected;
+
   const [processing, setProcessing] = useState(false);
   const [progress, setProgress] = useState({ current: 0, total: 0 });
   const [dragActive, setDragActive] = useState(false);
