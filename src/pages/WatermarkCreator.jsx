@@ -236,19 +236,30 @@ export default function WatermarkCreator({
   const ImagePreviewItem = ({ fileObj }) => {
     const [previewSrc, setPreviewSrc] = useState('');
     const [itemLoading, setItemLoading] = useState(true);
+    
+    // Armazena os parâmetros da última renderização para evitar re-processamentos inúteis do Canvas
+    const lastRenderProps = useRef({ wmId: '', opacity: 0 });
 
     useEffect(() => {
-      setItemLoading(true);
-      applyWatermark(fileObj, selectedWatermark.id, opacity, 'original')
-        .then(res => {
-          setPreviewSrc(res);
-          setItemLoading(false);
-        })
-        .catch(() => {
-          setPreviewSrc(fileObj.previewUrl);
-          setItemLoading(false);
-        });
-    }, [fileObj, selectedWatermark, opacity]); // eslint-disable-line
+      const configChanged = lastRenderProps.current.wmId !== selectedWatermark.id || 
+                           lastRenderProps.current.opacity !== opacity;
+
+      // Só executa o processamento do Canvas e reinicia o loading se a configuração de fato mudou 
+      // ou se o preview desta imagem específica ainda não foi gerado pela primeira vez.
+      if (configChanged || !previewSrc) {
+        setItemLoading(true);
+        applyWatermark(fileObj, selectedWatermark.id, opacity, 'original')
+          .then(res => {
+            setPreviewSrc(res);
+            setItemLoading(false);
+            lastRenderProps.current = { wmId: selectedWatermark.id, opacity };
+          })
+          .catch(() => {
+            setPreviewSrc(fileObj.previewUrl);
+            setItemLoading(false);
+          });
+      }
+    }, [fileObj, selectedWatermark, opacity, previewSrc]); // eslint-disable-line
 
     return (
       <div className={`relative group glass-panel overflow-hidden border rounded-2xl flex flex-col aspect-square transition-all duration-300 ${
