@@ -223,7 +223,7 @@ export default function WatermarkCreator() {
 
     useEffect(() => {
       setItemLoading(true);
-      applyWatermark(fileObj, selectedWatermark.id, opacity, 'preview')
+      applyWatermark(fileObj, selectedWatermark.id, opacity, 'original')
         .then(res => {
           setPreviewSrc(res);
           setItemLoading(false);
@@ -245,7 +245,16 @@ export default function WatermarkCreator() {
           <img 
             src={previewSrc} 
             alt={fileObj.name} 
-            className="w-full h-full object-cover bg-slate-950/40"
+            draggable="true"
+            onDragStart={(e) => {
+              // Configura o cabeçalho de download do Chrome para arrastar a imagem com o nome de arquivo correto
+              const mimeType = "image/jpeg";
+              const fileName = fileObj.name.replace(/\.[^/.]+$/, "") + "_grade.jpg";
+              const downloadUrl = `${mimeType}:${fileName}:${previewSrc}`;
+              e.dataTransfer.setData("DownloadURL", downloadUrl);
+            }}
+            className="w-full h-full object-contain bg-slate-950/60 cursor-grab active:cursor-grabbing"
+            title="Clique e arraste esta foto direto para a Nuvemshop!"
           />
         )}
         
@@ -482,13 +491,13 @@ export default function WatermarkCreator() {
                     {uploadedFiles.length}
                   </span>
                 </h3>
-                <span className="text-xs text-[var(--text-muted)] font-medium flex items-center gap-1">
-                  <AlertCircle className="w-3.5 h-3.5 text-[var(--accent)]" />
-                  Mova o slider ao lado para testar a opacidade
+                <span className="text-xs text-[var(--accent)] font-bold flex items-center gap-1.5 bg-[var(--accent-glow)] px-3 py-1.5 rounded-lg border border-[var(--accent)]/10">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  Dica: Arraste a foto do preview direto para o painel de produtos da Nuvemshop!
                 </span>
               </div>
               
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 {uploadedFiles.map(fileObj => (
                   <ImagePreviewItem key={fileObj.id} fileObj={fileObj} />
                 ))}
