@@ -14,7 +14,8 @@ import {
   PackagePlus,
   DollarSign,
   Sun,
-  Moon
+  Moon,
+  Grid
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useTheme } from '../../contexts/ThemeProvider';
@@ -28,6 +29,7 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
     { id: 'inventory', label: 'Produtos', icon: Package },
     { id: 'unitary-registration', label: 'Cadastro Unitário', icon: PackagePlus },
     { id: 'bulk-upload', label: 'Upload Massivo', icon: Layers },
+    { id: 'watermark', label: "Marca d'água", icon: Grid },
     { id: 'ai-creator', label: 'IA Creator', icon: Sparkles },
     { id: 'abandoned-cart', label: '🛒 Carrinhos', icon: ShoppingBag },
     { id: 'marketing', label: 'Marketing', icon: Share2 },

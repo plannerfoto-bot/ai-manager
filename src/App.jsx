@@ -8,6 +8,7 @@ import Inventory from './pages/Inventory';
 import AICreator from './pages/AICreator';
 import Orders from './pages/Orders';
 import BulkUpload from './pages/BulkUpload';
+import WatermarkCreator from './pages/WatermarkCreator';
 import ScriptManager from './pages/ScriptManager';
 import Marketing from './pages/Marketing';
 import AbandonedCart from './components/organisms/AbandonedCart';
@@ -221,6 +222,8 @@ const MainApp = () => {
         return <AICreator onGenerate={handleGenerateAI} onSave={handleSaveProduct} status={loading ? 'loading' : 'idle'} />;
       case 'bulk-upload':
         return <BulkUpload />;
+      case 'watermark':
+        return <WatermarkCreator />;
       case 'script-manager':
         return <ScriptManager storeId={storeId} apiBase={API_BASE_URL} />;
       case 'marketing':
