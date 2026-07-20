@@ -112,6 +112,46 @@ export default function WatermarkCreator() {
     toast.success('Lista de imagens limpa!');
   };
 
+  // Fortalece as cores e o canal Alpha da marca d'água em tempo real no Canvas
+  const drawProcessedWatermark = (ctx, wmImg, width, height, opVal) => {
+    // 1. Cria um canvas temporário do tamanho correto
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = width;
+    tempCanvas.height = height;
+    const tempCtx = tempCanvas.getContext('2d');
+    
+    // 2. Desenha a marca d'água no canvas temporário
+    tempCtx.drawImage(wmImg, 0, 0, width, height);
+    
+    // 3. Modifica os pixels da marca d'água para clarear os tons de cinza e intensificar o Alpha
+    try {
+      const imgData = tempCtx.getImageData(0, 0, width, height);
+      const data = imgData.data;
+      
+      for (let i = 0; i < data.length; i += 4) {
+        const alpha = data[i+3];
+        if (alpha > 0) {
+          // Clareia os canais RGB (torna a grade cinza escura muito mais brilhante e próxima do branco)
+          // Multiplicando por 3.5 os pixels cinza claro/escuro ficam extremamente nítidos
+          data[i] = Math.min(255, data[i] * 3.5);     // Red
+          data[i+1] = Math.min(255, data[i+1] * 3.5); // Green
+          data[i+2] = Math.min(255, data[i+2] * 3.5); // Blue
+          
+          // Aumenta a opacidade das linhas finas/semitransparentes para dar corpo à grade
+          data[i+3] = Math.min(255, alpha * 2.0);     // Alpha boost
+        }
+      }
+      tempCtx.putImageData(imgData, 0, 0);
+    } catch (e) {
+      console.warn("Manipulação de pixels da marca d'água falhou, usando imagem padrão:", e);
+    }
+    
+    // 4. Desenha a marca d'água fortalecida no canvas principal com a opacidade definida no slider
+    ctx.globalAlpha = opVal;
+    ctx.drawImage(tempCanvas, 0, 0);
+    ctx.globalAlpha = 1.0;
+  };
+
   // Desenha a marca d'água em uma imagem e retorna a DataURL processada
   const applyWatermark = (fileObj, wmId, opVal, size = 'original') => {
     return new Promise((resolve, reject) => {
@@ -123,8 +163,6 @@ export default function WatermarkCreator() {
         const ctx = canvas.getContext('2d');
         
         // Define as dimensões do canvas
-        // Se for para pré-visualização na tela, podemos limitar o tamanho para ficar mais rápido
-        // Se for para download final, usamos a resolução original exata da imagem
         if (size === 'preview') {
           const maxDim = 600;
           let w = originalImg.width;
@@ -151,13 +189,8 @@ export default function WatermarkCreator() {
         const wmImg = watermarkCache.current[wmId];
         
         if (wmImg && wmImg.complete) {
-          // Aplica a opacidade
-          ctx.globalAlpha = opVal;
-          // Desenha a marca d'água cobrindo toda a extensão (esticado proporcional)
-          ctx.drawImage(wmImg, 0, 0, canvas.width, canvas.height);
-          // Reseta a opacidade global
-          ctx.globalAlpha = 1.0;
-          
+          // Aplica o desenho processado e fortalecido da marca d'água
+          drawProcessedWatermark(ctx, wmImg, canvas.width, canvas.height, opVal);
           resolve(canvas.toDataURL('image/jpeg', 0.95));
         } else {
           // Se a marca d'água não estiver pronta em cache, carrega-a dinamicamente
@@ -166,9 +199,7 @@ export default function WatermarkCreator() {
           backupWm.src = targetWm.url;
           
           backupWm.onload = () => {
-            ctx.globalAlpha = opVal;
-            ctx.drawImage(backupWm, 0, 0, canvas.width, canvas.height);
-            ctx.globalAlpha = 1.0;
+            drawProcessedWatermark(ctx, backupWm, canvas.width, canvas.height, opVal);
             resolve(canvas.toDataURL('image/jpeg', 0.95));
           };
           
