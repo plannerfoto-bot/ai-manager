@@ -29,6 +29,109 @@ const WATERMARKS = [
   }
 ];
 
+// Componente de pré-visualização dinâmica individual com marca d'água (declarado fora para evitar desmontar e recarregar a cada render do pai)
+const ImagePreviewItem = ({ 
+  fileObj, 
+  selectedWatermark, 
+  opacity, 
+  setUploadedFiles, 
+  removeFile, 
+  applyWatermark 
+}) => {
+  const [previewSrc, setPreviewSrc] = useState('');
+  const [itemLoading, setItemLoading] = useState(true);
+  
+  // Armazena os parâmetros da última renderização para evitar re-processamentos inúteis do Canvas
+  const lastRenderProps = useRef({ wmId: '', opacity: 0 });
+
+  useEffect(() => {
+    const configChanged = lastRenderProps.current.wmId !== selectedWatermark.id || 
+                         lastRenderProps.current.opacity !== opacity;
+
+    // Só executa o processamento do Canvas e reinicia o loading se a configuração de fato mudou 
+    // ou se o preview desta imagem específica ainda não foi gerado pela primeira vez.
+    if (configChanged || !previewSrc) {
+      setItemLoading(true);
+      applyWatermark(fileObj, selectedWatermark.id, opacity, 'original')
+        .then(res => {
+          setPreviewSrc(res);
+          setItemLoading(false);
+          lastRenderProps.current = { wmId: selectedWatermark.id, opacity };
+        })
+        .catch(() => {
+          setPreviewSrc(fileObj.previewUrl);
+          setItemLoading(false);
+        });
+    }
+  }, [fileObj, selectedWatermark, opacity, previewSrc, applyWatermark]);
+
+  return (
+    <div className={`relative group glass-panel overflow-hidden border rounded-2xl flex flex-col aspect-square transition-all duration-300 ${
+      fileObj.dragged 
+        ? 'border-emerald-500/20 shadow-md shadow-emerald-500/5' 
+        : 'border-[var(--border-soft)] hover:shadow-xl hover:shadow-[var(--accent-glow)]/10 hover:border-[var(--accent)]/30'
+    }`}>
+      {/* Badge Verde de "Enviada" para indicar que a imagem já foi arrastada */}
+      {fileObj.dragged && (
+        <div className="absolute top-3 left-3 bg-emerald-500 text-white text-[10px] font-black tracking-wider uppercase px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 shadow-lg shadow-emerald-500/25 border border-emerald-400/20 z-10 animate-fade-in">
+          <CheckCircle2 className="w-3.5 h-3.5" />
+          Enviada
+        </div>
+      )}
+
+      {itemLoading ? (
+        <div className="w-full h-full flex flex-col items-center justify-center bg-slate-950/20 text-slate-400 gap-2">
+          <Loader2 className="w-6 h-6 animate-spin text-[var(--accent)]" />
+          <span className="text-xs font-medium">Aplicando grade...</span>
+        </div>
+      ) : (
+        <img 
+          src={previewSrc} 
+          alt={fileObj.name} 
+          draggable="true"
+          onDragStart={(e) => {
+            const mimeType = "image/jpeg";
+            const fileName = fileObj.name.replace(/\.[^/.]+$/, "") + "_grade.jpg";
+            const downloadUrl = `${mimeType}:${fileName}:${previewSrc}`;
+            e.dataTransfer.setData("DownloadURL", downloadUrl);
+          }}
+          onDragEnd={() => {
+            // Quando o usuário termina de arrastar e solta a imagem com sucesso
+            setUploadedFiles(prev => prev.map(f => {
+              if (f.id === fileObj.id) {
+                return { ...f, dragged: true };
+              }
+              return f;
+            }));
+            toast.success(`Foto "${fileObj.name.substring(0, 15)}..." marcada como enviada!`);
+          }}
+          className={`w-full h-full object-contain bg-slate-950/60 cursor-grab active:cursor-grabbing transition-all duration-300 ${
+            fileObj.dragged ? 'opacity-30 grayscale-[30%]' : ''
+          }`}
+          title={fileObj.dragged ? "Esta foto já foi arrastada!" : "Clique e arraste esta foto direto para a Nuvemshop!"}
+        />
+      )}
+      
+      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-3 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+        <div className="overflow-hidden mr-2">
+          <p className="text-white text-xs font-bold truncate">{fileObj.name}</p>
+          <p className="text-slate-300 text-[10px] font-medium">
+            {(fileObj.file.size / 1024 / 1024).toFixed(2)} MB
+          </p>
+        </div>
+        <button 
+          type="button"
+          onClick={() => removeFile(fileObj.id, fileObj.previewUrl)}
+          className="p-2 bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white rounded-xl transition-all duration-200"
+          title="Remover imagem"
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+  );
+};
+
 export default function WatermarkCreator({
   uploadedFiles: propUploadedFiles,
   setUploadedFiles: propSetUploadedFiles,
@@ -230,102 +333,6 @@ export default function WatermarkCreator({
         reject(err);
       };
     });
-  };
-
-  // Componente de pré-visualização dinâmica individual com marca d'água
-  const ImagePreviewItem = ({ fileObj }) => {
-    const [previewSrc, setPreviewSrc] = useState('');
-    const [itemLoading, setItemLoading] = useState(true);
-    
-    // Armazena os parâmetros da última renderização para evitar re-processamentos inúteis do Canvas
-    const lastRenderProps = useRef({ wmId: '', opacity: 0 });
-
-    useEffect(() => {
-      const configChanged = lastRenderProps.current.wmId !== selectedWatermark.id || 
-                           lastRenderProps.current.opacity !== opacity;
-
-      // Só executa o processamento do Canvas e reinicia o loading se a configuração de fato mudou 
-      // ou se o preview desta imagem específica ainda não foi gerado pela primeira vez.
-      if (configChanged || !previewSrc) {
-        setItemLoading(true);
-        applyWatermark(fileObj, selectedWatermark.id, opacity, 'original')
-          .then(res => {
-            setPreviewSrc(res);
-            setItemLoading(false);
-            lastRenderProps.current = { wmId: selectedWatermark.id, opacity };
-          })
-          .catch(() => {
-            setPreviewSrc(fileObj.previewUrl);
-            setItemLoading(false);
-          });
-      }
-    }, [fileObj, selectedWatermark, opacity, previewSrc]); // eslint-disable-line
-
-    return (
-      <div className={`relative group glass-panel overflow-hidden border rounded-2xl flex flex-col aspect-square transition-all duration-300 ${
-        fileObj.dragged 
-          ? 'border-emerald-500/20 shadow-md shadow-emerald-500/5' 
-          : 'border-[var(--border-soft)] hover:shadow-xl hover:shadow-[var(--accent-glow)]/10 hover:border-[var(--accent)]/30'
-      }`}>
-        {/* Badge Verde de "Enviada" para indicar que a imagem já foi arrastada */}
-        {fileObj.dragged && (
-          <div className="absolute top-3 left-3 bg-emerald-500 text-white text-[10px] font-black tracking-wider uppercase px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 shadow-lg shadow-emerald-500/25 border border-emerald-400/20 z-10 animate-fade-in">
-            <CheckCircle2 className="w-3.5 h-3.5" />
-            Enviada
-          </div>
-        )}
-
-        {itemLoading ? (
-          <div className="w-full h-full flex flex-col items-center justify-center bg-slate-950/20 text-slate-400 gap-2">
-            <Loader2 className="w-6 h-6 animate-spin text-[var(--accent)]" />
-            <span className="text-xs font-medium">Aplicando grade...</span>
-          </div>
-        ) : (
-          <img 
-            src={previewSrc} 
-            alt={fileObj.name} 
-            draggable="true"
-            onDragStart={(e) => {
-              const mimeType = "image/jpeg";
-              const fileName = fileObj.name.replace(/\.[^/.]+$/, "") + "_grade.jpg";
-              const downloadUrl = `${mimeType}:${fileName}:${previewSrc}`;
-              e.dataTransfer.setData("DownloadURL", downloadUrl);
-            }}
-            onDragEnd={() => {
-              // Quando o usuário termina de arrastar e solta a imagem com sucesso
-              setUploadedFiles(prev => prev.map(f => {
-                if (f.id === fileObj.id) {
-                  return { ...f, dragged: true };
-                }
-                return f;
-              }));
-              toast.success(`Foto "${fileObj.name.substring(0, 15)}..." marcada como enviada!`);
-            }}
-            className={`w-full h-full object-contain bg-slate-950/60 cursor-grab active:cursor-grabbing transition-all duration-300 ${
-              fileObj.dragged ? 'opacity-30 grayscale-[30%]' : ''
-            }`}
-            title={fileObj.dragged ? "Esta foto já foi arrastada!" : "Clique e arraste esta foto direto para a Nuvemshop!"}
-          />
-        )}
-        
-        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-3 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-          <div className="overflow-hidden mr-2">
-            <p className="text-white text-xs font-bold truncate">{fileObj.name}</p>
-            <p className="text-slate-300 text-[10px] font-medium">
-              {(fileObj.file.size / 1024 / 1024).toFixed(2)} MB
-            </p>
-          </div>
-          <button 
-            type="button"
-            onClick={() => removeFile(fileObj.id, fileObj.previewUrl)}
-            className="p-2 bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white rounded-xl transition-all duration-200"
-            title="Remover imagem"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-    );
   };
 
   // Lógica principal de download em lote compactado em ZIP
@@ -549,7 +556,15 @@ export default function WatermarkCreator({
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 {uploadedFiles.map(fileObj => (
-                  <ImagePreviewItem key={fileObj.id} fileObj={fileObj} />
+                  <ImagePreviewItem 
+                    key={fileObj.id} 
+                    fileObj={fileObj} 
+                    selectedWatermark={selectedWatermark}
+                    opacity={opacity}
+                    setUploadedFiles={setUploadedFiles}
+                    removeFile={removeFile}
+                    applyWatermark={applyWatermark}
+                  />
                 ))}
               </div>
             </div>
