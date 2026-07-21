@@ -239,19 +239,8 @@ if (window.location.hostname.includes("onrender.com") || window.location.hostnam
 
 function injetarFotoNuvemshop(dataUrl, name) {
   console.log(`[Duplicador] Iniciando injeção da foto: "${name}" na Nuvemshop`);
-  
-  // 1. Procura pela área de upload do tipo file na Nuvemshop
-  const inputs = [...document.querySelectorAll('input[type="file"]')];
-  if (inputs.length === 0) {
-    console.error("[Duplicador] Nenhum input do tipo file encontrado.");
-    alert("⚠️ Não foi possível encontrar a área de fotos do produto na Nuvemshop. Certifique-se de estar na página de edição/cadastro do produto.");
-    return;
-  }
 
-  // O input de fotos geralmente aceita multiplos arquivos ou está posicionado na seção principal
-  const inputFoto = inputs.find(i => i.multiple) || inputs[0];
-
-  // 2. Converte a DataURL em Blob para upload nativo
+  // 1. Converte a DataURL em Blob para gerar o arquivo em memória
   fetch(dataUrl)
     .then(res => res.blob())
     .then(blob => {
@@ -259,14 +248,61 @@ function injetarFotoNuvemshop(dataUrl, name) {
       
       const dataTransfer = new DataTransfer();
       dataTransfer.items.add(file);
-      
-      // Define os arquivos no input
-      inputFoto.files = dataTransfer.files;
-      
-      // Dispara o evento change para notificar o React
-      inputFoto.dispatchEvent(new Event("change", { bubbles: true }));
-      
-      console.log(`[Duplicador] Foto "${name}" injetada com sucesso no input!`);
+
+      // Técnica 1: Simular Evento de DROP na Dropzone Visual da Nuvemshop (Excelente para react-dropzone)
+      // Procura pelo elemento de texto que indica a área de fotos
+      const textoUpload = [...document.querySelectorAll('div, p, span, h1, h2, h3, h4, h5, h6')]
+        .find(el => {
+          const txt = el.textContent.trim();
+          return txt.includes("Selecione fotos") || txt.includes("Selecione fotos e vídeo") || txt.includes("Fotos e vídeos");
+        });
+
+      let dropzoneElement = null;
+      if (textoUpload) {
+        // Busca o contêiner clicável/arrastável mais próximo (geralmente com borda tracejada)
+        dropzoneElement = textoUpload.closest('div[class*="dropzone"]') || 
+                          textoUpload.closest('div[class*="upload"]') || 
+                          textoUpload.closest('div[class*="Upload"]') || 
+                          textoUpload.closest('div[style*="border"]') || 
+                          textoUpload.parentElement;
+      }
+
+      if (dropzoneElement) {
+        console.log("[Duplicador] Dropzone visual detectada. Disparando eventos dragover e drop...");
+        
+        // Simula o dragover para a dropzone preparar o recebimento do arquivo
+        const dragOverEvent = new DragEvent('dragover', {
+          bubbles: true,
+          cancelable: true,
+          dataTransfer: dataTransfer
+        });
+        dropzoneElement.dispatchEvent(dragOverEvent);
+
+        // Dispara o drop para efetivar o upload
+        const dropEvent = new DragEvent('drop', {
+          bubbles: true,
+          cancelable: true,
+          dataTransfer: dataTransfer
+        });
+        dropzoneElement.dispatchEvent(dropEvent);
+      }
+
+      // Técnica 2: Injetar diretamente nos inputs do tipo file da página como Fallback
+      const inputs = [...document.querySelectorAll('input[type="file"]')];
+      if (inputs.length > 0) {
+        console.log(`[Duplicador] Encontrados ${inputs.length} inputs de arquivo. Injetando no principal...`);
+        const inputFoto = inputs.find(i => i.multiple) || inputs[0];
+        
+        try {
+          inputFoto.files = dataTransfer.files;
+          inputFoto.dispatchEvent(new Event("change", { bubbles: true }));
+          inputFoto.dispatchEvent(new Event("input", { bubbles: true }));
+        } catch (e) {
+          console.warn("[Duplicador] Falha no fallback do input file:", e);
+        }
+      }
+
+      console.log(`[Duplicador] Processamento de upload concluído para: "${name}"`);
       
       // Balão flutuante estilizado de confirmação
       exibirMensagemFlutuante(`Foto "${name.substring(0, 20)}..." adicionada com sucesso!`);
